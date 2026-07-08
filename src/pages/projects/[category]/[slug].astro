@@ -23,6 +23,9 @@ const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 
 	<a class="back-link" href="/projects/">← 返回 Projects</a>
 	<h1>{project.data.title}</h1>
 	<p class="category-label">{categoryLabels[project.data.category]}</p>
+	<div class="content">
+		<Content />
+	</div>
 	{
 		project.data.tags && (
 			<ul class="tags">
@@ -32,9 +35,6 @@ const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 
 			</ul>
 		)
 	}
-	<div class="content">
-		<Content />
-	</div>
 	{
 		project.data.links && (
 			<ul class="links">
