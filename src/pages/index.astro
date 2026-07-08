@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const entryLinks = [
+	{ label: 'LinkedIn', href: 'https://www.linkedin.com/in/REPLACE_ME' },
+	{ label: 'GitHub', href: 'https://github.com/xup6m4jo6222' },
+	{ label: 'Email', href: 'mailto:REPLACE_ME@example.com' },
+];
+---
+
+<BaseLayout title="林郁為">
+	<section class="hero">
+		<h1>林郁為</h1>
+		<p>統計背景，正朝資料科學邁進。</p>
+	</section>
+	<section class="entry-links">
+		{entryLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+	</section>
+</BaseLayout>

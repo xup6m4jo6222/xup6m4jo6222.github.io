@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const allProjects = await getCollection('projects');
+	return allProjects.map((project) => {
+		const [category, ...slugParts] = project.id.split('/');
+		return {
+			params: { category, slug: slugParts.join('/') },
+			props: { project },
+		};
+	});
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+
+const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 實作' };
+---
+
+<BaseLayout title={`${project.data.title} | 林郁為`}>
+	<a href="/projects/">← 返回 Projects</a>
+	<h1>{project.data.title}</h1>
+	<p class="category-label">{categoryLabels[project.data.category]}</p>
+	{
+		project.data.tags && (
+			<ul class="tags">
+				{project.data.tags.map((tag) => (
+					<li>{tag}</li>
+				))}
+			</ul>
+		)
+	}
+	<div class="content">
+		<Content />
+	</div>
+	{
+		project.data.links && (
+			<ul class="links">
+				{project.data.links.github && (
+					<li>
+						<a href={project.data.links.github}>GitHub</a>
+					</li>
+				)}
+				{project.data.links.demo && (
+					<li>
+						<a href={project.data.links.demo}>Demo</a>
+					</li>
+				)}
+			</ul>
+		)
+	}
+</BaseLayout>
