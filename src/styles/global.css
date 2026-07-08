@@ -1,25 +1,29 @@
 :root {
-	--color-bg: #ffffff;
-	--color-bg-alt: #f8fafc;
-	--color-text: #1e293b;
-	--color-text-muted: #64748b;
-	--color-border: #e2e8f0;
-	--color-accent: #2563eb;
-	--color-accent-bg: #eff6ff;
+	--color-bg: #f5f2ea;
+	--color-bg-alt: #ece5d5;
+	--color-text: #2b2620;
+	--color-text-muted: #6f6858;
+	--color-border: #d9cfb8;
+	--color-accent: #b8452e;
+	--color-accent-bg: #f0ded6;
+	--color-grid: rgba(43, 38, 32, 0.05);
+	--font-display: 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
 	--font-sans:
 		system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+	--font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 	--max-width: 760px;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--color-bg: #0f172a;
-		--color-bg-alt: #1a2436;
-		--color-text: #e2e8f0;
-		--color-text-muted: #94a3b8;
-		--color-border: #2c3b52;
-		--color-accent: #60a5fa;
-		--color-accent-bg: #17233a;
+		--color-bg: #1c2420;
+		--color-bg-alt: #242e29;
+		--color-text: #ede7d9;
+		--color-text-muted: #93a196;
+		--color-border: #3a453e;
+		--color-accent: #e8b04b;
+		--color-accent-bg: #333224;
+		--color-grid: rgba(237, 231,217, 0.05);
 	}
 }
 
@@ -34,7 +38,9 @@ body {
 }
 
 body {
-	background: var(--color-bg);
+	background-color: var(--color-bg);
+	background-image: radial-gradient(var(--color-grid) 1px, transparent 1px);
+	background-size: 22px 22px;
 	color: var(--color-text);
 	font-family: var(--font-sans);
 	line-height: 1.6;
@@ -57,7 +63,7 @@ main {
 
 /* Nav */
 .site-nav {
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px dashed var(--color-border);
 	position: sticky;
 	top: 0;
 	background: var(--color-bg);
@@ -69,14 +75,17 @@ main {
 	margin-inline: auto;
 	padding: 1rem 1.5rem;
 	display: flex;
-	gap: 1.5rem;
+	gap: 1.75rem;
 }
 
 .site-nav a {
 	color: var(--color-text-muted);
 	text-decoration: none;
-	font-size: 0.95rem;
+	font-family: var(--font-mono);
+	font-size: 0.82rem;
 	font-weight: 500;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
 }
 
 .site-nav a:hover {
@@ -89,34 +98,79 @@ main {
 
 /* Homepage hero */
 .hero {
-	padding-block: 2rem 2.5rem;
+	padding-block: 2.5rem 2rem;
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.hero-text {
+	flex: 1;
+	min-width: 220px;
 }
 
 .hero h1 {
-	font-size: 2.25rem;
+	font-family: var(--font-display);
+	font-weight: 900;
+	font-size: 2.5rem;
+	letter-spacing: -0.01em;
 	margin: 0 0 0.75rem;
 }
 
 .hero p {
 	color: var(--color-text-muted);
-	font-size: 1.15rem;
+	font-size: 1.1rem;
 	margin: 0;
+}
+
+.hero-plot {
+	flex-shrink: 0;
+	color: var(--color-accent);
+}
+
+.hero-plot circle {
+	fill: var(--color-text-muted);
+	opacity: 0.6;
+}
+
+.hero-plot .fit-line {
+	stroke: currentColor;
+	stroke-width: 2;
+	fill: none;
+	stroke-dasharray: 180;
+	stroke-dashoffset: 180;
+	animation: draw-line 1.1s ease-out 0.2s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-plot .fit-line {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes draw-line {
+	to {
+		stroke-dashoffset: 0;
+	}
 }
 
 .entry-links {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.75rem;
+	margin-top: 2rem;
 }
 
 .entry-links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border);
-	border-radius: 999px;
-	padding: 0.5rem 1.25rem;
-	font-size: 0.95rem;
-	font-weight: 500;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	border: 1px dashed var(--color-border);
+	border-radius: 0.25rem;
+	padding: 0.5rem 1.1rem;
 	transition:
 		background-color 0.15s ease,
 		border-color 0.15s ease;
@@ -125,6 +179,7 @@ main {
 .entry-links a:hover {
 	background: var(--color-accent-bg);
 	border-color: var(--color-accent);
+	border-style: solid;
 	color: var(--color-accent);
 }
 
@@ -140,10 +195,12 @@ main {
 }
 
 .category h2 {
-	font-size: 1.35rem;
+	font-family: var(--font-display);
+	font-weight: 900;
+	font-size: 1.4rem;
 	margin: 0 0 1.25rem;
 	padding-bottom: 0.5rem;
-	border-bottom: 2px solid var(--color-accent);
+	border-bottom: 1px dashed var(--color-accent);
 	display: inline-block;
 }
 
@@ -160,22 +217,24 @@ main {
 	text-decoration: none;
 	color: inherit;
 	background: var(--color-bg-alt);
-	border: 1px solid var(--color-border);
-	border-radius: 0.75rem;
+	border: 1px dashed var(--color-border);
+	border-radius: 0.25rem;
 	padding: 1.25rem;
 	transition:
 		transform 0.15s ease,
-		box-shadow 0.15s ease;
+		border-color 0.15s ease;
 }
 
 .card:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 8px 20px -12px rgba(15, 23, 42, 0.3);
 	border-color: var(--color-accent);
+	border-style: solid;
 }
 
 .card h3 {
 	margin: 0;
+	font-family: var(--font-display);
+	font-weight: 700;
 	font-size: 1.05rem;
 }
 
@@ -191,26 +250,35 @@ main {
 	margin-bottom: 1.5rem;
 	color: var(--color-text-muted);
 	text-decoration: none;
-	font-size: 0.9rem;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	transition: transform 0.15s ease;
 }
 
 .back-link:hover {
 	color: var(--color-accent);
+	transform: translateX(-3px);
+	display: inline-block;
 }
 
 main > h1 {
+	font-family: var(--font-display);
+	font-weight: 900;
 	margin: 0 0 0.75rem;
 	font-size: 2rem;
 }
 
 .category-label {
 	display: inline-block;
-	background: var(--color-accent-bg);
+	font-family: var(--font-mono);
 	color: var(--color-accent);
-	font-size: 0.8rem;
+	font-size: 0.78rem;
 	font-weight: 600;
-	padding: 0.25rem 0.75rem;
-	border-radius: 999px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	border: 1px dashed var(--color-accent);
+	padding: 0.2rem 0.6rem;
+	border-radius: 0.25rem;
 	margin: 0 0 1.5rem;
 }
 
@@ -224,11 +292,12 @@ main > h1 {
 }
 
 .tags li {
+	font-family: var(--font-mono);
 	background: var(--color-bg-alt);
-	border: 1px solid var(--color-border);
-	border-radius: 999px;
-	padding: 0.2rem 0.75rem;
-	font-size: 0.82rem;
+	border: 1px dashed var(--color-border);
+	border-radius: 0.25rem;
+	padding: 0.2rem 0.7rem;
+	font-size: 0.8rem;
 	color: var(--color-text-muted);
 }
 
@@ -238,6 +307,7 @@ main > h1 {
 }
 
 .content :is(h2, h3) {
+	font-family: var(--font-display);
 	margin-top: 2rem;
 }
 
@@ -258,16 +328,17 @@ main > h1 {
 .links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border);
-	border-radius: 999px;
-	padding: 0.5rem 1.25rem;
-	font-size: 0.9rem;
-	font-weight: 500;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	border: 1px dashed var(--color-border);
+	border-radius: 0.25rem;
+	padding: 0.5rem 1.1rem;
 }
 
 .links a:hover {
 	background: var(--color-accent-bg);
 	border-color: var(--color-accent);
+	border-style: solid;
 	color: var(--color-accent);
 }
 
@@ -275,13 +346,18 @@ main > h1 {
 footer {
 	text-align: center;
 	color: var(--color-text-muted);
-	font-size: 0.85rem;
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
 	padding: 1.5rem 1.5rem 2rem;
-	border-top: 1px solid var(--color-border);
+	border-top: 1px dashed var(--color-border);
 }
 
 @media (max-width: 480px) {
 	.hero h1 {
-		font-size: 1.75rem;
+		font-size: 1.9rem;
+	}
+
+	.hero-plot {
+		display: none;
 	}
 }

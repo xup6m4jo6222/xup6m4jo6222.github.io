@@ -9,8 +9,22 @@ const entryLinks = [
 
 <BaseLayout title="林郁為">
 	<section class="hero">
-		<h1>林郁為</h1>
-		<p>統計背景，正朝資料科學邁進。</p>
+		<div class="hero-text">
+			<h1>林郁為</h1>
+			<p>統計背景，正朝資料科學邁進。</p>
+		</div>
+		<svg class="hero-plot" width="160" height="110" viewBox="0 0 160 110" aria-hidden="true">
+			<circle cx="18" cy="80" r="3" />
+			<circle cx="38" cy="60" r="3" />
+			<circle cx="52" cy="70" r="3" />
+			<circle cx="66" cy="45" r="3" />
+			<circle cx="80" cy="52" r="3" />
+			<circle cx="96" cy="30" r="3" />
+			<circle cx="112" cy="38" r="3" />
+			<circle cx="126" cy="18" r="3" />
+			<circle cx="142" cy="22" r="3" />
+			<path class="fit-line" d="M12 92 L150 10" />
+		</svg>
 	</section>
 	<section class="entry-links">
 		{entryLinks.map((link) => <a href={link.href}>{link.label}</a>)}
