@@ -15,6 +15,8 @@ const projects = defineCollection({
 			})
 			.optional(),
 		date: z.coerce.date(),
+		cover: z.string().optional(),
+		coverHover: z.string().optional(),
 	}),
 });
 

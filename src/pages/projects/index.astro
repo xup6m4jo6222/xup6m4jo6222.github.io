@@ -28,6 +28,15 @@ const categories = [
 									data-reveal
 									style={`transition-delay: ${i * 80}ms`}
 								>
+									{item.data.cover && (
+										<span class="card-cover">
+											<img src={item.data.cover} alt="" width="760" height="470" loading="lazy" />
+											{item.data.coverHover && (
+												<img class="card-cover-alt" src={item.data.coverHover} alt="" width="760" height="470" loading="lazy" />
+											)}
+											{item.data.coverHover && <span class="card-cover-chip">初版</span>}
+										</span>
+									)}
 									<h3>{item.data.title}</h3>
 									<p>{item.data.summary}</p>
 								</a>
