@@ -7,7 +7,6 @@ links:
   github: https://github.com/xup6m4jo6222/xup6m4jo6222.github.io
 date: 2026-07-16
 cover: /images/portfolio-site/current-v2.png
-coverHover: /images/portfolio-site/rejected-v1.png
 ---
 
 <p class="cs-lead">可以左右拖曳以下的框框，對比初版與最終定案的差距。</p>

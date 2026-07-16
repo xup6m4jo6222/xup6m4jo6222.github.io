@@ -188,39 +188,33 @@ main {
 	height: auto;
 }
 
-.card-cover-alt {
-	position: absolute;
-	inset: 0;
-	opacity: 0;
-	transition: opacity 0.35s ease;
+.card-cover img {
+	transition: transform 0.3s ease;
 }
 
-.card:hover .card-cover-alt {
-	opacity: 1;
+.card:hover .card-cover img {
+	transform: scale(1.03);
 }
 
-.card-cover-chip {
-	position: absolute;
-	top: 0.5rem;
-	right: 0.5rem;
-	font-size: 0.75rem;
-	padding: 0.1rem 0.5rem;
-	background: color-mix(in srgb, var(--color-bg) 85%, transparent);
-	border: 1px solid var(--color-border);
-	border-radius: 0.25rem;
-	color: var(--color-text-muted);
-	opacity: 0;
-	transition: opacity 0.35s ease;
+.card {
+	transition:
+		border-color 0.15s ease,
+		transform 0.3s ease;
 }
 
-.card:hover .card-cover-chip {
-	opacity: 1;
+.card:hover {
+	transform: translateY(-3px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.card-cover-alt,
-	.card-cover-chip {
+	.card,
+	.card-cover img {
 		transition: none;
+	}
+
+	.card:hover,
+	.card:hover .card-cover img {
+		transform: none;
 	}
 }
 
