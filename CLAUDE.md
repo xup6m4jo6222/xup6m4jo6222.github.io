@@ -37,3 +37,13 @@ Consult these guides before working on related tasks:
 - [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
 - [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
 - [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+
+## Decision log（決策紀錄協議）
+
+當使用者在協作中做出「拍板／否決／推翻先前方案／修正流程」的決策時，當下 append 一行到本 repo 的 `DECISIONS.md`：
+
+```
+- YYYY-MM-DD | [拍板|否決|修正] 決策一句話 | 理由（使用者原話優先；若是推斷，標註「推斷」）
+```
+
+規則：只記使用者做的決策，AI 自己的實作選擇不記；沒有明說的理由不得腦補；這份檔案是日後撰寫 README「人的貢獻」章節的原始材料，寧缺勿假。
