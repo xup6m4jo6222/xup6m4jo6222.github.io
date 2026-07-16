@@ -8,7 +8,7 @@ links:
 date: 2026-07-16
 ---
 
-<p class="cs-lead">可以左右拖曳一下以下的框框，對比一下初版與最終定案的差距。</p>
+<p class="cs-lead">可以左右拖曳以下的框框，對比初版與最終定案的差距。</p>
 
 <figure class="cs-wipe" style="margin:0">
   <img src="/images/portfolio-site/rejected-v1.png" alt="初版首頁，金色點綴與紙紋理" width="760" height="470" />
@@ -35,7 +35,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">設計方向</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="設計方向，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 一開始根據「統計」給出相關通用設計</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>利用 AI Chat 的記憶功能，貼上記憶總結，來讓此專案的設計更貼合個人個性及喜好</div>
     </div>
@@ -48,7 +48,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">視覺方向</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="視覺方向，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>金色點綴、紙紋理、統計圖裝飾</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>全部拿掉，只留墨綠一色，不用太華麗的互動</div>
     </div>
@@ -56,7 +56,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">深淺色</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="深淺色，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>跟著訪客的系統設定自動切換</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>永遠深色</div>
     </div>
@@ -77,7 +77,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">呈現方式</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="呈現方式，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>給了整頁的文字說明</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>要有基礎的互動、要有一定的視覺化</div>
     </div>
@@ -85,7 +85,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">文字所有權</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="文字所有權，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 自動生成所有內容</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>所有的文字都是我自己寫的，AI 只核對事實，這一頁的字就是這樣來</div>
     </div>
@@ -93,7 +93,7 @@ date: 2026-07-16
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">這條時間軸</div>
-    <div class="cs-track" role="button" tabindex="0" aria-label="這條時間軸，點擊切換兩個方案">
+    <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 放入孤立的卡片元素</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>加入時間軸設計，以及親自設計呈現動畫。你剛剛所有的滑動，都是這個決定的成品。</div>
     </div>
@@ -110,17 +110,6 @@ date: 2026-07-16
     range.addEventListener('input', set);
     set();
   }
-
-  document.querySelectorAll('.cs-track').forEach((t) => {
-    const flip = () => t.classList.toggle('is-decided');
-    t.addEventListener('click', flip);
-    t.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        flip();
-      }
-    });
-  });
 
   const items = document.querySelectorAll('.tl-item');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
