@@ -5,6 +5,7 @@
 	--color-text: #e8e6e0;
 	--color-text-muted: #93958e;
 	--color-border: #2c2f31;
+	--color-border-strong: #56506a;
 	--color-accent: #a295bb;
 	--font-display: 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
 	--font-sans:
@@ -471,7 +472,7 @@ main > h1 {
 /* 拖曳比對器 */
 .cs-wipe {
 	position: relative;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-strong);
 	border-radius: 0.55rem;
 	overflow: hidden;
 	touch-action: none;
@@ -587,7 +588,7 @@ main > h1 {
 	position: relative;
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-strong);
 	border-radius: 0.55rem;
 	background: var(--color-bg-alt);
 	overflow: hidden;
@@ -600,23 +601,6 @@ main > h1 {
 
 .cs-track:hover .cs-side {
 	color: var(--color-text);
-}
-
-.cs-track::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	width: 50%;
-	border: 1px solid var(--color-accent);
-	border-radius: 0.55rem;
-	transition: transform 0.45s ease;
-	pointer-events: none;
-}
-
-.cs-track.is-decided::before {
-	transform: translateX(100%);
 }
 
 .cs-side {
@@ -635,23 +619,15 @@ main > h1 {
 }
 
 .cs-track .cs-side--ai {
-	color: var(--color-text);
-}
-
-.cs-track .cs-side--me {
-	color: var(--color-text-muted);
-}
-
-.cs-track.is-decided .cs-side--ai {
 	color: var(--color-text-muted);
 	opacity: 0.65;
 }
 
-.cs-track.is-decided .cs-side--me {
+.cs-track .cs-side--me {
 	color: var(--color-text);
 }
 
-.cs-track.is-decided .cs-side--me em {
+.cs-track .cs-side--me em {
 	color: var(--color-accent);
 }
 
@@ -685,7 +661,7 @@ main > h1 {
 
 /* 文字所有權卡的內嵌對質 */
 .cs-pair {
-	border-top: 1px solid var(--color-border);
+	border-top: 1px solid var(--color-border-strong);
 	margin-top: 0.8rem;
 	padding: 0.8rem 1rem 0.9rem;
 	display: grid;
@@ -757,7 +733,6 @@ main > h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.cs-track::before,
 	.cs-side {
 		transition: none;
 	}
@@ -994,5 +969,25 @@ footer {
 @media (max-width: 480px) {
 	.hero h1 {
 		font-size: 1.85rem;
+	}
+}
+
+@media (min-width: 1440px) {
+	html {
+		font-size: 17.5px;
+	}
+
+	:root {
+		--max-width: 800px;
+	}
+}
+
+@media (min-width: 1920px) {
+	html {
+		font-size: 19px;
+	}
+
+	:root {
+		--max-width: 860px;
 	}
 }
