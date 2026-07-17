@@ -1,5 +1,6 @@
 ---
 import Nav from '../components/Nav.astro';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 const { title } = Astro.props;
+const buildDate = new Date().toLocaleDateString('sv-SE');
 ---
 
 <html lang="zh-Hant" class="no-js">
@@ -21,9 +23,15 @@ const { title } = Astro.props;
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;600;700&display=swap"
 			rel="stylesheet"
 		/>
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content="統計背景，正朝資料科學邁進。" />
+		<meta property="og:image" content="https://xup6m4jo6222.github.io/images/og-card.png" />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<ClientRouter />
 		<title>{title}</title>
 	</head>
 	<body>
@@ -32,14 +40,22 @@ const { title } = Astro.props;
 			<slot />
 		</main>
 		<footer>
-			<p>&copy; {new Date().getFullYear()} 林郁為</p>
+			<div class="footer-inner">
+				<span>&copy; 2026 林郁為</span>
+				<span>最後更新 {buildDate}</span>
+			</div>
 		</footer>
 		<script>
 			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			const targets = document.querySelectorAll('[data-reveal]');
-			if (reduceMotion || !('IntersectionObserver' in window)) {
-				targets.forEach((el) => el.classList.add('is-visible'));
-			} else {
+			const hasIO = 'IntersectionObserver' in window;
+
+			// 進場淡入（每次 page-load 對尚未顯示的元素重跑）
+			function initReveal() {
+				const targets = document.querySelectorAll('[data-reveal]:not(.is-visible)');
+				if (reduceMotion || !hasIO) {
+					targets.forEach((el) => el.classList.add('is-visible'));
+					return;
+				}
 				const observer = new IntersectionObserver(
 					(entries) => {
 						for (const entry of entries) {
@@ -53,6 +69,81 @@ const { title } = Astro.props;
 				);
 				targets.forEach((el) => observer.observe(el));
 			}
+
+			// 內文圖片載入後淡入（無 JS 時預設可見）
+			function initImageFade() {
+				document.querySelectorAll('.content img').forEach((img) => {
+					if (img.complete) return;
+					img.classList.add('is-loading');
+					const done = () => img.classList.remove('is-loading');
+					img.addEventListener('load', done, { once: true });
+					img.addEventListener('error', done, { once: true });
+				});
+			}
+
+			// 捲動進度縱線 + 紀元刻度（縱線建立一次，刻度每頁重算）
+			function initProgress() {
+				let track = document.getElementById('scroll-progress');
+				if (!track) {
+					track = document.createElement('div');
+					track.id = 'scroll-progress';
+					const fill = document.createElement('div');
+					fill.className = 'sp-fill';
+					track.appendChild(fill);
+					document.body.appendChild(track);
+					let ticking = false;
+					const update = () => {
+						ticking = false;
+						const doc = document.documentElement;
+						const max = doc.scrollHeight - doc.clientHeight;
+						const ratio = max > 0 ? doc.scrollTop / max : 0;
+						fill.style.height = ratio * 100 + '%';
+						track.querySelectorAll('.sp-tick').forEach((tick) => {
+							const passed = doc.scrollTop >= Number(tick.dataset.pos) - 4;
+							tick.classList.toggle('is-passed', passed);
+						});
+					};
+					track._update = update;
+					window.addEventListener(
+						'scroll',
+						() => {
+							if (!ticking) {
+								ticking = true;
+								requestAnimationFrame(update);
+							}
+						},
+						{ passive: true },
+					);
+				}
+
+				const fill = track.querySelector('.sp-fill');
+				track.querySelectorAll('.sp-tick').forEach((tick) => tick.remove());
+				const doc = document.documentElement;
+				const shortPage = doc.scrollHeight < window.innerHeight * 1.5;
+				track.style.display = shortPage ? 'none' : '';
+				if (shortPage) return;
+
+				const max = doc.scrollHeight - doc.clientHeight;
+				document.querySelectorAll('.tl-era').forEach((era) => {
+					const rect = era.getBoundingClientRect();
+					const pos = Math.min(rect.top + window.scrollY, max);
+					const pct = max > 0 ? (pos / max) * 100 : 0;
+					const tick = document.createElement('div');
+					tick.className = 'sp-tick';
+					tick.style.top = pct + '%';
+					tick.dataset.pos = String(pos);
+					const name = era.querySelector('h2');
+					if (name) tick.title = name.textContent || '';
+					track.appendChild(tick);
+				});
+				track._update();
+			}
+
+			document.addEventListener('astro:page-load', () => {
+				initReveal();
+				initImageFade();
+				initProgress();
+			});
 		</script>
 	</body>
 </html>

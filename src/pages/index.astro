@@ -8,11 +8,11 @@ const entryLinks = [
 ---
 
 <BaseLayout title="林郁為">
-	<section class="hero" data-reveal>
-		<h1>林郁為</h1>
-		<p>統計背景，正朝資料科學邁進。</p>
+	<section class="hero">
+		<h1 data-reveal>林郁為</h1>
+		<p data-reveal style="transition-delay: 380ms">統計背景，正朝資料科學邁進。</p>
 	</section>
-	<section class="entry-links" data-reveal style="transition-delay: 120ms">
+	<section class="entry-links" data-reveal style="transition-delay: 380ms">
 		{entryLinks.map((link) => <a href={link.href}>{link.label}</a>)}
 	</section>
 </BaseLayout>
