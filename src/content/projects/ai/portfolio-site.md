@@ -1,6 +1,6 @@
 ---
 title: 這個網站就是我的第一個 AI 專案
-summary: 這個網站由我主要構思，並與 Claude Code 一起討論，最終由它完成初版，從初版開始慢慢優化。
+summary: 這個網站的構思與方向出自本人，並與 Claude Code 一起討論，最終由它完成實作，並針對初版進行細節優化。
 category: ai
 tags: [AI 協作, Claude Code, Astro, 決策紀錄]
 links:
@@ -21,18 +21,18 @@ cover: /images/portfolio-site/current-v2.png
   <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">最終版</span>
   <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">初版</span>
 </figure>
-<p class="cs-wipe-hint">原本初版其實已經蠻好看的了，但仍然非常明顯是由 AI 完全主導的設計，我認為設計方面應該由我自行決定，選擇了一個符合我個性及喜好的配色。</p>
+<p class="cs-wipe-hint">初版其實已經不差了，但仍可以一眼看穿這是 AI 主導的設計。設計本該由本人決定，故最後選擇符合自己個性的配色。</p>
 
 ## 決策時間軸
 
 <ul class="tl">
   <li class="tl-era">
     <h2>想法的起點</h2>
-    <p>在這個網站還不存在的時候，我擁有了一些想法</p>
+    <p>在網站還不存在時，已經先有一些想法了</p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">專案定位</div>
-    <div class="tl-solo"><em>我起的頭</em>我決定第一個 AI 專案就是「創建個人 AI 作品頁」，這是為了證明我能夠正確使用 AI，且具有想像力，來解決實際會遇到的任何問題。</div>
+    <div class="tl-solo"><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」，而目的是為了證明有能力正確使用 AI、發揮想像力，解決實際遇到的問題。</div>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">設計方向</div>
@@ -40,7 +40,7 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 一開始根據「統計」給出相關通用設計</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>利用 AI Chat 的記憶功能，貼上記憶總結，來讓此專案的設計更貼合個人個性及喜好</div>
     </div>
-    <p class="cs-reason">我要呈現的是「個人」，並不是一個花裡胡哨的頁面。</p>
+    <p class="cs-reason">要呈現的是「個人」，而不是一個華麗但空洞的頁面。</p>
   </li>
 
   <li class="tl-era">
@@ -53,7 +53,7 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>金色點綴、紙紋理、統計圖裝飾</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>全部拿掉，只留墨綠一色，不用太華麗的互動</div>
     </div>
-    <p class="cs-reason">因為我的核心重點是「易讀」。</p>
+    <p class="cs-reason">核心重點是「易讀」。</p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">深淺色</div>
@@ -65,7 +65,7 @@ cover: /images/portfolio-site/current-v2.png
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">部署流程</div>
-    <div class="tl-solo"><em>一次事故換來的</em>改完版在正式網址上什麼都沒看到，仔細研究才發現改動只放在本機，故特別多學了網站佈署上線的流程，收穫豐富。</div>
+    <div class="tl-solo"><em>一次事故換來的</em>改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。</div>
   </li>
 
   <li class="tl-era">
@@ -74,7 +74,7 @@ cover: /images/portfolio-site/current-v2.png
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">決策存檔</div>
-    <div class="tl-solo"><em>我起的頭</em>專案裡有一份 DECISIONS.md，在協作時我的每一個決定，AI 就會即時記上，這一頁的材料全部從那裡整合而來的。</div>
+    <div class="tl-solo"><em>我起的頭</em>專案裡有一份 DECISIONS.md，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</div>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">呈現方式</div>
@@ -82,15 +82,15 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>給了整頁的文字說明</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>要有基礎的互動、要有一定的視覺化</div>
     </div>
-    <p class="cs-reason">我的核心理念是「易讀」且「具特色設計感」，相信沒有人想要只看看一大堆的文字。</p>
+    <p class="cs-reason">核心理念是「易讀」且「具設計感」，沒有人想要只看一大堆的文字。</p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">文字所有權</div>
     <div class="cs-track">
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 自動生成所有內容</div>
-      <div class="cs-side cs-side--me"><em>我的決定</em>所有的文字都是我自己寫的，AI 只核對事實，這一頁的字就是這樣來</div>
+      <div class="cs-side cs-side--me"><em>我的決定</em>所有的文字都由本人親自撰寫，AI 負責核對事實，這一頁的文字便是這樣來的</div>
     </div>
-    <p class="cs-reason">一樣的理念，我正在做「個人」頁面，且 AI 的文字都有明顯的 AI 感，讀起來並不「易讀」。</p>
+    <p class="cs-reason">一樣的理念，這是「個人」頁面，且 AI 的文字都有明顯的 AI 感，讀起來並不「易讀」。</p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">這條時間軸</div>
@@ -98,7 +98,7 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--ai"><em>AI 給的意見</em>AI 放入孤立的卡片元素</div>
       <div class="cs-side cs-side--me"><em>我的決定</em>加入時間軸設計，以及親自設計呈現動畫。你剛剛所有的滑動，都是這個決定的成品。</div>
     </div>
-    <p class="cs-reason">保持「易讀」理念，我認為這個設計會更讓人理解建立專案的經過。</p>
+    <p class="cs-reason">保持「易讀」的理念，這個設計更能讓人理解專案的經過。</p>
   </li>
 </ul>
 
