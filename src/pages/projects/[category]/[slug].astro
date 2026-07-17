@@ -19,8 +19,7 @@ const { Content } = await render(project);
 const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 實作' };
 ---
 
-<BaseLayout title={`${project.data.title} | 林郁為`}>
-	<a class="back-link" href="/projects/">← 返回 Projects</a>
+<BaseLayout title={`${project.data.title} | 林郁為`} backLink={{ href: '/projects/', label: '← Projects' }}>
 	<h1>{project.data.title}</h1>
 	<p class="category-label">{categoryLabels[project.data.category]}</p>
 	<div class="content">

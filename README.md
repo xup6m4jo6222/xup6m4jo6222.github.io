@@ -1,6 +1,6 @@
 # xup6m4jo6222.github.io
 
-個人作品集網站的原始碼。建站過程與決策紀錄見網站專案頁 [「這個網站就是我的第一個 AI 專案」](https://xup6m4jo6222.github.io/projects/ai/portfolio-site/)，原始決策材料在 [DECISIONS.md](DECISIONS.md)。
+個人作品集網站的原始碼。建站過程見網站專案頁 [「AI 專案 #1 個人作品頁」](https://xup6m4jo6222.github.io/projects/ai/portfolio-site/)，設計評選的過程原件在 /process/。
 
 ## 技術
 

@@ -40,7 +40,7 @@ Consult these guides before working on related tasks:
 
 ## Decision log（決策紀錄協議）
 
-當使用者在協作中做出「拍板／否決／推翻先前方案／修正流程」的決策時，當下 append 一行到本 repo 的 `DECISIONS.md`：
+當使用者在協作中做出「拍板／否決／推翻先前方案／修正流程」的決策時，當下 append 一行到本地檔 `DECISIONS.md`（已 gitignore，不進版控；私人備份在 sandbox repo）：
 
 ```
 - YYYY-MM-DD | [拍板|否決|修正] 決策一句話 | 理由（使用者原話優先；若是推斷，標註「推斷」）

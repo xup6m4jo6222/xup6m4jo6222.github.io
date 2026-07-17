@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="color-scheme:dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 對照第二輪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#a295bb;--bg:#16181a;--alt:#1e2124;--text:#e8e6e0;--muted:#93958e;--line:#2c2f31}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.65;padding:2.5rem 1.25rem;display:grid;place-items:center}
+.wrap{max-width:720px;width:100%}
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.5rem;margin:0 0 .3rem}
+a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
+.note{color:var(--muted);font-size:.88rem;margin:0 0 2rem}
+section{border:1px solid var(--line);border-radius:.55rem;background:#191c1e;padding:1.2rem 1.4rem;margin-bottom:1.6rem}
+section>h2{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.05rem;margin:0 0 .2rem}
+section>.why{color:var(--muted);font-size:.85rem;margin:0 0 1rem}
+.opt{border-top:1px solid #26292b;padding:1.1rem 0}
+.opt .tag{font-size:.78rem;color:var(--a);letter-spacing:.06em;margin-bottom:.55rem}
+.opt .tag small{color:var(--muted);margin-left:.5rem;letter-spacing:0}
+/* ===== 2 內文字體 ===== */
+.t-sample{max-width:60ch}
+.t-a{font-size:1.02rem;line-height:1.65}
+.t-b{font-size:1.06rem;line-height:1.9}
+.t-c{font-size:1.08rem;line-height:1.95;letter-spacing:.01em;max-width:56ch}
+.t-d{font-family:'Noto Serif TC',serif;font-size:1.04rem;line-height:1.85}
+.t-e p{margin:.2rem 0}
+.t-e .quote{font-family:'Noto Serif TC',serif;color:var(--muted);border-left:2px solid var(--a);padding-left:.9rem;margin-top:.6rem}
+.t-f{font-size:1.04rem;line-height:1.85}
+.t-f p{margin:0;text-indent:2em}
+/* ===== 3 卡片 ===== */
+.cardbase{font-size:.92rem;max-width:34rem}
+.cardbase em{font-style:normal;display:block;font-size:.76rem;color:var(--a);margin-bottom:.2rem;letter-spacing:.05em}
+.k-a{background:var(--alt);border:1px solid var(--line);border-radius:.55rem;padding:.9rem 1.1rem}
+.k-b{border-left:2px solid var(--a);padding:.5rem 0 .5rem 1.1rem}
+.k-d{position:relative;padding:1rem 1.2rem}
+.k-d::before,.k-d::after{content:'';position:absolute;width:14px;height:14px;border:1px solid var(--a)}
+.k-d::before{top:0;left:0;border-right:0;border-bottom:0}
+.k-d::after{bottom:0;right:0;border-left:0;border-top:0}
+.k-e{display:grid;grid-template-columns:6.5rem 1fr;gap:1rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.k-e em{text-align:right;margin:0;padding-top:.15rem}
+.k-f{background:var(--alt);padding:.9rem 1.1rem;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,0 100%)}
+.k-g{position:relative;background:var(--alt);border-radius:.55rem;padding:.9rem 1.1rem;overflow:hidden}
+.k-g i{position:absolute;right:.6rem;top:-.6rem;font-style:normal;font-family:'Noto Serif TC',serif;font-size:3.4rem;font-weight:600;color:#ffffff0d;pointer-events:none}
+/* ===== 4b 按鈕手感 ===== */
+.btn{display:inline-block;border:1px solid var(--a);color:var(--a);background:none;border-radius:.55rem;padding:.5rem 1.2rem;font-size:.9rem;font-family:inherit;cursor:pointer;margin-right:.8rem}
+.p-a{transition:transform .12s ease,border-color .12s ease}
+.p-a:active{transform:translateY(2px)}
+.p-b{transition:background .18s ease,color .18s ease}
+.p-b:hover{background:color-mix(in srgb,var(--a) 14%,transparent)}
+.p-b:active{background:var(--a);color:#16181a}
+.p-c{transition:box-shadow .12s ease}
+.p-c:active{box-shadow:inset 0 2px 8px #0009}
+.p-d{transition:transform .15s cubic-bezier(.34,1.56,.64,1)}
+.p-d:active{transform:scale(.955)}
+/* ===== 6 數字列 ===== */
+.n-a{display:flex;flex-wrap:wrap;gap:.4rem 1.5rem;color:var(--muted);font-size:.9rem}
+.n-a b{color:var(--a);font-size:1.05rem;margin-right:.15rem}
+.n-c{display:flex;flex-wrap:wrap;gap:.4rem 1.5rem;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.55rem 0}
+.n-c b{color:var(--a);font-size:1.05rem;margin-right:.15rem}
+.n-d{color:var(--muted);font-size:.96rem;max-width:60ch}
+.n-d b{color:var(--a);font-weight:600}
+.n-e{color:var(--muted);font-size:.9rem;letter-spacing:.02em}
+.n-e b{color:var(--a);font-weight:600;margin-left:.2rem}
+.n-e i{font-style:normal;color:var(--line);margin:0 .6rem}
+.n-f{font-family:'Noto Serif TC',serif;color:var(--muted);font-size:.92rem;border-left:2px solid var(--a);padding-left:.9rem}
+.n-f b{color:var(--a);font-weight:600}
+</style>
+</head>
+<body>
+<div style="background:#101214;color:#93958e;font:400 .8rem/1.7 system-ui,'Microsoft JhengHei',sans-serif;padding:.55rem 1rem;border-bottom:1px solid #2c2f31;letter-spacing:.02em;width:100%;box-sizing:border-box">過程原件・未修飾　|　我的裁決：2C、3D、按鈕B、6E；hover 與過場續深化　|　<a href="/projects/ai/portfolio-site/" style="color:#a295bb">回專案頁</a></div>
+<div class="wrap">
+<h1>UI 對照第二輪</h1>
+<p class="note">已定案的（細襯線標題、圓潤圓角、虛點連結、空心圈節點、鈍紫藤）都直接套在這頁上了。三個重開的項目每案都對著同一句話出題：長文要好讀，設計要低調地講究。按鈕區的四顆是真的可以按，請實際按按看。回覆格式例：「2C、3E、6D、按鈕A」。</p>
+
+<section>
+  <h2>2　內文字體</h2>
+  <p class="why">評估標準就一條：連續讀三段不累，同時看得出有被設計過。</p>
+  <div class="opt"><div class="tag">A　黑體標準<small>現行基準</small></div><div class="t-sample t-a">改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。專案裡有一份決策檔，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</div></div>
+  <div class="opt"><div class="tag">B　寬行高<small>行距 1.9，鬆一階</small></div><div class="t-sample t-b">改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。專案裡有一份決策檔，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</div></div>
+  <div class="opt"><div class="tag">C　舒讀版<small>字級加大＋行距 1.95＋欄寬收窄，長文最不累的一版</small></div><div class="t-sample t-c">改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。專案裡有一份決策檔，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</div></div>
+  <div class="opt"><div class="tag">D　襯線內文<small>書卷氣最重，螢幕長文比黑體稍費力</small></div><div class="t-sample t-d">改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。專案裡有一份決策檔，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</div></div>
+  <div class="opt"><div class="tag">E　黑襯混排<small>內文黑體保易讀，理由句換襯線降一階，層次感少見</small></div><div class="t-sample t-e"><p>改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。</p><p class="quote">核心重點是「易讀」。</p></div></div>
+  <div class="opt"><div class="tag">F　紙本式縮排<small>段首縮兩字、段間不留白，紙書排法，網頁上幾乎沒人用</small></div><div class="t-sample t-f"><p>改完版才發現任何改動都只放在本機，因此特別學習網站部署上線的流程，補足了原先不足的弱點。</p><p>專案裡有一份決策檔，在協作時，任何決定會即時讓 AI 記上，這一頁的材料便由此檔案整合而來。</p></div></div>
+</section>
+
+<section>
+  <h2>3　卡片風格</h2>
+  <p class="why">「不常見」我的定義：不是換邊框粗細，而是換掉「卡片＝一個方框」這個預設。後四案都是往這個方向走。</p>
+  <div class="opt"><div class="tag">A　面板卡<small>現行基準</small></div><div class="cardbase k-a"><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+  <div class="opt"><div class="tag">B　左線輕量<small>上輪的輕量案，留作比較</small></div><div class="cardbase k-b"><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+  <div class="opt"><div class="tag">D　角標卡<small>只畫左上右下兩個角，像製圖框，內容像被「量測」著</small></div><div class="cardbase k-d"><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+  <div class="opt"><div class="tag">E　頁邊註記<small>標籤退到左欄、內容靠右，像書的邊註，閱讀動線最像文獻</small></div><div class="cardbase k-e"><em>我起的頭</em><span>第一個 AI 專案定為「創建個人作品頁」。</span></div></div>
+  <div class="opt"><div class="tag">F　折角卡<small>右上角被裁掉一刀，檔案紙感，全網站幾乎沒人這樣做</small></div><div class="cardbase k-f"><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+  <div class="opt"><div class="tag">G　底紋序號卡<small>右上浮極淡的襯線大字序號；時間軸本來就是序列，序號是資訊不是裝飾</small></div><div class="cardbase k-g"><i>04</i><em>我起的頭</em>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+</section>
+
+<section>
+  <h2>按鈕手感</h2>
+  <p class="why">圓潤 0.55rem 已定案，這裡選「按下去的反饋」。四顆都能真的按，感受差異再選。</p>
+  <div class="opt"><div class="tag">A　下沉<small>按下去往下 2px，最物理直覺</small></div><button class="btn p-a">GitHub</button><button class="btn p-a">返回 Projects</button></div>
+  <div class="opt"><div class="tag">B　墨填<small>hover 淡染、按下整顆填滿紫、字反黑，像蓋印</small></div><button class="btn p-b">GitHub</button><button class="btn p-b">返回 Projects</button></div>
+  <div class="opt"><div class="tag">C　內壓<small>按下時內陰影，像按進紙面，最安靜</small></div><button class="btn p-c">GitHub</button><button class="btn p-c">返回 Projects</button></div>
+  <div class="opt"><div class="tag">D　微縮<small>按下縮 4.5%、放開回彈，手感最軟</small></div><button class="btn p-d">GitHub</button><button class="btn p-d">返回 Projects</button></div>
+</section>
+
+<section>
+  <h2>6　數字摘要列</h2>
+  <p class="why">上輪方塊磚確實是儀表板樣板，槍斃正確。這輪的新案都往「印刷、書面」走，不往「儀表板」走。</p>
+  <div class="opt"><div class="tag">A　行內流<small>現行基準</small></div><div class="n-a"><span><b>18</b>個關鍵決策</span><span><b>3</b>個頁面版本</span><span><b>25</b>次修改紀錄</span><span>本頁實作<b>2</b>天</span></div></div>
+  <div class="opt"><div class="tag">C　細線夾注<small>上輪 C，留作比較</small></div><div class="n-c"><span><b>18</b>個關鍵決策</span><span><b>3</b>個頁面版本</span><span><b>25</b>次修改紀錄</span><span>本頁實作<b>2</b>天</span></div></div>
+  <div class="opt"><div class="tag">D　句子化<small>數字藏進一句話，最不像統計欄，反而最像會查證的人講話</small></div><p class="n-d">這一頁背後是 <b>18</b> 個關鍵決策、<b>25</b> 次修改，網站本體 <b>1</b> 天完成，這一頁前後迭代了 <b>3</b> 版、花 <b>2</b> 天。</p></div>
+  <div class="opt"><div class="tag">E　目錄式<small>詞前數後、間隔號分節，像書的目錄行</small></div><p class="n-e">關鍵決策<b>18</b><i>·</i>頁面版本<b>3</b><i>·</i>修改紀錄<b>25</b><i>·</i>實作<b>1+2</b>天</p></div>
+  <div class="opt"><div class="tag">F　引註式<small>左紫線＋襯線字，像文獻裡的引用塊，跟 E 混排卡同語彙</small></div><p class="n-f">本頁由 <b>18</b> 個關鍵決策、<b>25</b> 次修改累積而成；網站實作 <b>1</b> 天，本頁 <b>2</b> 天。</p></div>
+</section>
+
+</div>
+</body>
+</html>

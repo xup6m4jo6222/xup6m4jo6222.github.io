@@ -5,9 +5,10 @@ import '../styles/global.css';
 
 interface Props {
 	title: string;
+	backLink?: { href: string; label: string };
 }
 
-const { title } = Astro.props;
+const { title, backLink } = Astro.props;
 const buildDate = new Date().toLocaleDateString('sv-SE');
 ---
 
@@ -35,7 +36,7 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		<title>{title}</title>
 	</head>
 	<body>
-		<Nav />
+		<Nav backLink={backLink} />
 		<main>
 			<slot />
 		</main>
@@ -81,62 +82,72 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 				});
 			}
 
-			// 捲動進度縱線 + 紀元刻度（縱線建立一次，刻度每頁重算）
+			// 軸線即進度：.tl 左軸線隨捲動填色 + 導覽列紀元進度小字
+			let progressCleanup = null;
 			function initProgress() {
-				let track = document.getElementById('scroll-progress');
-				if (!track) {
-					track = document.createElement('div');
-					track.id = 'scroll-progress';
-					const fill = document.createElement('div');
-					fill.className = 'sp-fill';
-					track.appendChild(fill);
-					document.body.appendChild(track);
-					let ticking = false;
-					const update = () => {
-						ticking = false;
-						const doc = document.documentElement;
-						const max = doc.scrollHeight - doc.clientHeight;
-						const ratio = max > 0 ? doc.scrollTop / max : 0;
-						fill.style.height = ratio * 100 + '%';
-						track.querySelectorAll('.sp-tick').forEach((tick) => {
-							const passed = doc.scrollTop >= Number(tick.dataset.pos) - 4;
-							tick.classList.toggle('is-passed', passed);
-						});
-					};
-					track._update = update;
-					window.addEventListener(
-						'scroll',
-						() => {
-							if (!ticking) {
-								ticking = true;
-								requestAnimationFrame(update);
-							}
-						},
-						{ passive: true },
-					);
+				if (progressCleanup) {
+					progressCleanup();
+					progressCleanup = null;
+				}
+				const tl = document.querySelector('.tl');
+				const label = document.querySelector('.nav-progress');
+				if (!tl) {
+					if (label) {
+						label.classList.remove('is-visible');
+						label.textContent = '';
+					}
+					return;
 				}
 
-				const fill = track.querySelector('.sp-fill');
-				track.querySelectorAll('.sp-tick').forEach((tick) => tick.remove());
-				const doc = document.documentElement;
-				const shortPage = doc.scrollHeight < window.innerHeight * 1.5;
-				track.style.display = shortPage ? 'none' : '';
-				if (shortPage) return;
+				let fill = tl.querySelector('.tl-fill');
+				if (!fill) {
+					fill = document.createElement('div');
+					fill.className = 'tl-fill';
+					tl.appendChild(fill);
+				}
 
-				const max = doc.scrollHeight - doc.clientHeight;
-				document.querySelectorAll('.tl-era').forEach((era) => {
-					const rect = era.getBoundingClientRect();
-					const pos = Math.min(rect.top + window.scrollY, max);
-					const pct = max > 0 ? (pos / max) * 100 : 0;
-					const tick = document.createElement('div');
-					tick.className = 'sp-tick';
-					tick.style.top = pct + '%';
-					tick.dataset.pos = String(pos);
-					const name = era.querySelector('h2');
-					if (name) tick.title = name.textContent || '';
-					track.appendChild(tick);
-				});
-				track._update();
+				const eras = Array.from(tl.querySelectorAll('.tl-era'));
+				let ticking = false;
+				const update = () => {
+					ticking = false;
+					const mid = window.scrollY + window.innerHeight / 2;
+					const tlTop = tl.getBoundingClientRect().top + window.scrollY;
+					const tlH = tl.offsetHeight;
+					// 視窗中線在 .tl 內走過的比例 → 填色高度
+					const travelled = Math.max(0, Math.min(tlH, mid - tlTop));
+					fill.style.height = travelled + 'px';
+
+					if (label) {
+						const doc = document.documentElement;
+						const max = doc.scrollHeight - doc.clientHeight;
+						const pct = max > 0 ? Math.round((doc.scrollTop / max) * 100) : 0;
+						// 視窗中線目前所在紀元
+						let eraName = '';
+						for (const era of eras) {
+							const eraTop = era.getBoundingClientRect().top + window.scrollY;
+							if (eraTop <= mid) {
+								const h = era.querySelector('h2');
+								eraName = h ? h.textContent || '' : '';
+							}
+						}
+						label.textContent = eraName ? eraName + ' · ' + pct + '%' : pct + '%';
+						const show = window.scrollY > window.innerHeight;
+						label.classList.toggle('is-visible', show);
+					}
+				};
+				const onScroll = () => {
+					if (!ticking) {
+						ticking = true;
+						requestAnimationFrame(update);
+					}
+				};
+				window.addEventListener('scroll', onScroll, { passive: true });
+				window.addEventListener('resize', update);
+				progressCleanup = () => {
+					window.removeEventListener('scroll', onScroll);
+					window.removeEventListener('resize', update);
+				};
+				update();
 			}
 
 			document.addEventListener('astro:page-load', () => {

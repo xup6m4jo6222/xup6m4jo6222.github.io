@@ -1,12 +1,19 @@
 ---
 const path = Astro.url.pathname;
 const isProjects = path.startsWith('/projects');
+
+interface Props {
+	backLink?: { href: string; label: string };
+}
+const { backLink } = Astro.props;
 ---
 
 <header class="site-nav">
 	<nav>
 		<a class="nav-brand" href="/">林郁為</a>
+		{backLink && <a class="nav-back" href={backLink.href}>{backLink.label}</a>}
 		<a href="/" aria-current={!isProjects ? 'page' : undefined}>首頁</a>
 		<a href="/projects/" aria-current={isProjects ? 'page' : undefined}>Projects</a>
+		<span class="nav-progress"></span>
 	</nav>
 </header>
