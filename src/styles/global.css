@@ -416,6 +416,10 @@ main > h1 {
 	margin: 0.6rem 0 calc(var(--rhythm) * 1.5);
 }
 
+.cs-wipe--embed {
+	margin-top: 0.8rem;
+}
+
 /* 決策開關 */
 .cs-toggles {
 	list-style: none;

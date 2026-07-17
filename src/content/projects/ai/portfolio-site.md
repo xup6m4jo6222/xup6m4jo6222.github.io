@@ -83,6 +83,16 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--me"><em>我的決定</em>要有基礎的互動、要有一定的視覺化</div>
     </div>
     <p class="cs-reason">核心理念是「易讀」且「具設計感」，沒有人想要只看一大堆的文字。</p>
+    <figure class="cs-wipe cs-wipe--embed" style="margin:0">
+      <img src="/images/portfolio-site/page-plain-text.png" alt="被否決的純文字版頁面" width="760" height="470" loading="lazy" />
+      <div class="cs-wipe-top">
+        <img src="/images/portfolio-site/page-visual.png" alt="現行視覺化版頁面" width="760" height="470" loading="lazy" />
+      </div>
+      <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
+      <div class="cs-wipe-handle"></div>
+      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">視覺化版</span>
+      <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">純文字版</span>
+    </figure>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">文字所有權</div>
@@ -99,18 +109,27 @@ cover: /images/portfolio-site/current-v2.png
       <div class="cs-side cs-side--me"><em>我的決定</em>加入時間軸設計，以及親自設計呈現動畫。你剛剛所有的滑動，都是這個決定的成品。</div>
     </div>
     <p class="cs-reason">保持「易讀」的理念，這個設計更能讓人理解專案的經過。</p>
+    <figure class="cs-wipe cs-wipe--embed" style="margin:0">
+      <img src="/images/portfolio-site/page-cards.png" alt="被否決的純卡片版頁面" width="760" height="470" loading="lazy" />
+      <div class="cs-wipe-top">
+        <img src="/images/portfolio-site/page-timeline.png" alt="現行時間軸版頁面" width="760" height="470" loading="lazy" />
+      </div>
+      <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
+      <div class="cs-wipe-handle"></div>
+      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">時間軸版</span>
+      <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">純卡片版</span>
+    </figure>
   </li>
 </ul>
 
 <script>
 (() => {
-  const wipe = document.querySelector('.cs-wipe');
-  if (wipe) {
+  document.querySelectorAll('.cs-wipe').forEach((wipe) => {
     const range = wipe.querySelector('input');
     const set = () => wipe.style.setProperty('--pos', range.value + '%');
     range.addEventListener('input', set);
     set();
-  }
+  });
 
   const items = document.querySelectorAll('.tl-item');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
