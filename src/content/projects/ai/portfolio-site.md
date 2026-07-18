@@ -6,21 +6,21 @@ tags: [AI 協作, Claude Code, Astro, 決策紀錄]
 links:
   github: https://github.com/xup6m4jo6222/xup6m4jo6222.github.io
 date: 2026-07-16
-cover: /images/portfolio-site/current-v3.png
+cover: /images/portfolio-site/current-v4.png
 ---
 
 <p class="cs-lead">這個網站就是一個與 AI 協作的成果，下面可以看到它如何一步步變成現在的樣子。</p>
-<p class="cs-stats"><span>關鍵決策<b>22</b></span><i>·</i><span>頁面版本<b>3</b></span><i>·</i><span>修改紀錄<b>23</b></span><i>·</i><span>網站實作<b>2</b>天</span><i>·</i><span>本頁實作<b>2</b>天</span></p>
+<p class="cs-stats"><span>關鍵決策<b>24</b></span><i>·</i><span>頁面版本<b>3</b></span><i>·</i><span>修改紀錄<b>24</b></span><i>·</i><span>網站實作<b>2</b>天</span><i>·</i><span>本頁實作<b>2</b>天</span></p>
 <p class="cs-wipe-invite">可以左右拖曳下方的對照圖，對比初版與最終定案的差距。</p>
 
 <figure class="cs-wipe" style="margin:0">
   <img src="/images/portfolio-site/rejected-v1.png" alt="初版首頁，金色點綴與紙紋理" width="760" height="470" />
   <div class="cs-wipe-top">
-    <img src="/images/portfolio-site/current-v3.png" alt="現行首頁，霧灰紫視覺" width="760" height="470" />
+    <img src="/images/portfolio-site/current-v4.png" alt="現行首頁，霧灰紫視覺" width="760" height="470" />
   </div>
   <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
   <div class="cs-wipe-handle"></div>
-  <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">最終版 2026-07-17 第3版</span>
+  <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">最終版 2026-07-18 第4版</span>
   <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">初版 2026-07-08 第1版</span>
 </figure>
 <p class="cs-wipe-hint">初版其實已經不差了，但仍可以一眼看穿這是 AI 主導的設計。設計本該由本人決定，故最後選擇符合自己個性的配色。</p>
@@ -57,13 +57,13 @@ cover: /images/portfolio-site/current-v3.png
       <div class="cs-side cs-side--me"><em>我的決定</em>用個人側寫決定方向，最終選定霧灰紫作為統一配色</div>
     </div>
     <p class="cs-reason">核心是「易讀」，帶著「個人」色彩的頁面。</p>
-    <p class="cs-evi"><a href="/process/why-mist-purple.html">為什麼我選擇霧灰紫？ →</a></p>
+    <p class="cs-evi"><a href="/process/why-mist-purple.html">挑選顏色的心路歷程 →</a></p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">動態設計</div>
     <div class="tl-solo"><em>逐項裁決</em>一個好的元素互動絕對是必要的，這也是最容易被 AI 默默決定的一層，也會是 AI 感的來源之一。</div>
     <p class="cs-reason">選擇的核心理念是「易讀」＋「低調」，且不過度設計。</p>
-    <p class="cs-evi"><span>原件</span><a href="/process/">動效評選：四輪 27 個決策點 →</a></p>
+    <p class="cs-evi"><span>原件</span><a href="/process/talks-motion.html">動效的設計對話 →</a></p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">決策存檔</div>
@@ -83,11 +83,11 @@ cover: /images/portfolio-site/current-v3.png
     <figure class="cs-wipe cs-wipe--embed" style="margin:0">
       <img src="/images/portfolio-site/page-plain-text.png" alt="被否決的純文字版" width="760" height="470" loading="lazy" />
       <div class="cs-wipe-top">
-        <img src="/images/portfolio-site/page-timeline-v3.png" alt="現行時間軸版" width="760" height="470" loading="lazy" />
+        <img src="/images/portfolio-site/page-timeline-v4.png" alt="現行時間軸版" width="760" height="470" loading="lazy" />
       </div>
       <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
       <div class="cs-wipe-handle"></div>
-      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">時間軸版 2026-07-17 第3版</span>
+      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">時間軸版 2026-07-18 第4版</span>
       <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">純文字版 2026-07-16 第1版</span>
     </figure>
     <p class="cs-reason">核心理念仍是「易讀」，你剛剛所有看到的動畫效果便是成品。</p>
@@ -106,7 +106,7 @@ cover: /images/portfolio-site/current-v3.png
   </li>
 </ul>
 
-<p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>過程原件<b>5</b>件</span><i>·</i><a href="/process/">全部原件</a></p>
+<p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><a href="/process/">全部對話</a></p>
 <p class="cs-raw"><span class="cs-rawchip">過程原件・未修飾</span>原件包含 AI 當時的選項與建議。</p>
 
 <script>

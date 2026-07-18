@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="color-scheme:dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設計對話　過場與細節篇</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#a295bb;--bg:#20131d;--alt:#2f1e2b;--text:#ebe5eb;--muted:#a79aa5;--line:#3d2e3a;--line2:#56506a}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.75;padding:2.5rem 1.25rem;display:grid;place-items:center;font-size:1rem}
+.wrap{max-width:640px;width:100%}
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.4rem;margin:0 0 .2rem}
+.sub{color:var(--muted);font-size:.88rem;margin:0 0 1.8rem}
+a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
+::selection{background:var(--a);color:#20131d}
+/* 對話 */
+.chat{display:flex;flex-direction:column;gap:1.1rem}
+.msg{max-width:85%;padding:.75rem 1rem;font-size:.95rem;line-height:1.7}
+.me{align-self:flex-end;background:color-mix(in srgb,var(--a) 16%,var(--bg));border:1px solid var(--line2);border-radius:.9rem .9rem .2rem .9rem}
+.me .who{color:var(--a)}
+.ai{align-self:flex-start;background:var(--alt);border:1px solid var(--line);border-radius:.9rem .9rem .9rem .2rem}
+.who{display:block;font-size:.72rem;letter-spacing:.06em;color:var(--muted);margin-bottom:.3rem}
+/* AI 泡泡內的選項渲染 */
+.opts{display:flex;flex-direction:column;gap:.8rem;margin-top:.7rem}
+.opt{border:1px solid var(--line2);border-radius:.55rem;padding:.7rem .9rem;background:var(--bg)}
+.opt .lab{font-size:.74rem;color:var(--a);letter-spacing:.06em;margin-bottom:.35rem}
+.picked{outline:2px solid var(--a);outline-offset:2px;position:relative}
+.picked::after{content:'✓ 我的選擇';position:absolute;top:-.7rem;right:.6rem;font-size:.7rem;background:var(--bg);border:1px solid var(--a);color:var(--a);border-radius:.55rem;padding:.05rem .5rem}
+/* 定案 */
+.verdict{align-self:center;width:100%;border-top:1px solid var(--line2);margin-top:.6rem;padding-top:1rem;font-size:.9rem;color:var(--muted)}
+.verdict b{color:var(--text);font-weight:600}
+.rawnote{margin-top:2rem;color:var(--muted);font-size:.82rem}
+.rawchip{display:inline-block;font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:.55rem;padding:.05rem .55rem;margin-right:.5rem;letter-spacing:.04em}
+
+/* 模擬按鈕 */
+.btn{display:inline-block;border:1px solid var(--a);color:var(--a);background:none;border-radius:.55rem;padding:.35rem .95rem;font-size:.82rem;font-family:inherit;cursor:pointer;transition:background .18s ease,color .18s ease}
+.btn:hover{background:color-mix(in srgb,var(--a) 14%,transparent)}
+.btn:active{background:var(--a);color:#20131d}
+
+/* 過場模擬盒（共用形狀） */
+.pagebox{position:relative;height:4.6rem;margin-top:.6rem;max-width:22rem;overflow:hidden;border-radius:.55rem}
+.pagebox .pg{position:absolute;inset:0;display:grid;place-items:center;background:var(--alt);font-size:.88rem}
+/* 墨點方向三案（自 uiux-round4 搬） */
+.ink{position:absolute;left:50%;top:50%;width:12px;height:12px;border-radius:50%;background:#0d0e10;transform:translate(-50%,-50%) scale(0);pointer-events:none}
+.veil2{position:absolute;inset:0;background:#0d0e10;transform:translateY(101%);pointer-events:none}
+.sweep{position:absolute;top:0;bottom:0;width:1px;background:var(--a);left:-2%;opacity:0;pointer-events:none}
+/* 簡化三案（自 transition-lite 搬） */
+.veil{position:absolute;inset:0;background:#0d0e10;opacity:0;pointer-events:none}
+/* favicon 三變體（自 uiux-round4 搬） */
+.favrow{display:flex;gap:1.2rem;align-items:center;margin-top:.5rem;flex-wrap:wrap}
+.fav{width:34px;height:34px;border-radius:7px;display:grid;place-items:center;background:#191018;position:relative}
+.fav b{color:var(--a);font-family:'Noto Serif TC',serif;font-weight:600;font-size:.9rem}
+.fav .c1{position:absolute;top:6px;left:6px;width:9px;height:9px;border:1.5px solid var(--a);border-right:0;border-bottom:0}
+.fav .c2{position:absolute;bottom:6px;right:6px;width:9px;height:9px;border:1.5px solid var(--a);border-left:0;border-top:0}
+.fav .dotc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;background:var(--a)}
+.fav-tab{display:flex;align-items:center;gap:.45rem;background:#26292c;border-radius:.55rem .55rem 0 0;padding:.35rem .8rem;font-size:.78rem;color:var(--muted)}
+.fav-tab .fav{width:16px;height:16px;border-radius:3px}
+.fav-tab .fav .c1{top:2.5px;left:2.5px;width:5px;height:5px;border-width:1px}
+.fav-tab .fav .c2{bottom:2.5px;right:2.5px;width:5px;height:5px;border-width:1px}
+.fav-tab .fav b{font-size:.55rem}
+.fav-tab .fav .dotc{width:3px;height:3px}
+
+/* 實時對話動畫 */
+.js .msg{opacity:0;transform:translateY(10px) scale(.97)}
+.js .msg.on{opacity:1;transform:none;transition:opacity .3s ease,transform .38s cubic-bezier(.34,1.4,.64,1)}
+.me{transform-origin:bottom right}
+.ai{transform-origin:bottom left}
+.ai .body{display:none}
+.ai.on .body{display:block}
+.ai .dots{display:none}
+.ai.on.typing .body{display:none}
+.ai.on.typing .dots{display:inline-flex;gap:.3rem;padding:.15rem 0}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}
+.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.js .verdict{opacity:0;transition:opacity .5s ease .15s}
+.js .verdict.on{opacity:1}
+@media (prefers-reduced-motion: reduce){
+.js .msg,.js .verdict{opacity:1;transform:none;transition:none}
+.ai .body{display:block!important}
+.ai .dots{display:none!important}
+}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>設計對話　—　過場與細節篇</h1>
+<p class="sub">重演自 2026-07-17〜18 的過場與細節評選</p>
+
+<div class="chat">
+  <div class="msg me"><span class="who">我</span>換頁會閃，要有過場但不能拖。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">墨點方向三案，都按「模擬」看交接動畫：
+    <div class="opts">
+      <div class="opt"><div class="lab">墨滴暈開——一滴墨從畫面中心暈開蓋掉舊頁，新頁從墨裡浮出</div><button class="btn" onclick="inkdrop(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div><div class="ink"></div></div></div>
+      <div class="opt"><div class="lab">墨點＋紫線掃尾——沉入黑的瞬間一道紫線從左掃到右</div><button class="btn" onclick="dipsweep(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div><div class="veil2"></div><div class="sweep"></div></div></div>
+      <div class="opt"><div class="lab">原版墨點——單純沉黑再浮出，最乾淨的版本</div><button class="btn" onclick="dip(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div></div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>有設計感但有點多了，要簡化的版本。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">墨點的方向保留，儀式感降兩級，三案總時長都壓在 0.3 秒內：
+    <div class="opts">
+      <div class="opt"><div class="lab">眨墨——黑只閃 0.12 秒，像眨一次眼</div><button class="btn" onclick="blink(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div><div class="veil"></div></div></div>
+      <div class="opt"><div class="lab">新頁浮現——舊頁直接走、新頁 0.25 秒淡入</div><button class="btn" onclick="fadein(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div></div></div>
+      <div class="opt picked"><div class="lab">快速交叉——兩頁 0.25 秒交叉淡化，無黑幕，最柔</div><button class="btn" onclick="xf(this)">模擬</button><div class="pagebox"><div class="pg p1">首頁</div><div class="pg p2" style="opacity:0">Projects</div></div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>快速交叉。favicon 用角標的概念做。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">角標三變體，都附分頁列 16px 模擬——favicon 的生死都在 16px：
+    <div class="opts">
+      <div class="opt"><div class="lab">純角標——只有兩個角，最抽象</div><div class="favrow"><span class="fav"><span class="c1"></span><span class="c2"></span></span><span class="fav-tab"><span class="fav"><span class="c1"></span><span class="c2"></span></span>林郁為</span></div></div>
+      <div class="opt picked"><div class="lab">角標＋中心點——兩角之間一顆紫點，「被量測的資料點」</div><div class="favrow"><span class="fav"><span class="c1"></span><span class="c2"></span><span class="dotc"></span></span><span class="fav-tab"><span class="fav"><span class="c1"></span><span class="c2"></span><span class="dotc"></span></span>林郁為</span></div></div>
+      <div class="opt"><div class="lab">角標＋郁字——兩角框住襯線小「郁」，16px 時字最吃力</div><div class="favrow"><span class="fav"><span class="c1"></span><span class="c2"></span><b>郁</b></span><span class="fav-tab"><span class="fav"><span class="c1"></span><span class="c2"></span><b>郁</b></span>林郁為</span></div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>角標＋中心點。捲軸就交給你決定了。</div>
+
+  <div class="verdict"><b>定案</b>　換頁快速交叉淡化（0.25s）；favicon 角標＋資料點；捲軸 5px 半透明霧灰紫常駐，hover／拖曳時轉實色（授權 AI 定案）。</div>
+</div>
+
+<p class="rawnote"><span class="rawchip">重演整理</span>對話經濃縮與排序整理；所有選項與決定皆為真實紀錄。</p>
+<p class="rawnote"><a href="/process/">回對話目錄</a>　·　<a href="/projects/ai/portfolio-site/">回專案頁</a></p>
+
+</div>
+
+<script>
+function inkdrop(btn){const w=btn.parentElement.querySelector('.pagebox');const ink=w.querySelector('.ink'),p1=w.querySelector('.p1'),p2=w.querySelector('.p2');ink.style.transition='none';ink.style.transform='translate(-50%,-50%) scale(0)';p1.style.opacity=1;p2.style.opacity=0;void ink.offsetWidth;ink.style.transition='transform .45s cubic-bezier(.16,1,.3,1)';ink.style.transform='translate(-50%,-50%) scale(45)';setTimeout(()=>{p1.style.opacity=0;p2.style.opacity=1},430);setTimeout(()=>{ink.style.transition='transform .5s ease';ink.style.transform='translate(-50%,-50%) scale(0)'},480);setTimeout(()=>{p2.style.opacity=0;p1.style.opacity=1},2300)}
+function dipsweep(btn){const w=btn.parentElement.querySelector('.pagebox');const v=w.querySelector('.veil2'),s=w.querySelector('.sweep'),p1=w.querySelector('.p1'),p2=w.querySelector('.p2');v.style.transition='none';v.style.transform='translateY(101%)';p1.style.opacity=1;p2.style.opacity=0;void v.offsetWidth;v.style.transition='transform .35s ease';v.style.transform='translateY(0)';setTimeout(()=>{s.style.transition='none';s.style.opacity=1;s.style.left='-2%';void s.offsetWidth;s.style.transition='left .4s ease,opacity .3s ease .35s';s.style.left='101%';s.style.opacity=0},360);setTimeout(()=>{p1.style.opacity=0;p2.style.opacity=1;v.style.transform='translateY(-101%)'},800);setTimeout(()=>{v.style.transition='none';v.style.transform='translateY(101%)';p2.style.opacity=0;p1.style.opacity=1},2600)}
+function dip(btn){const w=btn.parentElement.querySelector('.pagebox');const p1=w.querySelector('.p1'),p2=w.querySelector('.p2');p1.style.transition=p2.style.transition='opacity .25s ease';p1.style.opacity=1;p2.style.opacity=0;setTimeout(()=>p1.style.opacity=0,220);setTimeout(()=>p2.style.opacity=1,560);setTimeout(()=>{p2.style.opacity=0;p1.style.opacity=1},2100)}
+function blink(btn){const w=btn.parentElement.querySelector('.pagebox');const v=w.querySelector('.veil'),p1=w.querySelector('.p1'),p2=w.querySelector('.p2');v.style.transition='opacity .1s ease';p1.style.opacity=1;p2.style.opacity=0;v.style.opacity=1;setTimeout(()=>{p1.style.opacity=0;p2.style.opacity=1;v.style.transition='opacity .18s ease';v.style.opacity=0},120);setTimeout(()=>{p2.style.opacity=0;p1.style.opacity=1},1800)}
+function fadein(btn){const w=btn.parentElement.querySelector('.pagebox');const p1=w.querySelector('.p1'),p2=w.querySelector('.p2');p1.style.transition='none';p2.style.transition='opacity .25s ease';p1.style.opacity=0;p2.style.opacity=0;void p2.offsetWidth;requestAnimationFrame(()=>p2.style.opacity=1);setTimeout(()=>{p2.style.opacity=0;p1.style.transition='opacity .2s ease';p1.style.opacity=1},1800)}
+function xf(btn){const w=btn.parentElement.querySelector('.pagebox');const p1=w.querySelector('.p1'),p2=w.querySelector('.p2');p1.style.transition=p2.style.transition='opacity .25s ease';p1.style.opacity=0;p2.style.opacity=1;setTimeout(()=>{p1.style.opacity=1;p2.style.opacity=0},1800)}
+(() => {
+  document.documentElement.classList.add('js');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const seq = Array.from(document.querySelectorAll('.msg, .verdict'));
+  if (reduce || !('IntersectionObserver' in window)) { seq.forEach((el) => el.classList.add('on')); return; }
+  const visible = new Set(); let idx = 0, busy = false;
+  const io = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) { visible.add(e.target); io.unobserve(e.target); } }); pump(); }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  seq.forEach((el) => io.observe(el));
+  function pump() {
+    if (busy || idx >= seq.length) return;
+    const el = seq[idx];
+    if (!visible.has(el)) return;
+    busy = true; idx++;
+    if (el.classList.contains('ai')) {
+      el.classList.add('on', 'typing');
+      setTimeout(() => { el.classList.remove('typing'); setTimeout(() => { busy = false; pump(); }, 180); }, 430);
+    } else {
+      el.classList.add('on');
+      setTimeout(() => { busy = false; pump(); }, 240);
+    }
+  }
+})();
+</script>
+</body>
+</html>

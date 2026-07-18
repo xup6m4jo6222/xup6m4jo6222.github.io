@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="color-scheme:dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設計對話　按鈕與手感篇</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#a295bb;--bg:#20131d;--alt:#2f1e2b;--text:#ebe5eb;--muted:#a79aa5;--line:#3d2e3a;--line2:#56506a}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.75;padding:2.5rem 1.25rem;display:grid;place-items:center;font-size:1rem}
+.wrap{max-width:640px;width:100%}
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.4rem;margin:0 0 .2rem}
+.sub{color:var(--muted);font-size:.88rem;margin:0 0 1.8rem}
+a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
+::selection{background:var(--a);color:#20131d}
+/* 對話 */
+.chat{display:flex;flex-direction:column;gap:1.1rem}
+.msg{max-width:85%;padding:.75rem 1rem;font-size:.95rem;line-height:1.7}
+.me{align-self:flex-end;background:color-mix(in srgb,var(--a) 16%,var(--bg));border:1px solid var(--line2);border-radius:.9rem .9rem .2rem .9rem}
+.me .who{color:var(--a)}
+.ai{align-self:flex-start;background:var(--alt);border:1px solid var(--line);border-radius:.9rem .9rem .9rem .2rem}
+.who{display:block;font-size:.72rem;letter-spacing:.06em;color:var(--muted);margin-bottom:.3rem}
+/* AI 泡泡內的選項渲染 */
+.opts{display:flex;flex-direction:column;gap:.8rem;margin-top:.7rem}
+.opt{border:1px solid var(--line2);border-radius:.55rem;padding:.7rem .9rem;background:var(--bg)}
+.opt .lab{font-size:.74rem;color:var(--a);letter-spacing:.06em;margin-bottom:.35rem}
+.picked{outline:2px solid var(--a);outline-offset:2px;position:relative}
+.picked::after{content:'✓ 我的選擇';position:absolute;top:-.7rem;right:.6rem;font-size:.7rem;background:var(--bg);border:1px solid var(--a);color:var(--a);border-radius:.55rem;padding:.05rem .5rem}
+/* 定案 */
+.verdict{align-self:center;width:100%;border-top:1px solid var(--line2);margin-top:.6rem;padding-top:1rem;font-size:.9rem;color:var(--muted)}
+.verdict b{color:var(--text);font-weight:600}
+.rawnote{margin-top:2rem;color:var(--muted);font-size:.82rem}
+.rawchip{display:inline-block;font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:.55rem;padding:.05rem .55rem;margin-right:.5rem;letter-spacing:.04em}
+
+/* 按鈕手感四案（自 uiux-round2 搬，真的能按） */
+.btn{display:inline-block;border:1px solid var(--a);color:var(--a);background:none;border-radius:.55rem;padding:.5rem 1.2rem;font-size:.9rem;font-family:inherit;cursor:pointer;margin-right:.7rem}
+.p-a{transition:transform .12s ease,border-color .12s ease}
+.p-a:active{transform:translateY(2px)}
+.p-b{transition:background .18s ease,color .18s ease}
+.p-b:hover{background:color-mix(in srgb,var(--a) 14%,transparent)}
+.p-b:active{background:var(--a);color:#20131d}
+.p-c{transition:box-shadow .12s ease}
+.p-c:active{box-shadow:inset 0 2px 8px #0009}
+.p-d{transition:transform .15s cubic-bezier(.34,1.56,.64,1)}
+.p-d:active{transform:scale(.955)}
+
+/* 實時對話動畫 */
+.js .msg{opacity:0;transform:translateY(10px) scale(.97)}
+.js .msg.on{opacity:1;transform:none;transition:opacity .3s ease,transform .38s cubic-bezier(.34,1.4,.64,1)}
+.me{transform-origin:bottom right}
+.ai{transform-origin:bottom left}
+.ai .body{display:none}
+.ai.on .body{display:block}
+.ai .dots{display:none}
+.ai.on.typing .body{display:none}
+.ai.on.typing .dots{display:inline-flex;gap:.3rem;padding:.15rem 0}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}
+.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.js .verdict{opacity:0;transition:opacity .5s ease .15s}
+.js .verdict.on{opacity:1}
+@media (prefers-reduced-motion: reduce){
+.js .msg,.js .verdict{opacity:1;transform:none;transition:none}
+.ai .body{display:block!important}
+.ai .dots{display:none!important}
+}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>設計對話　—　按鈕與手感篇</h1>
+<p class="sub">重演自 2026-07-17 的按鈕與手感評選</p>
+
+<div class="chat">
+  <div class="msg me"><span class="who">我</span>按鈕本身缺的其實是動畫，或是說按下去的手感。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">手感四案，都真的能按，實際按按看再選：
+    <div class="opts">
+      <div class="opt"><div class="lab">下沉——按下去往下 2px，最物理直覺</div><button class="btn p-a">GitHub</button><button class="btn p-a">返回 Projects</button></div>
+      <div class="opt picked"><div class="lab">墨填——hover 淡染、按下整顆填滿紫、字反黑，像蓋印</div><button class="btn p-b">GitHub</button><button class="btn p-b">返回 Projects</button></div>
+      <div class="opt"><div class="lab">內壓——按下時內陰影，像按進紙面，最安靜</div><button class="btn p-c">GitHub</button><button class="btn p-c">返回 Projects</button></div>
+      <div class="opt"><div class="lab">微縮——按下縮 4.5%、放開回彈，手感最軟</div><button class="btn p-d">GitHub</button><button class="btn p-d">返回 Projects</button></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>墨填。</div>
+
+  <div class="verdict"><b>定案</b>　墨填——hover 淡染、按下整顆填滿霧灰紫、字反黑，像蓋印。全站按鈕同這套。</div>
+</div>
+
+<p class="rawnote"><span class="rawchip">重演整理</span>對話經濃縮與排序整理；所有選項與決定皆為真實紀錄。</p>
+<p class="rawnote"><a href="/process/">回對話目錄</a>　·　<a href="/projects/ai/portfolio-site/">回專案頁</a></p>
+
+</div>
+
+<script>
+(() => {
+  document.documentElement.classList.add('js');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const seq = Array.from(document.querySelectorAll('.msg, .verdict'));
+  if (reduce || !('IntersectionObserver' in window)) { seq.forEach((el) => el.classList.add('on')); return; }
+  const visible = new Set(); let idx = 0, busy = false;
+  const io = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) { visible.add(e.target); io.unobserve(e.target); } }); pump(); }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  seq.forEach((el) => io.observe(el));
+  function pump() {
+    if (busy || idx >= seq.length) return;
+    const el = seq[idx];
+    if (!visible.has(el)) return;
+    busy = true; idx++;
+    if (el.classList.contains('ai')) {
+      el.classList.add('on', 'typing');
+      setTimeout(() => { el.classList.remove('typing'); setTimeout(() => { busy = false; pump(); }, 180); }, 430);
+    } else {
+      el.classList.add('on');
+      setTimeout(() => { busy = false; pump(); }, 240);
+    }
+  }
+})();
+</script>
+</body>
+</html>

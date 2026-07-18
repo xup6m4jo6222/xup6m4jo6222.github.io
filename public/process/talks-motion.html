@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="color-scheme:dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設計對話　動效篇</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--a:#a295bb;--bg:#20131d;--alt:#2f1e2b;--text:#ebe5eb;--muted:#a79aa5;--line:#3d2e3a;--line2:#56506a}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.75;padding:2.5rem 1.25rem;display:grid;place-items:center;font-size:1rem}
+.wrap{max-width:640px;width:100%}
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.4rem;margin:0 0 .2rem}
+.sub{color:var(--muted);font-size:.88rem;margin:0 0 1.8rem}
+a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
+::selection{background:var(--a);color:#20131d}
+/* 對話 */
+.chat{display:flex;flex-direction:column;gap:1.1rem}
+.msg{max-width:85%;padding:.75rem 1rem;font-size:.95rem;line-height:1.7}
+.me{align-self:flex-end;background:color-mix(in srgb,var(--a) 16%,var(--bg));border:1px solid var(--line2);border-radius:.9rem .9rem .2rem .9rem}
+.me .who{color:var(--a)}
+.ai{align-self:flex-start;background:var(--alt);border:1px solid var(--line);border-radius:.9rem .9rem .9rem .2rem}
+.who{display:block;font-size:.72rem;letter-spacing:.06em;color:var(--muted);margin-bottom:.3rem}
+/* AI 泡泡內的選項渲染 */
+.opts{display:flex;flex-direction:column;gap:.8rem;margin-top:.7rem}
+.opt{border:1px solid var(--line2);border-radius:.55rem;padding:.7rem .9rem;background:var(--bg)}
+.opt .lab{font-size:.74rem;color:var(--a);letter-spacing:.06em;margin-bottom:.35rem}
+.picked{outline:2px solid var(--a);outline-offset:2px;position:relative}
+.picked::after{content:'✓ 我的選擇';position:absolute;top:-.7rem;right:.6rem;font-size:.7rem;background:var(--bg);border:1px solid var(--a);color:var(--a);border-radius:.55rem;padding:.05rem .5rem}
+/* 定案 */
+.verdict{align-self:center;width:100%;border-top:1px solid var(--line2);margin-top:.6rem;padding-top:1rem;font-size:.9rem;color:var(--muted)}
+.verdict b{color:var(--text);font-weight:600}
+.rawnote{margin-top:2rem;color:var(--muted);font-size:.82rem}
+.rawchip{display:inline-block;font-size:.75rem;color:var(--muted);border:1px solid var(--line);border-radius:.55rem;padding:.05rem .55rem;margin-right:.5rem;letter-spacing:.04em}
+
+/* 重播按鈕（自 uiux-round3 手法搬） */
+.btn{display:inline-block;border:1px solid var(--a);color:var(--a);background:none;border-radius:.55rem;padding:.35rem .95rem;font-size:.82rem;font-family:inherit;cursor:pointer;transition:background .18s ease,color .18s ease}
+.btn:hover{background:color-mix(in srgb,var(--a) 14%,transparent)}
+.btn:active{background:var(--a);color:#20131d}
+.dcard{background:var(--alt);border-radius:.4rem;padding:.6rem 1.1rem;font-size:.9rem;margin-top:.6rem;display:inline-block;min-width:8rem}
+
+/* hover 角標卡（自 uiux-round4　丙角標連動搬） */
+.card{background:var(--alt);position:relative;padding:.8rem 1rem;font-size:.9rem;max-width:26rem}
+.card::before,.card::after{content:'';position:absolute;width:12px;height:12px;border:1px solid var(--a);transition:width .3s ease,height .3s ease}
+.card::before{top:0;left:0;border-right:0;border-bottom:0}
+.card::after{bottom:0;right:0;border-left:0;border-top:0}
+.hv{overflow:hidden;transition:background .3s ease,color .3s ease;color:#c6c4bd}
+.hv i{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--a);transform:translateY(-101%);transition:transform .32s ease}
+.hv:hover{background:#24282c;color:#fff}
+.hv:hover i{transform:none}
+.hv3:hover::before{width:100%;height:100%}
+.hv3:hover::after{width:100%;height:100%}
+.hv3 i{transition:transform .32s ease .1s}
+
+/* 實時對話動畫 */
+.js .msg{opacity:0;transform:translateY(10px) scale(.97)}
+.js .msg.on{opacity:1;transform:none;transition:opacity .3s ease,transform .38s cubic-bezier(.34,1.4,.64,1)}
+.me{transform-origin:bottom right}
+.ai{transform-origin:bottom left}
+.ai .body{display:none}
+.ai.on .body{display:block}
+.ai .dots{display:none}
+.ai.on.typing .body{display:none}
+.ai.on.typing .dots{display:inline-flex;gap:.3rem;padding:.15rem 0}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}
+.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.js .verdict{opacity:0;transition:opacity .5s ease .15s}
+.js .verdict.on{opacity:1}
+@media (prefers-reduced-motion: reduce){
+.js .msg,.js .verdict{opacity:1;transform:none;transition:none}
+.ai .body{display:block!important}
+.ai .dots{display:none!important}
+}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>設計對話　—　動效篇</h1>
+<p class="sub">重演自 2026-07-17 的動效評選</p>
+
+<div class="chat">
+  <div class="msg me"><span class="who">我</span>頁面要有互動、有視覺化，動畫由我主導，不要 AI 默默決定。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">那先定全站的節奏與性格。速度三案、曲線兩案，都能重播比較：
+    <div class="opts">
+      <div class="opt"><div class="lab">快 0.2s</div><button class="btn" data-dur="200" onclick="replay(this)">重播</button><div class="dcard">林郁為</div></div>
+      <div class="opt picked"><div class="lab">中 0.45s</div><button class="btn" data-dur="450" onclick="replay(this)">重播</button><div class="dcard">林郁為</div></div>
+      <div class="opt"><div class="lab">慢 0.8s</div><button class="btn" data-dur="800" onclick="replay(this)">重播</button><div class="dcard">林郁為</div></div>
+      <div class="opt"><div class="lab">勻減速</div><button class="btn" data-ease="ease-out" onclick="replay(this)">重播</button><div class="dcard">林郁為</div></div>
+      <div class="opt picked"><div class="lab">微回彈</div><button class="btn" data-ease="cubic-bezier(.34,1.4,.64,1)" onclick="replay(this)">重播</button><div class="dcard">林郁為</div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>中速、微回彈。時間軸卡片進場要有滑入跟模糊。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">做一個可重播的示意盒：卡片從左滑入、由模糊轉清晰。
+    <div class="opts">
+      <div class="opt picked"><div class="lab">滑入＋模糊</div><button class="btn" data-x="-24" data-blur="6" onclick="replay(this)">重播</button><div class="dcard">想法的起點</div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>可以。卡片 hover 要左線＋底色＋文字增亮三合一，加上角標連動。</div>
+
+  <div class="msg ai"><span class="who">AI</span><span class="dots"><i></i><i></i><i></i></span><div class="body">三個效果同步發生，加上兩個角標同時長成整框，把卡片「量」起來。滑鼠移上去試試：
+    <div class="opts">
+      <div class="opt picked"><div class="lab">角標連動版——效果同專案頁現行</div><div class="card hv hv3"><i></i>第一個 AI 專案定為「創建個人作品頁」。</div></div>
+    </div>
+  </div></div>
+  <div class="msg me"><span class="who">我</span>就這個。</div>
+
+  <div class="verdict"><b>定案</b>　中速微回彈（0.45s，cubic-bezier(.34,1.4,.64,1)）為全站基調；時間軸卡片進場滑入加模糊；卡片 hover 角標連動三合一；比對器把手第一次進入視野時示範擺動一次。</div>
+</div>
+
+<p class="rawnote"><span class="rawchip">重演整理</span>對話經濃縮與排序整理；所有選項與決定皆為真實紀錄。</p>
+<p class="rawnote"><a href="/process/">回對話目錄</a>　·　<a href="/projects/ai/portfolio-site/">回專案頁</a></p>
+
+</div>
+
+<script>
+function replay(btn){
+  const card = btn.nextElementSibling;
+  const dur = btn.dataset.dur || 450;
+  const ease = btn.dataset.ease || 'cubic-bezier(.34,1.4,.64,1)';
+  const x = btn.dataset.x || 0;
+  const blur = btn.dataset.blur || 0;
+  card.style.transition = 'none';
+  card.style.transform = `translateX(${x}px)`;
+  card.style.filter = `blur(${blur}px)`;
+  card.style.opacity = '0';
+  void card.offsetWidth;
+  card.style.transition = `transform ${dur}ms ${ease}, filter ${dur}ms ${ease}, opacity ${dur}ms ease`;
+  card.style.transform = 'none';
+  card.style.filter = 'none';
+  card.style.opacity = '1';
+}
+(() => {
+  document.documentElement.classList.add('js');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const seq = Array.from(document.querySelectorAll('.msg, .verdict'));
+  if (reduce || !('IntersectionObserver' in window)) { seq.forEach((el) => el.classList.add('on')); return; }
+  const visible = new Set(); let idx = 0, busy = false;
+  const io = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) { visible.add(e.target); io.unobserve(e.target); } }); pump(); }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  seq.forEach((el) => io.observe(el));
+  function pump() {
+    if (busy || idx >= seq.length) return;
+    const el = seq[idx];
+    if (!visible.has(el)) return;
+    busy = true; idx++;
+    if (el.classList.contains('ai')) {
+      el.classList.add('on', 'typing');
+      setTimeout(() => { el.classList.remove('typing'); setTimeout(() => { busy = false; pump(); }, 180); }, 430);
+    } else {
+      el.classList.add('on');
+      setTimeout(() => { busy = false; pump(); }, 240);
+    }
+  }
+})();
+</script>
+</body>
+</html>

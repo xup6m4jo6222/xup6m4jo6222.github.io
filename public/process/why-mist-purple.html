@@ -3,27 +3,166 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>為什麼我選擇霧灰紫？</title>
+<title>挑選顏色的心路歷程</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#16181a;--text:#e8e6e0;--muted:#93958e;--a:#a295bb}
+:root{--a:#a295bb;--bg:#20131d;--alt:#2f1e2b;--text:#ebe5eb;--muted:#a79aa5;--line:#3d2e3a;--line2:#56506a}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.7;padding:3rem 1.25rem;display:grid;place-items:center;min-height:100vh}
-.wrap{max-width:720px;width:100%}
-h1{font-family:'Noto Serif TC','Microsoft JhengHei',serif;font-weight:400;letter-spacing:.08em;font-size:1.7rem;margin:0 0 1.4rem;color:var(--a)}
-p{color:var(--muted);font-size:.95rem;margin:0;max-width:56ch}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.8;padding:2.8rem 1.25rem;display:grid;place-items:center;min-height:100vh;font-size:1rem}
+.wrap{max-width:640px;width:100%}
 a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
-.back{display:inline-block;margin-top:2.4rem;font-size:.9rem}
+::selection{background:var(--a);color:#20131d}
+
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.55rem;margin:0 0 .35rem;color:var(--text)}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 2.4rem}
+.lead{font-size:.98rem;margin:0 0 2.4rem;color:var(--text)}
+
+h2{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.12rem;letter-spacing:.03em;margin:2.8rem 0 1.1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+.open{color:var(--muted);font-size:.92rem;margin:0 0 1.3rem}
+
+/* 列聯表 */
+.matrix{width:100%;border-collapse:collapse;margin:.4rem 0 .6rem;font-size:.9rem}
+.matrix th,.matrix td{border:1px solid var(--line);padding:.7rem .85rem;text-align:left;vertical-align:top}
+.matrix thead th{font-family:'Noto Serif TC',serif;font-weight:600;color:var(--text);font-size:.92rem}
+.matrix thead th span{display:block;font-family:var(--font-sans);font-weight:400;font-size:.74rem;color:var(--muted);margin-top:.2rem;letter-spacing:.02em}
+.matrix tbody th{font-family:'Noto Serif TC',serif;font-weight:600;color:var(--a);white-space:nowrap;width:4.2rem}
+.matrix tbody td{color:var(--text);transition:border-color .18s ease,background-color .18s ease}
+.matrix tbody td:hover{border-color:var(--a);background:color-mix(in srgb,var(--a) 8%,transparent)}
+.matrix td.empty{color:var(--line2);text-align:center}
+.matrix thead th:first-child{background:transparent;border-top:0;border-left:0}
+
+/* 角標卡（對照特質三卡） */
+.cards{display:flex;flex-direction:column;gap:1.1rem}
+.tab-card{position:relative;padding:1rem 1.2rem;background:var(--alt);border-radius:.55rem}
+.tab-card::before,.tab-card::after{content:'';position:absolute;width:14px;height:14px;border:1px solid var(--a);pointer-events:none}
+.tab-card::before{top:0;left:0;border-right:0;border-bottom:0;border-top-left-radius:.55rem}
+.tab-card::after{bottom:0;right:0;border-left:0;border-top:0;border-bottom-right-radius:.55rem}
+.tab-card .dim{font-family:'Noto Serif TC',serif;font-size:1rem;color:var(--a);letter-spacing:.05em}
+.tab-card .subhead{display:block;font-size:.76rem;color:var(--muted);margin:.15rem 0 .55rem;letter-spacing:.02em}
+.tab-card p{margin:0;font-size:.92rem;color:var(--text)}
+
+/* 選擇卡（背景／元素主色） */
+.pick-card{position:relative;background:var(--alt);border:1px solid var(--line);border-left:2px solid var(--a);border-radius:.55rem;padding:.95rem 1.15rem}
+.pick-card .dim{display:block;font-family:'Noto Serif TC',serif;font-size:.92rem;color:var(--a);letter-spacing:.05em;margin-bottom:.45rem}
+.pick-card p{margin:0;font-size:.92rem;color:var(--text)}
+.pick-card .note{display:block;margin-top:.6rem;font-size:.78rem;color:var(--muted)}
+.swatch{position:absolute;top:.9rem;right:1rem;display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted);letter-spacing:.03em}
+.swatch .dot{width:1rem;height:1rem;border-radius:50%;background:#20131d;border:1px solid var(--line2);flex:none}
+.aside{color:var(--muted);font-size:.82rem;margin:1rem 0 0}
+
+footer{margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--line);font-size:.9rem}
+
+.js [data-reveal]{opacity:0;transform:translateY(16px)}
+.js [data-reveal].on{opacity:1;transform:none;transition:opacity .5s ease,transform .55s cubic-bezier(.34,1.4,.64,1)}
+@media (prefers-reduced-motion:reduce){.js [data-reveal]{opacity:1;transform:none;transition:none}}
+
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>為什麼我選擇霧灰紫？</h1>
-<p>這個故事由本人撰寫中。</p>
-<a class="back" href="/projects/ai/portfolio-site/">← 回專案頁</a>
+
+<h1 data-reveal>挑選顏色的心路歷程</h1>
+<p class="sub" data-reveal>配色不是挑好看的，是把人翻譯成參數</p>
+
+<p class="lead" data-reveal>在挑選顏色前，經過深思熟慮後，考慮了兩個大方向作為發想起點－「色彩本身的維度」、「色彩被用在哪裡」。其中色彩本身主流被分成「色相、飽和度、明度」三個維度。而色彩則會被用在「背景主色」和「元素主色」，這裡我主觀認為分別可以代表「我是個怎樣的人」和「想帶給別人什麼感覺」。</p>
+
+<table class="matrix" data-reveal>
+  <thead>
+    <tr>
+      <th></th>
+      <th>背景主色<span>我是個怎樣的人</span></th>
+      <th>元素主色<span>想帶給別人什麼感覺</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th>色相</th><td>紫紅之間</td><td>深藍靛藍</td></tr>
+    <tr><th>彩度</th><td>鮮明略降</td><td>中到中低</td></tr>
+    <tr><th>明度</th><td>低而不滅</td><td>中段</td></tr>
+    <tr><th>材質</th><td>細紋霧面</td><td class="empty">—</td></tr>
+  </tbody>
+</table>
+
+<h2 data-reveal>顏色如何對照個人特質</h2>
+<div class="cards">
+  <div class="tab-card" data-reveal>
+    <span class="dim">色相</span>
+    <span class="subhead">色彩的「外相」</span>
+    <p>可以對應到性格特質本身的代表色（比如黑色給人一種穩重的感覺）。</p>
+  </div>
+  <div class="tab-card" data-reveal>
+    <span class="dim">彩度</span>
+    <span class="subhead">決定顏色的「純淨」程度</span>
+    <p>這可以對應到性格特質的「強烈程度」、「外顯表現」，也就是個人色彩的強烈程度。</p>
+  </div>
+  <div class="tab-card" data-reveal>
+    <span class="dim">明度</span>
+    <span class="subhead">決定顏色的「明暗」程度</span>
+    <p>這比較抽象，我主觀認為可以對應到「需要多少時間才能讓別人了解我」。</p>
+  </div>
 </div>
+
+<h2 data-reveal>背景主色的選擇</h2>
+<p class="open" data-reveal>接下來先從「我是個怎樣的人」討論，也就是背景主色。請注意，以下的個人了解都是主觀想法：</p>
+<div class="cards">
+  <div class="pick-card" data-reveal>
+    <span class="swatch"><span class="dot"></span>#20131d</span>
+    <span class="dim">色相</span>
+    <p>我是個擁有獨立思考、不輕易隨波逐流的人，同時帶著些許偏執的完美主義，這兩個特質不太一樣：一個是靜態的思考力，可以用「偏藍的紫色」代表；一個是動態的執行力，可以用「紅色」代表，是個看似矛盾但融合共存的兩個方向。所以我認為色相選在紫跟紅之間，兩者疊加後，是個比純紫色多一點溫度，比純紅色多一點沉靜，整體來說紫色會更多。</p>
+  </div>
+  <div class="pick-card" data-reveal>
+    <span class="dim">彩度</span>
+    <p>而我很清楚我的個人特質極為明顯，故挑選較明顯的彩度，不過考慮到「易讀」的理念，仍會因此降低一點彩度，整體會比平衡彩度更鮮豔。</p>
+  </div>
+  <div class="pick-card" data-reveal>
+    <span class="dim">明度</span>
+    <p>但其實我不是那種一接觸就能完全被理解的人，通常需要與我相處久一點，才會慢慢發現底下的層次比表面看起來深很多。所以明度會刻意壓低，但也不會完全消失，故選擇低明度的顏色。</p>
+  </div>
+  <div class="pick-card" data-reveal>
+    <span class="dim">材質</span>
+    <p>選擇帶細微紋理的霧面，是想利用霧面表達「不是一開始就能完全理解」，搭配細微紋理，表達隱約能感覺到「這個表面好像還有什麼」，但若要看清紋理細節，得更靠近、花點時間釐清。</p>
+    <span class="note">你現在看的這一頁就鋪著這個材質</span>
+  </div>
+</div>
+
+<h2 data-reveal>元素主色的選擇</h2>
+<p class="open" data-reveal>再回到「想帶給別人什麼感覺」，也就是元素主色：</p>
+<div class="cards">
+  <div class="pick-card" data-reveal>
+    <span class="dim">色相</span>
+    <p>我想讓人覺得我是個冷靜沉穩、富有想像力、知識淵博、責任心強的人，這幾個特質在色彩心理學裡，最直接對應的顏色是深藍或靛藍——藍色是「可信賴、理性、智識」最普遍的聯想色，深藍還額外帶有「權威、穩重、可託付重任」的聯想。</p>
+  </div>
+  <div class="pick-card" data-reveal>
+    <span class="dim">彩度</span>
+    <p>但我想要只在必要的時機才出現，並不會想要一直出風頭，更偏向「默默付出」，但也會私心想被人看見我的努力，故彩度選擇中到中低程度。</p>
+  </div>
+  <div class="pick-card" data-reveal>
+    <span class="dim">明度</span>
+    <p>在「默默付出」的基礎上，其實一定程度代表我並不想要馬上被人看透，想要保持一點神秘感。但考慮元素主色本來就該明顯一點，交互上才不會看起來太吃力，故考慮中間範圍的明度。</p>
+  </div>
+</div>
+<p class="aside" data-reveal>元素主色仍在評選中，現行為霧灰紫 #a295bb</p>
+
+<footer data-reveal>
+  <a href="/projects/ai/portfolio-site/">← 回專案頁</a>　·　<a href="/process/">回對話目錄</a>
+</footer>
+
+</div>
+
+<script>
+(() => {
+  document.documentElement.classList.add('js');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = Array.from(document.querySelectorAll('[data-reveal]'));
+  if (reduce || !('IntersectionObserver' in window)) { els.forEach((el) => el.classList.add('on')); return; }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  els.forEach((el) => io.observe(el));
+})();
+</script>
 </body>
 </html>

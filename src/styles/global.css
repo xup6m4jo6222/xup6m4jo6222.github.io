@@ -1,10 +1,10 @@
 :root {
 	color-scheme: dark;
-	--color-bg: #16181a;
-	--color-bg-alt: #1e2124;
-	--color-text: #e8e6e0;
-	--color-text-muted: #93958e;
-	--color-border: #2c2f31;
+	--color-bg: #20131d;
+	--color-bg-alt: #2f1e2b;
+	--color-text: #ebe5eb;
+	--color-text-muted: #a79aa5;
+	--color-border: #3d2e3a;
 	--color-border-strong: #56506a;
 	--color-accent: #a295bb;
 	--font-display: 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
@@ -41,6 +41,20 @@ a {
 	color: var(--color-accent);
 }
 
+/* 材質：絲絨顆粒（雙層不均勻，soft-light 9%） */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: url('/textures/grain.png') repeat;
+	background-size: 320px;
+	mix-blend-mode: soft-light;
+	opacity: 0.17;
+	pointer-events: none;
+}
+
+
 main {
 	flex: 1;
 	width: 100%;
@@ -67,7 +81,7 @@ main {
 /* Text selection / keyboard focus / scrollbars — site-wide */
 ::selection {
 	background: var(--color-accent);
-	color: #16181a;
+	color: #20131d;
 }
 
 :focus-visible {
@@ -221,7 +235,7 @@ html {
 
 .entry-links a:active {
 	background: var(--color-accent);
-	color: #16181a;
+	color: #20131d;
 	border-color: var(--color-accent);
 }
 
@@ -429,7 +443,7 @@ main > h1 {
 
 .links a:active {
 	background: var(--color-accent);
-	color: #16181a;
+	color: #20131d;
 	border-color: var(--color-accent);
 }
 
@@ -596,7 +610,7 @@ main > h1 {
 }
 
 .cs-track:hover {
-	background-color: #24282c;
+	background-color: #33222f;
 }
 
 .cs-track:hover .cs-side {
@@ -878,8 +892,8 @@ main > h1 {
 
 .tl-solo:hover {
 	background-size: 2px 100%, auto;
-	background-color: #24282c;
-	color: #f4f2ec;
+	background-color: #33222f;
+	color: #f2ecf2;
 }
 
 .tl-solo:hover::before,
