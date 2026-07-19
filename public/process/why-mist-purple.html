@@ -35,20 +35,21 @@ h2{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.12rem;letter-sp
 .matrix td.empty{color:var(--line2);text-align:center}
 .matrix thead th:first-child{background:transparent;border-top:0;border-left:0}
 
-/* 角標卡（對照特質三卡） */
-.cards{display:flex;flex-direction:column;gap:1.1rem}
-.tab-card,.pick-card{position:relative;overflow:hidden;padding:1rem 1.2rem;background:linear-gradient(var(--a),var(--a)) top left / 2px 0 no-repeat,var(--alt);border-radius:.55rem;transition:background-size .3s cubic-bezier(.34,1.4,.64,1) .1s,background-color .45s ease,color .45s ease}
-.tab-card::before,.tab-card::after,.pick-card::before,.pick-card::after{content:'';position:absolute;width:12px;height:12px;border-color:var(--a);border-style:solid;pointer-events:none;transition:width .3s cubic-bezier(.34,1.4,.64,1),height .3s cubic-bezier(.34,1.4,.64,1)}
-.tab-card::before,.pick-card::before{top:0;left:0;border-width:1px 0 0 1px;border-top-left-radius:.55rem}
-.tab-card::after,.pick-card::after{right:0;bottom:0;border-width:0 1px 1px 0;border-bottom-right-radius:.55rem}
-.tab-card:hover,.pick-card:hover{background-size:2px 100%,auto;background-color:#33222f;color:#f2ecf2}
-.tab-card:hover::before,.tab-card:hover::after,.pick-card:hover::before,.pick-card:hover::after{width:100%;height:100%}
-.tab-card .dim{font-family:'Noto Serif TC',serif;font-size:1rem;color:var(--a);letter-spacing:.05em}
-.tab-card .subhead{display:block;font-size:.76rem;color:var(--muted);margin:.15rem 0 .55rem;letter-spacing:.02em}
-.tab-card p{margin:0;font-size:.92rem;color:var(--text)}
+/* 特質定義表（與列聯表同語彙，靜態無 hover） */
+.defs{width:100%;border-collapse:collapse;margin:.4rem 0 .6rem;font-size:.9rem}
+.defs th,.defs td{border:1px solid var(--line);padding:.7rem .85rem;text-align:left;vertical-align:top}
+.defs th{font-family:'Noto Serif TC',serif;font-weight:600;color:var(--a);white-space:nowrap;width:4.2rem}
+.defs td{color:var(--text)}
+.defs .msub{display:block;font-size:.74rem;color:var(--muted);margin-bottom:.25rem;letter-spacing:.02em}
 
 /* 選擇卡（背景／元素主色） */
-.pick-card{padding:.95rem 1.15rem}
+.cards{display:flex;flex-direction:column;gap:1.1rem}
+.pick-card{position:relative;overflow:hidden;padding:.95rem 1.15rem;background:linear-gradient(var(--a),var(--a)) top left / 2px 0 no-repeat,var(--alt);border-radius:.55rem;transition:background-size .3s cubic-bezier(.34,1.4,.64,1) .1s,background-color .45s ease,color .45s ease}
+.pick-card::before,.pick-card::after{content:'';position:absolute;width:12px;height:12px;border-color:var(--a);border-style:solid;pointer-events:none;transition:width .3s cubic-bezier(.34,1.4,.64,1),height .3s cubic-bezier(.34,1.4,.64,1)}
+.pick-card::before{top:0;left:0;border-width:1px 0 0 1px;border-top-left-radius:.55rem}
+.pick-card::after{right:0;bottom:0;border-width:0 1px 1px 0;border-bottom-right-radius:.55rem}
+.pick-card:hover{background-size:2px 100%,auto;background-color:#33222f;color:#f2ecf2}
+.pick-card:hover::before,.pick-card:hover::after{width:100%;height:100%}
 .pick-card .dim{display:block;font-family:'Noto Serif TC',serif;font-size:.92rem;color:var(--a);letter-spacing:.05em;margin-bottom:.45rem}
 .pick-card p{margin:0;font-size:.92rem;color:var(--text)}
 .pick-card .note{display:block;margin-top:.6rem;font-size:.78rem;color:var(--muted)}
@@ -59,7 +60,7 @@ footer{margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--line);font-
 
 .js [data-reveal]{opacity:0;transform:translateY(10px);transition:opacity .45s ease,transform .45s cubic-bezier(.34,1.4,.64,1)}
 .js [data-reveal].on{opacity:1;transform:translateY(0)}
-@media (prefers-reduced-motion:reduce){.js [data-reveal]{opacity:1;transform:none;transition:none}.tab-card,.pick-card{transition:background-color .45s ease,color .45s ease}.tab-card:hover,.pick-card:hover{background-size:2px 0,auto}.tab-card::before,.tab-card::after,.pick-card::before,.pick-card::after{transition:none}.tab-card:hover::before,.tab-card:hover::after,.pick-card:hover::before,.pick-card:hover::after{width:12px;height:12px}}
+@media (prefers-reduced-motion:reduce){.js [data-reveal]{opacity:1;transform:none;transition:none}.pick-card{transition:background-color .45s ease,color .45s ease}.pick-card:hover{background-size:2px 0,auto}.pick-card::before,.pick-card::after{transition:none}.pick-card:hover::before,.pick-card:hover::after{width:12px;height:12px}}
 
 body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
 </style>
@@ -70,7 +71,9 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textur
 <h1 data-reveal>挑選顏色的心路歷程</h1>
 <p class="sub" data-reveal>為什麼我選擇暮紫（背景主色）和鋼藍（元素主色）的搭配</p>
 
-<p class="lead" data-reveal>在挑選顏色前，經過深思熟慮後，考慮了兩個大方向作為發想起點－「色彩本身的維度」、「色彩被用在哪裡」。其中色彩本身主流被分成「色相、飽和度、明度」三個維度。而色彩則會被用在「背景主色」和「元素主色」，這裡我主觀認為分別可以代表「我是個怎樣的人」和「想帶給別人什麼感覺」。</p>
+<p class="lead" data-reveal style="margin-bottom:1rem">挑選顏色前，考慮了兩大方向作為發想－「色彩本身的維度」、「色彩被用在哪裡」。</p>
+
+<p class="lead" data-reveal>「色彩本身的維度」：主流觀點認為有「色相、飽和度、明度」三個維度。<br>「色彩被用在哪裡」：色彩會實際被用在網站的「背景主色」和「元素主色」。而本人主觀認為，這兩個用途，可以分別代表「我是個怎樣的人」和「想帶給別人什麼感覺」。</p>
 
 <table class="matrix" data-reveal>
   <thead>
@@ -89,23 +92,13 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textur
 </table>
 
 <h2 data-reveal>顏色如何對照個人特質</h2>
-<div class="cards">
-  <div class="tab-card" data-reveal>
-    <span class="dim">色相</span>
-    <span class="subhead">色彩的「外相」</span>
-    <p>可以對應到性格特質本身的代表色（比如黑色給人一種穩重的感覺）。</p>
-  </div>
-  <div class="tab-card" data-reveal>
-    <span class="dim">彩度</span>
-    <span class="subhead">決定顏色的「純淨」程度</span>
-    <p>這可以對應到性格特質的「強烈程度」、「外顯表現」，也就是個人色彩的強烈程度。</p>
-  </div>
-  <div class="tab-card" data-reveal>
-    <span class="dim">明度</span>
-    <span class="subhead">決定顏色的「明暗」程度</span>
-    <p>這比較抽象，我主觀認為可以對應到「需要多少時間才能讓別人了解我」。</p>
-  </div>
-</div>
+<table class="defs" data-reveal>
+  <tbody>
+    <tr><th>色相</th><td><span class="msub">色彩的「外相」</span>可以對應到性格特質本身的代表色（比如黑色給人一種穩重的感覺）。</td></tr>
+    <tr><th>彩度</th><td><span class="msub">決定顏色的「純淨」程度</span>這可以對應到性格特質的「強烈程度」、「外顯表現」，也就是個人色彩的強烈程度。</td></tr>
+    <tr><th>明度</th><td><span class="msub">決定顏色的「明暗」程度</span>主觀認為可以對應到「需要多少時間才能讓別人了解我」。</td></tr>
+  </tbody>
+</table>
 
 <h2 data-reveal>背景主色的選擇</h2>
 <p class="open" data-reveal>接下來先從「我是個怎樣的人」討論，也就是背景主色。請注意，以下的個人了解都是主觀想法：</p>
@@ -113,20 +106,19 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textur
   <div class="pick-card" data-reveal>
     <span class="swatch"><span class="dot"></span>#20131d</span>
     <span class="dim">色相</span>
-    <p>我是個擁有獨立思考、不輕易隨波逐流的人，同時帶著些許偏執的完美主義，這兩個特質不太一樣：一個是靜態的思考力，可以用「偏藍的紫色」代表；一個是動態的執行力，可以用「紅色」代表，是個看似矛盾但融合共存的兩個方向。所以我認為色相選在紫跟紅之間，兩者疊加後，是個比純紫色多一點溫度，比純紅色多一點沉靜，整體來說紫色會更多。</p>
+    <p>最鮮明的特質是：能獨立思考、不隨波逐流，同時擁有好奇心，保持學習的熱忱。這兩個特質並不一樣：一個是靜態的思考力，可以用「<span style="color:#a48fe6">藍紫色</span>」代表；一個是動態的執行力，可以用「<span style="color:#d97b7b">紅色</span>」代表，是個看似矛盾，但意外和諧的兩個特質。兩者顏色疊加後，會比藍紫色多一點「溫度」，比純紅色多一點「沉靜」。</p>
   </div>
   <div class="pick-card" data-reveal>
     <span class="dim">彩度</span>
-    <p>而我很清楚我的個人特質極為明顯，故挑選較明顯的彩度，不過考慮到「易讀」的理念，仍會因此降低一點彩度，整體會比平衡彩度更鮮豔。</p>
+    <p>個人特質極為明顯，故挑選較明顯的彩度。不過考慮「易讀」理念，仍會降低一點彩度，整體會比平衡彩度再增添一抹鮮豔。</p>
   </div>
   <div class="pick-card" data-reveal>
     <span class="dim">明度</span>
-    <p>但其實我不是那種一接觸就能完全被理解的人，通常需要與我相處久一點，才會慢慢發現底下的層次比表面看起來深很多。所以明度會刻意壓低，但也不會完全消失，故選擇低明度的顏色。</p>
+    <p>因為不善於表達，常被認為較安靜，是個需要相處一段時間，才能慢慢被理解的人。所以明度會刻意壓低，但也不會完全消失，故選擇低明度的顏色。</p>
   </div>
   <div class="pick-card" data-reveal>
     <span class="dim">材質</span>
-    <p>選擇帶細微紋理的霧面，是想利用霧面表達「不是一開始就能完全理解」，搭配細微紋理，表達隱約能感覺到「這個表面好像還有什麼」，但若要看清紋理細節，得更靠近、花點時間釐清。</p>
-    <span class="note">你現在看的這一頁就鋪著這個材質</span>
+    <p>選擇在霧面下增加一點細微紋理的背景，霧面表達「需要撥雲見日」，在霧面下增加紋理，則傳達「隱約感覺表面下還有什麼」，需要更靠近、花些時間看清。</p>
   </div>
 </div>
 
@@ -135,15 +127,15 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textur
 <div class="cards">
   <div class="pick-card" data-reveal>
     <span class="dim">色相</span>
-    <p>我想讓人覺得我是個冷靜沉穩、富有想像力、知識淵博、責任心強的人，這幾個特質在色彩心理學裡，最直接對應的顏色是深藍或靛藍——藍色是「可信賴、理性、智識」最普遍的聯想色，深藍還額外帶有「權威、穩重、可託付重任」的聯想。</p>
+    <p>想讓人覺得是個冷靜沉穩、富有想像力、知識淵博、責任心強的人，在色彩心理學裡，這幾個特質最直接對應的顏色是深藍或靛藍——藍色通常是「可信賴、理性、智識」，深藍則額外帶有「權威、穩重、可託付重任」的聯想。</p>
   </div>
   <div class="pick-card" data-reveal>
     <span class="dim">彩度</span>
-    <p>但我想要只在必要的時機才出現，並不會想要一直出風頭，更偏向「默默付出」，但也會私心想被人看見我的努力，故彩度選擇中到中低程度。</p>
+    <p>想呈現出「不會頻繁出風頭，但會在必要的時機出現」，故彩度選擇中低左右。</p>
   </div>
   <div class="pick-card" data-reveal>
     <span class="dim">明度</span>
-    <p>在「默默付出」的基礎上，其實一定程度代表我並不想要馬上被人看透，想要保持一點神秘感。但考慮元素主色本來就該明顯一點，交互上才不會看起來太吃力，故考慮中間範圍的明度。</p>
+    <p>想保持一點神秘感，不輕易被人看透，故選擇中低明度。但考慮「易讀」元素主色需明顯，故會在中低明度上增亮一些。</p>
   </div>
 </div>
 <footer data-reveal>
