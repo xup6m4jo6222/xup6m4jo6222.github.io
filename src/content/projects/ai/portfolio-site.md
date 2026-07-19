@@ -34,7 +34,7 @@ cover: /images/portfolio-site/current-v6.png
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">核心理念</div>
-    <div class="tl-solo">經過深思熟慮後，所有決策都決定需要遵守的理念：<br />一、「易讀」永遠優先。<br />二、低調的高級感。<br />三、具個人特色。<br />四、不過度的互動。<br />五、文字要有人的聲音。</div>
+    <div class="tl-solo">經過深思熟慮後，決定了所有元素需要遵守的共同理念：<br />一、「易讀」永遠放在最優先。<br />二、保持低調但不失高級感。<br />三、具個人特色。<br />四、不過度的互動設計。<br />五、文字完全由本人主導。</div>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">專案定位</div>
