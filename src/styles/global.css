@@ -6,7 +6,7 @@
 	--color-text-muted: #a79aa5;
 	--color-border: #3d2e3a;
 	--color-border-strong: #56506a;
-	--color-accent: #938bc6;
+	--color-accent: #7998c3;
 	--font-display: 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
 	--font-sans:
 		'Noto Sans TC', system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei',
@@ -29,7 +29,7 @@ body {
 
 body {
 	background:
-		radial-gradient(60% 42% at 72% 6%, rgba(147, 139, 198, 0.1) 0%, transparent 64%),
+		radial-gradient(60% 42% at 72% 6%, rgba(121, 152, 195, 0.1) 0%, transparent 64%),
 		radial-gradient(70% 55% at 12% 80%, #2a1829 0%, transparent 62%),
 		#1d1119;
 	background-attachment: fixed;
@@ -96,7 +96,7 @@ main {
 
 html {
 	scrollbar-width: thin;
-	scrollbar-color: #938bc655 transparent;
+	scrollbar-color: #7998c355 transparent;
 }
 
 ::-webkit-scrollbar {
@@ -109,12 +109,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #938bc655;
+	background: #7998c355;
 	border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: #938bc6;
+	background: #7998c3;
 }
 
 /* 頁面切換：約 0.25s 交叉淡化 */
