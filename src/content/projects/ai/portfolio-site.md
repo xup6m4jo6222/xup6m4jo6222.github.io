@@ -43,7 +43,7 @@ cover: /images/portfolio-site/current-v6.png
   <li class="tl-item">
     <div class="cs-toggle-name">協作分工</div>
     <div class="tl-solo">由本人負責所有決策與驗收，程式與版面實作則交給 AI。</div>
-    <p class="cs-evi"><span>原件</span><a href="https://github.com/xup6m4jo6222/xup6m4jo6222.github.io/blob/main/CLAUDE.md">協作協議 CLAUDE.md →</a></p>
+    <p class="cs-evi"><span>原件</span><a href="https://github.com/xup6m4jo6222/xup6m4jo6222.github.io/blob/main/CLAUDE.md">協作協議 CLAUDE.md →</a><span>（尚未開放，整理中）</span></p>
   </li>
 
   <li class="tl-era">
@@ -63,7 +63,7 @@ cover: /images/portfolio-site/current-v6.png
     <div class="cs-toggle-name">動態設計</div>
     <div class="tl-solo"><em>逐項裁決</em>一個好的元素互動絕對是必要的，這也是最容易被 AI 默默決定的一層，也會是 AI 感的來源之一。</div>
     <p class="cs-reason">選擇的核心理念是「易讀」＋「低調」，且不過度設計。</p>
-    <p class="cs-evi"><span>原件</span><a href="/process/talks-motion.html">動效的設計對話 →</a></p>
+    <p class="cs-evi"><span>原件</span><a href="/process/talks-motion.html">動效的設計對話 →</a><span>（尚未開放，整理中）</span></p>
   </li>
   <li class="tl-item">
     <div class="cs-toggle-name">決策存檔</div>
@@ -106,7 +106,7 @@ cover: /images/portfolio-site/current-v6.png
   </li>
 </ul>
 
-<p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><a href="/process/">全部對話</a></p>
+<p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><a href="/process/">全部對話</a><span>（尚未開放，整理中）</span></p>
 <p class="cs-raw"><span class="cs-rawchip">過程原件・未修飾</span>原件包含 AI 當時的選項與建議。</p>
 
 <script>
