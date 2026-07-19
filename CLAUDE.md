@@ -15,6 +15,18 @@ Architecture notes:
 - i18n is pre-wired for a future English version: `locales: ['zh']`, `defaultLocale: 'zh'`, `routing.prefixDefaultLocale: false` in `astro.config.mjs`. Adding `'en'` later won't change existing `zh` URLs.
 - Deploy: GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`, `withastro/action`), auto-deploys on push to `main`. Repo is `xup6m4jo6222.github.io` (GitHub user site, root domain).
 
+## 換色協議（全站色彩遷移的唯一標準程序）
+
+`public/process/` 七頁的 token 與 `src/styles/global.css` **刻意雙源**——那七頁是標了日期的歷史重演存檔，隔離是特性；勿抽共用 CSS、勿只改一邊（2026-07-19 結構診斷＋抗辯定案）。
+
+換任何主題色時，一律全域字面值取代（repo 內 grep 可完全枚舉，node_modules/dist 除外）：
+
+- 元素主色：`#7998c3`（含捲軸變體 `#7998c355`）＋漸層內聯 RGB `rgba(121, 152, 195, 0.1)`（global.css 有空格格式）/`rgba(121,152,195,.1)`（process 頁緊湊格式）
+- 中性色家族：底 `#1d1119`、token 背景 `#20131d`（另有 `#20131dd9` 導覽列半透明）、黑莓暗暈 `#2a1829`、卡底 `#2f1e2b`、hover 底 `#33222f`、邊框 `#3d2e3a`／`#56506a`、muted `#a79aa5`、內文 `#ebe5eb`、hover 文 `#f2ecf2`、favicon 底板 `#191017`（在 favicon.svg，2026-07-19 盤點時即因不在清單而漏掃過一次）
+- **排除**：talks-*.html 示範元件內的色碼（`#0d0e10`、`#ffffff0d`、`#c6c4bd`、`#26292c`、`#24282c`、`#191018` 等）是歷史對話原件的展示內容，凍結不遷移
+- 涉及檔案：`global.css`＋process 七頁＋`favicon.svg`；收工前 `grep -ri "<舊色碼>" src public` 必須零殘留
+- 色碼改完≠完成：og-card.png 與 current-vN/page-timeline-vN 比對截圖需重生成、portfolio-site.md 版次角標進位（重大視覺版本慣例），對比度需驗 ≥4.5
+
 ## Development
 
 When starting the dev server, use background mode:
