@@ -45,7 +45,7 @@ a {
 	color: var(--color-accent);
 }
 
-/* 材質：絲絨顆粒（雙層不均勻，soft-light 9%） */
+/* 材質：絲絨顆粒（雙層不均勻，soft-light 17%） */
 body::before {
 	content: '';
 	position: fixed;
