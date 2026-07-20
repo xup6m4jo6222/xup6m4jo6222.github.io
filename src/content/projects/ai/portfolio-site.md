@@ -1,6 +1,6 @@
 ---
 title: "AI 專案 #1 個人作品頁"
-summary: 這個網站的構思與方向出自本人，並與 Claude Code 一起討論，最終由它完成實作，並針對初版進行細節優化。
+summary: 簡述建造該網站的簡易經過
 category: ai
 tags: [AI 協作, Claude Code, Astro, 決策紀錄]
 links:
@@ -104,7 +104,6 @@ cover: /images/portfolio-site/current-v6.png
 </ul>
 
 <p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><span>全部對話（尚未開放，整理中）</span></p>
-<p class="cs-raw"><span class="cs-rawchip">過程原件・未修飾</span>原件包含 AI 當時的選項與建議。</p>
 
 <script>
 (() => {

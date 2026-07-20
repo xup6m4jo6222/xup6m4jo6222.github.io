@@ -170,13 +170,22 @@ html {
 	font-weight: 600;
 }
 
+/* 捲動進度：固定於右下角的角標膠囊，不佔導覽列空間（窄螢幕會擠壓選項列） */
 .nav-progress {
-	margin-left: auto;
-	font-size: 0.8rem;
+	position: fixed;
+	right: 0.9rem;
+	bottom: 0.9rem;
+	z-index: 20;
+	font-size: 0.78rem;
 	color: var(--color-text-muted);
+	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+	border: 1px solid var(--color-border);
+	border-radius: 0.55rem;
+	padding: 0.15rem 0.55rem;
 	opacity: 0;
 	transition: opacity var(--dur) ease;
 	white-space: nowrap;
+	pointer-events: none;
 }
 
 .nav-progress.is-visible {
