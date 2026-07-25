@@ -30,16 +30,26 @@
 
 	/* ── 語義名：一律為階的別名，元件 CSS 不再出現任何色碼字面值 ──── */
 	--color-bg: var(--n-50);
-	--color-bg-alt: var(--n-100); /* 卡底。層級重新分配在票 06 */
-	/* hover 底。現況的卡底與 hover 底只差 ΔL 1.6，而階的最小間隔是 8——兩者在階上
-	   落在同一格。這裡先與卡底同階（hover 的主要提示本來就是文字提亮與角標長框，
-	   不是底色），層級真正拉開是票 06 的事。 */
+
+	/* 卡底與 hover 底都封頂在 n-100。**這是一條硬約束，不是保守**：元素主色是凍結值
+	   （L 67.3），疊在各階上的對比是 n-50 6.05／n-100 4.84／n-200 3.61——而卡片上有
+	   元素主色的小標（.tl-solo em、.cs-side--me em、.cs-track--kept 的 em）。卡底一旦
+	   提到 n-200，那些標籤就掉到 4.5 以下。
+	   所以「卡片浮起來」改由邊框承擔：見下方 --color-border-card。
+	   要讓卡底再亮，只有兩條路，兩條都是本人的決定：解凍元素主色、或把那些小標改成
+	   中性階。 */
+	--color-bg-alt: var(--n-100);
 	--color-bg-hover: var(--n-100);
+
 	--color-text: var(--n-900);
 	--color-text-muted: var(--n-600);
 	--color-text-hover: var(--n-900); /* 原 #f2ecf2，與內文色差 ΔL 2.1，在感知門檻之下 */
-	--color-border: var(--n-200);
-	--color-border-strong: var(--n-300); /* 原 #56506a 色相 295 偏冷，本次拉回 335 */
+
+	/* 三層邊界，由弱到強。卡片邊框自 n-200 提到 n-400（對背景 1.68 → 3.33）——
+	   一眼看得出邊界靠的是這條線，不是底色差。 */
+	--color-border: var(--n-300); /* 分隔線、規則線 */
+	--color-border-card: var(--n-400); /* 卡片與面板的外框 */
+	--color-border-strong: var(--n-500); /* 比對器、決策開關這類需要框住一整塊的 */
 
 	/* 凍結色與它們的透明度衍生。換色時這幾行是唯一要動的地方。 */
 	--color-accent: #7998c3;
@@ -457,7 +467,7 @@ html {
 	z-index: 20;
 	color: var(--color-text-muted);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-card);
 	border-radius: var(--radius);
 	padding: var(--sp-xs) var(--sp-sm);
 	opacity: 0;
@@ -510,7 +520,7 @@ html {
 .entry-links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-card);
 	border-radius: var(--radius);
 	padding: var(--sp-sm) var(--sp-lg);
 	transition:
@@ -561,7 +571,7 @@ html {
 	text-decoration: none;
 	color: inherit;
 	background: var(--color-bg-alt);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-card);
 	border-radius: var(--radius);
 	padding: var(--sp-0-75);
 	transition: border-color var(--dur-sm) var(--ease);
@@ -575,7 +585,7 @@ html {
 	position: relative;
 	display: block;
 	margin: calc(-1 * var(--sp-0-75)) calc(-1 * var(--sp-0-75)) var(--sp-sm);
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border-card);
 	overflow: hidden;
 }
 
@@ -690,8 +700,9 @@ main > h1 {
 }
 
 .tags li::before {
+	/* 裝飾性字元也是字，取對背景 4.66 的 n-500，比內文暗四階但讀得到 */
 	content: '#';
-	color: var(--color-border);
+	color: var(--n-500);
 	margin-right: var(--sp-xs);
 }
 
@@ -707,7 +718,7 @@ main > h1 {
 .links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-card);
 	border-radius: var(--radius);
 	padding: var(--sp-sm) var(--sp-lg);
 	transition:
@@ -748,7 +759,7 @@ main > h1 {
 }
 
 .cs-stats i {
-	color: var(--color-border);
+	color: var(--n-500);
 	font-style: normal;
 	margin: 0 var(--sp-sm);
 }
@@ -828,7 +839,7 @@ main > h1 {
 	top: 0.6rem;
 	padding: var(--sp-xs) var(--sp-sm);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-card);
 	border-radius: var(--radius);
 	color: var(--color-text-muted);
 	pointer-events: none;
@@ -889,7 +900,7 @@ main > h1 {
 
 .cs-side {
 	padding: var(--sp-md) var(--sp-lg);
-	transition: color var(--dur-lg) var(--ease), opacity var(--dur-lg) var(--ease);
+	transition: color var(--dur-lg) var(--ease);
 }
 
 .cs-side em {
@@ -899,9 +910,11 @@ main > h1 {
 	margin-bottom: var(--sp-xs);
 }
 
+/* AI 側降權：用色階，不用 opacity。原本 color 宣告 #a79aa5（對卡底 5.82）加
+   opacity .65，實際渲染是 #7d6f7a、對比只有 3.30——宣告值與渲染值不一致，
+   讀色碼的檢查抓不到。差主側三階已經降得夠，而且量得到。 */
 .cs-track .cs-side--ai {
 	color: var(--color-text-muted);
-	opacity: 0.65;
 }
 
 .cs-track .cs-side--me {

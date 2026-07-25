@@ -161,12 +161,8 @@ export const CONTRAST_PAIRS = [
 	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-hover)', where: 'muted 小標 on hover 底' },
 	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-hover)', where: '角標卡小標 on hover 底' },
 	{ fg: 'var(--color-bg)', bg: 'var(--color-accent)', where: '選取文字／按鈕 active（深字反白）' },
-	{
-		fg: 'var(--color-border)',
-		bg: 'var(--color-bg)',
-		where: '標籤前的 `#` 與統計列的分隔符（裝飾性字元）',
-		decorative: true,
-	},
+	{ fg: 'var(--n-500)', bg: 'var(--color-bg)', where: '標籤前的 `#` 與統計列的 `·` 分隔符' },
+	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-alt)', where: '比對器 AI 側（原本靠 opacity 降權）' },
 ];
 
 export const CONTRAST_MIN = 4.5;
@@ -236,17 +232,11 @@ export const EASING = 'cubic-bezier(0.2, 0, 0, 1)';
 const group = (keys, reason, clearedBy) => keys.map((key) => ({ key, reason, clearedBy }));
 
 export const EXCEPTIONS = {
-	contrast: group(
-		['#483a45 on #20131d'],
-		'標籤前的 `#` 與統計列的 `·` 分隔符，皆為裝飾性字元。是否納入 4.5 判準待本人裁決；票 06 重新分配邊框階後複驗。',
-		'票 06',
-	),
+	// 票 06 已清空：裝飾性字元改用 n-500（對背景 4.66），不再靠邊框階。
+	contrast: [],
 
-	opacity: group(
-		['.cs-track .cs-side--ai'],
-		'宣告 #a79aa5（對卡底 5.82）加 opacity .65，實際渲染 #7d6f7a 對比 3.30——`opacity` 表達文字層級的判準違規。',
-		'票 06',
-	),
+	// 票 06 已清空：.cs-side--ai 的 opacity 退場，降權改由色階承擔。
+	opacity: [],
 
 	offramp: [
 		...group(
