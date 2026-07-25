@@ -1139,24 +1139,6 @@ main > h1 {
 	margin-bottom: 0.25rem;
 }
 
-/* 比對器把手示範擺動一次 */
-@keyframes handle-demo {
-	0%,
-	100% {
-		transform: translateX(0);
-	}
-	30% {
-		transform: translateX(10px);
-	}
-	70% {
-		transform: translateX(-10px);
-	}
-}
-
-.cs-wipe.demo-handle .cs-wipe-handle {
-	animation: handle-demo 1.1s var(--ease);
-}
-
 @media (prefers-reduced-motion: reduce) {
 	.js .tl-item {
 		opacity: 1;
@@ -1184,10 +1166,6 @@ main > h1 {
 	.tl-solo:hover::after {
 		width: 12px;
 		height: 12px;
-	}
-
-	.cs-wipe.demo-handle .cs-wipe-handle {
-		animation: none;
 	}
 }
 

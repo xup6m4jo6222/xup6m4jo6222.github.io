@@ -119,21 +119,6 @@ cover: /images/portfolio-site/current-v6.png
       set();
     });
 
-    // 比對器把手第一次進入視野時，示範擺動一次
-    if (!reduce && hasIO) {
-      const demoIo = new IntersectionObserver(
-        (entries) =>
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('demo-handle');
-              demoIo.unobserve(entry.target);
-            }
-          }),
-        { threshold: 0.5 }
-      );
-      document.querySelectorAll('.cs-wipe').forEach((wipe) => demoIo.observe(wipe));
-    }
-
     const items = document.querySelectorAll('.tl-item');
     if (reduce || !hasIO) {
       items.forEach((el) => el.classList.add('is-centered'));
