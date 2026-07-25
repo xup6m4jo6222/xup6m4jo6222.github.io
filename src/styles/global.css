@@ -67,6 +67,12 @@ main {
 	padding: calc(var(--rhythm) * 2) 1.5rem calc(var(--rhythm) * 3);
 }
 
+/* 破框：全站唯一的寬版開關（--max-width token 不動，導覽列與頁尾仍吃它） */
+main.wide {
+	max-width: 1200px;
+	padding: 8rem 3rem 14rem;
+}
+
 /* Scroll reveal — quiet, functional, once. Opt-in via .js so content
    stays visible by default if JS never runs. */
 .js [data-reveal] {
@@ -202,30 +208,34 @@ html {
 	background: var(--color-accent);
 }
 
-/* Homepage hero */
-.hero {
-	padding-block: var(--rhythm) calc(var(--rhythm) * 1.5);
+/* 首頁：左對齊寬版雙欄（左 h1＋副標／右 入口連結），兩欄底部對齊 */
+.home {
+	display: grid;
+	grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+	gap: 4rem;
+	align-items: end;
 }
 
 .hero h1 {
 	font-family: var(--font-display);
 	font-weight: 400;
 	letter-spacing: 0.06em;
-	font-size: 2.25rem;
-	margin: 0 0 0.6rem;
+	font-size: clamp(3.2rem, 10vw, 5.5rem);
+	line-height: 1.05;
+	margin: 0;
 }
 
 .hero p {
 	color: var(--color-text-muted);
-	font-size: 1.1rem;
-	margin: 0;
+	font-size: 1.6rem;
+	max-width: 30ch;
+	margin: 2.5rem 0 0;
 }
 
 .entry-links {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	justify-items: start;
 	gap: 0.75rem;
-	margin-top: var(--rhythm);
 }
 
 .entry-links a {
@@ -994,9 +1004,16 @@ footer {
 	gap: 0.4rem 1rem;
 }
 
-@media (max-width: 480px) {
-	.hero h1 {
-		font-size: 1.85rem;
+/* 首頁：塌成單欄，DOM 順序即視覺順序 */
+@media (max-width: 900px) {
+	.home {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	main.wide {
+		padding-inline: 1.5rem;
 	}
 }
 
