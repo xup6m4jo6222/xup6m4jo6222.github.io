@@ -6,7 +6,7 @@ tags: [AI 協作, Claude Code, Astro, 決策紀錄]
 links:
   github: https://github.com/xup6m4jo6222/xup6m4jo6222.github.io
 date: 2026-07-16
-cover: /images/portfolio-site/current-v6.png
+cover: /images/portfolio-site/current-v8.png
 ---
 
 <p class="cs-lead">我將「創建個人作品頁」作為第一個正式 AI 專案，下面會簡單呈現網站被建立的過程。</p>
@@ -16,11 +16,11 @@ cover: /images/portfolio-site/current-v6.png
 <figure class="cs-wipe" style="margin:0">
   <img src="/images/portfolio-site/rejected-v1.png" alt="初版首頁，金色點綴與紙紋理" width="760" height="470" />
   <div class="cs-wipe-top">
-    <img src="/images/portfolio-site/current-v6.png" alt="現行首頁，第6版視覺" width="760" height="470" />
+    <img src="/images/portfolio-site/current-v8.png" alt="現行首頁，第8版視覺" width="760" height="470" />
   </div>
   <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
   <div class="cs-wipe-handle"></div>
-  <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">最終版 2026-07-19 第6版</span>
+  <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">最終版 2026-07-26 第8版</span>
   <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">初版 2026-07-08 第1版</span>
 </figure>
 <p class="cs-wipe-hint">初版是由 AI 主導生成的頁面，有明顯的 AI 痕跡。</p>
@@ -81,11 +81,11 @@ cover: /images/portfolio-site/current-v6.png
     <figure class="cs-wipe cs-wipe--embed" style="margin:0">
       <img src="/images/portfolio-site/page-plain-text.png" alt="被否決的純文字版" width="760" height="470" loading="lazy" />
       <div class="cs-wipe-top">
-        <img src="/images/portfolio-site/page-timeline-v6.png" alt="現行時間軸版" width="760" height="470" loading="lazy" />
+        <img src="/images/portfolio-site/page-timeline-v8.png" alt="現行時間軸版" width="760" height="470" loading="lazy" />
       </div>
       <input type="range" min="0" max="100" value="55" aria-label="拖曳比對兩個版本" />
       <div class="cs-wipe-handle"></div>
-      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">時間軸版 2026-07-19 第6版</span>
+      <span class="cs-wipe-tag cs-wipe-tag--new" style="left:0.6rem;right:auto">時間軸版 2026-07-26 第8版</span>
       <span class="cs-wipe-tag cs-wipe-tag--old" style="right:0.6rem;left:auto">純文字版 2026-07-16 第1版</span>
     </figure>
   </li>

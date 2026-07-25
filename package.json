@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "verify:palette": "node scripts/verify-palette.mjs",
-    "verify:palette:selftest": "node scripts/verify-selftest.mjs"
+    "verify:palette:selftest": "node scripts/verify-selftest.mjs",
+    "shoot": "node scripts/shoot-assets.mjs"
   },
   "dependencies": {
     "astro": "^7.0.6"
