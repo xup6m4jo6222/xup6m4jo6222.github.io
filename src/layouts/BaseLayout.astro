@@ -49,6 +49,11 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 	</head>
 	<body>
 		<Nav backLink={backLink} />
+		{/* 捲動進度角標刻意放在 <header> 外面。`.site-nav` 有 `backdrop-filter`，
+		    而非 none 的 backdrop-filter 會讓該元素變成 position:fixed 子孫的 containing
+		    block——放在裡面的話 `bottom: .9rem` 貼的是導覽列底邊而不是視窗底邊，角標會
+		    跑到導覽列上把選項蓋掉（375px 實測蓋住「Projects」50×30px）。 */}
+		<span class="nav-progress"></span>
 		<main class={wide ? 'wide' : undefined}>
 			<slot />
 		</main>
@@ -162,11 +167,24 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 				update();
 			}
 
-			document.addEventListener('astro:page-load', () => {
+			function runAll() {
 				initReveal();
 				initImageFade();
 				initProgress();
-			});
+			}
+
+			document.addEventListener('astro:page-load', runAll);
+
+			/* 保險：`astro:page-load` 由 ClientRouter 的 bundle 發出。那支 JS 若沒載到
+			   （網路擋掉、CDN 掛掉、bundle 404），`.js` 已經加上去了但事件永遠不來——
+			   於是每一個 [data-reveal] 都停在 opacity 0，首頁只剩導覽列與頁尾。
+			   完全關掉 JS 反而是對的（`.no-js` 保留、內容照樣看得見），壞的是「JS 開著
+			   但那一個檔沒到」這一支。三個 init 都是冪等的，重跑無害。 */
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', runAll, { once: true });
+			} else {
+				runAll();
+			}
 		</script>
 	</body>
 </html>
