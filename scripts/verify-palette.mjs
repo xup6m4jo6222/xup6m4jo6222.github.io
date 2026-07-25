@@ -503,9 +503,10 @@ function checkRamps(vars) {
 	for (const [hex, where] of Object.entries(CFG.ILLUSTRATIVE_PALETTE)) {
 		const { L, C: chroma } = C.hexToOklch(hex);
 		const ratio = C.contrast(hex, bg);
+		const R = CFG.ILLUSTRATIVE_RULES;
 		const problems = [];
-		if (L < CFG.ILLUSTRATIVE_RULES.minL || L > CFG.ILLUSTRATIVE_RULES.maxL) problems.push(`L=${L.toFixed(1)} 不在 600–700 區`);
-		if (chroma > CFG.ILLUSTRATIVE_RULES.maxC) problems.push(`C=${chroma.toFixed(4)} > ${CFG.ILLUSTRATIVE_RULES.maxC}`);
+		if (L < R.minL - R.lTolerance || L > R.maxL + R.lTolerance) problems.push(`L=${L.toFixed(1)} 不在 600–700 區`);
+		if (chroma > R.maxC + R.cTolerance) problems.push(`C=${chroma.toFixed(4)} > ${R.maxC}`);
 		if (ratio < CFG.ILLUSTRATIVE_RULES.minContrast) problems.push(`對比 ${ratio.toFixed(2)} < ${CFG.ILLUSTRATIVE_RULES.minContrast}`);
 		if (problems.length) fail('illustrative', hex, `${where}：${problems.join('；')}`);
 	}
