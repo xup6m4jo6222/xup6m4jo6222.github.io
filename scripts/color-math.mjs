@@ -106,6 +106,28 @@ export function blend(fg, bg, alpha) {
 }
 
 /**
+ * W3C `mix-blend-mode: soft-light`（單通道，值域 0–1）。
+ * 站上整個視窗蓋著一層顆粒材質，用的就是這個混合模式。
+ */
+function softLightChannel(cb, cs) {
+	if (cs <= 0.5) return cb - (1 - 2 * cs) * cb * (1 - cb);
+	const d = cb <= 0.25 ? ((16 * cb - 12) * cb + 4) * cb : Math.sqrt(cb);
+	return cb + (2 * cs - 1) * (d - cb);
+}
+
+/**
+ * 把顆粒材質疊上去之後的實際渲染色。
+ * `texture` 是材質的灰階值（0–255），`alpha` 是那一層的不透明度。
+ * 這是「宣告值 ≠ 渲染值」的另一半——只量宣告的底色，量到的不是讀者看到的東西。
+ */
+export function applyGrain(hex, texture, alpha) {
+	const cs = texture / 255;
+	const base = parseHex(hex).slice(0, 3).map((v) => v / 255);
+	const out = base.map((cb) => cb + alpha * (softLightChannel(cb, cs) - cb));
+	return toHex(out.map((v) => v * 255));
+}
+
+/**
  * Machado, Oliveira & Fernandes 2009 色盲模擬矩陣（severity 1.0），作用於線性 RGB。
  */
 const CVD_MATRICES = {

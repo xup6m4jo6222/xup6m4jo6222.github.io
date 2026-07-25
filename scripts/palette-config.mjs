@@ -139,23 +139,53 @@ export const PNG_SEGMENT_TOLERANCE = 4;
 // 對比度配對
 // 值一律由產物的 `:root` 解析，這裡只宣告「誰疊在誰上面」。
 // ---------------------------------------------------------------------------
+/**
+ * 背景不是單一色，量純底會漏掉最壞的那個：
+ *   1. body 疊了兩道 `background-attachment: fixed` 的 radial 漸層（0% stop 不透明）
+ *   2. 整個視窗之上還蓋著一層顆粒材質，`mix-blend-mode: soft-light` ＋ 17% 不透明
+ * 任何疊在頁底上的東西都必須對**所有狀態**都合格。顆粒的兩個極值取自
+ * `public/textures/grain.png` 的實測分布（p1 = 62、p99 = 192，320×320）。
+ */
+export const GRAIN = { alpha: 0.17, low: 62, high: 192 };
+
+const surface = (spec, label) => [
+	{ bg: spec, label },
+	{ bg: `grain:${GRAIN.low}/${spec}`, label: `${label}＋顆粒暗處` },
+	{ bg: `grain:${GRAIN.high}/${spec}`, label: `${label}＋顆粒亮處` },
+];
+
+export const PAGE_SURFACES = [
+	...surface('var(--color-bg)', '頁底'),
+	...surface('var(--color-bloom-dark)', '黑莓暗暈'),
+	...surface('bloom:var(--color-accent)@0.1/var(--color-bg)', '藍暈峰值'),
+];
+
+const onPage = (fg, what, min) => PAGE_SURFACES.map((s) => ({ fg, bg: s.bg, where: `${what} on ${s.label}`, min }));
+
 export const CONTRAST_PAIRS = [
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg)', where: '內文 on 頁底' },
-	{ fg: 'var(--color-text)', bg: 'var(--color-bloom-dark)', where: '內文 on 背景暗暈' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg)', where: 'muted on 頁底' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bloom-dark)', where: 'muted on 背景暗暈' },
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bg)', where: '連結 on 頁底' },
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bloom-dark)', where: '連結 on 背景暗暈' },
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '卡片標題 on 卡底' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-alt)', where: '卡片摘要 on 卡底' },
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-alt)', where: '角標卡強調 on 卡底' },
-	{ fg: 'var(--color-text-hover)', bg: 'var(--color-bg-hover)', where: '角標卡 hover 文字 on hover 底' },
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg-hover)', where: '決策開關 hover 文字 on hover 底' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-hover)', where: 'muted 小標 on hover 底' },
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-hover)', where: '角標卡小標 on hover 底' },
-	{ fg: 'var(--color-bg)', bg: 'var(--color-accent)', where: '選取文字／按鈕 active（深字反白）' },
-	{ fg: 'var(--n-500)', bg: 'var(--color-bg)', where: '標籤前的 `#` 與統計列的 `·` 分隔符' },
+	...onPage('var(--color-text)', '內文'),
+	...onPage('var(--color-text-muted)', 'muted'),
+	...onPage('var(--color-accent)', '連結'),
+
+	// 列表卡：底提到 n-200，摘要因此改用 n-700
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg-card)', where: '卡片標題 on 列表卡底' },
+	{ fg: 'var(--n-700)', bg: 'var(--color-bg-card)', where: '卡片摘要 on 列表卡底' },
+
+	// 承載元素主色小標的面板：封頂 n-100 就是被這一條逼出來的
+	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-alt)', where: '面板上的元素主色小標' },
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '面板內文' },
 	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-alt)', where: '比對器 AI 側（原本靠 opacity 降權）' },
+
+	{ fg: 'var(--color-bg)', bg: 'var(--color-accent)', where: '選取文字／按鈕 active（深字反白）' },
+
+	/**
+	 * 非文字對比（WCAG 1.4.11，門檻 3.0）。
+	 * 「卡片浮起來」現在有一部分是靠外框承擔的，那條線就必須自己合格——
+	 * 而且要對三種背景狀態都合格。n-400 在藍暈峰值上只有 2.91，就是這幾條抓出來的。
+	 */
+	...onPage('var(--color-border-strong)', '閉合外框', 3),
+	...onPage('var(--color-accent)', '卡片 hover 外框', 3),
+	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-card)', where: '卡片 hover 外框 on 列表卡底', min: 3 },
 ];
 
 export const CONTRAST_MIN = 4.5;

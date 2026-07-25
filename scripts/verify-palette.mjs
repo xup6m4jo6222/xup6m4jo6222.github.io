@@ -373,20 +373,63 @@ function checkChartPixels() {
 // ===========================================================================
 // 檢查 2 — 對比度（含「opacity 不得表達文字層級」）
 // ===========================================================================
-function checkContrast(vars) {
-	const resolve = (v) => normalizeColor(resolveVars(v, vars));
+/**
+ * 表面規格 → 實際渲染色。支援兩層合成：
+ *   `bloom:<色>@<alpha>/<底>`  背景漸層疊在頁底上（radial 的 0% stop 不透明）
+ *   `grain:<材質灰階>/<底>`     顆粒層，soft-light ＋ 17%
+ */
+function resolveSurface(spec, vars) {
+	const grain = spec.match(/^grain:(\d+)\/(.+)$/s);
+	if (grain) {
+		const base = resolveSurface(grain[2], vars);
+		return base && C.applyGrain(opaque(base), Number(grain[1]), CFG.GRAIN.alpha);
+	}
+	const bloom = spec.match(/^bloom:(.+)@([\d.]+)\/(.+)$/s);
+	if (bloom) {
+		const over = normalizeColor(resolveVars(bloom[1], vars));
+		const base = normalizeColor(resolveVars(bloom[3], vars));
+		return over && base ? C.blend(opaque(over), opaque(base), Number(bloom[2])) : null;
+	}
+	return normalizeColor(resolveVars(spec, vars));
+}
+
+function checkContrast(vars, siteRules) {
+	const declaredFg = new Set();
+
 	for (const pair of CFG.CONTRAST_PAIRS) {
-		const fg = resolve(pair.fg);
-		const bg = resolve(pair.bg);
+		const fg = resolveSurface(pair.fg, vars);
+		const bg = resolveSurface(pair.bg, vars);
 		if (!fg || !bg) {
 			fail('contrast', `${pair.fg} on ${pair.bg}`, `無法解析色值（${pair.where}）`);
 			continue;
 		}
+		declaredFg.add(opaque(fg));
+		const min = pair.min ?? CFG.CONTRAST_MIN;
 		const ratio = C.contrast(opaque(fg), opaque(bg));
 		const label = `${opaque(fg)} on ${opaque(bg)}`;
-		note(`對比 ${ratio.toFixed(2)}　${label}　${pair.where}`);
-		if (ratio < CFG.CONTRAST_MIN) {
-			fail('contrast', label, `${pair.where}：實測 ${ratio.toFixed(2)}，低於 ${CFG.CONTRAST_MIN}`);
+		note(`對比 ${ratio.toFixed(2)}（門檻 ${min}）　${label}　${pair.where}`);
+		if (ratio < min) {
+			fail('contrast', `${label} ＜${min}`, `${pair.where}：實測 ${ratio.toFixed(2)}，低於 ${min}`);
+		}
+	}
+
+	/**
+	 * 上面那一段驗的是「判準宣告的配對」，驗不到「產物實際把哪個顏色當文字用」。
+	 * 只有前者的話，把某條規則的 color 換成一個沒人管的階，閘門照樣綠——
+	 * 這一段就是那個漏洞的補丁：**產物裡每一個當文字用的顏色，都必須被某一組配對認領。**
+	 */
+	for (const rule of siteRules) {
+		for (const d of rule.decls) {
+			if (d.prop !== 'color') continue;
+			const hex = normalizeColor(resolveVars(d.value, vars));
+			if (!hex) continue; // color-mix()／currentColor／inherit 等無法靜態求值
+			if (hex.length === 9 && hex.endsWith('00')) continue;
+			if (declaredFg.has(opaque(hex))) continue;
+			fail(
+				'contrast',
+				`未認領的文字色 ${opaque(hex)}`,
+				`${rule.selectors.join(', ')} 用 ${d.value} 當文字色，但 CONTRAST_PAIRS 裡沒有任何一組在管它`,
+			);
 		}
 	}
 }
@@ -653,6 +696,21 @@ function main() {
 	}
 
 	const allFiles = walk(DIST);
+
+	/**
+	 * 產物比原始碼舊 → 直接擋掉。
+	 * 沒有這一段的話，改完 CSS 直接跑 verify 會拿上一次的產物給你一個綠燈，
+	 * 而那個綠燈驗的是舊的東西。一個會說謊的檢查比沒有檢查更糟。
+	 * （CI 上不會發生：withastro/action 先建置，而 dist/ 有 gitignore。）
+	 */
+	if (!process.env.VERIFY_DIST) {
+		const newest = (dir) => Math.max(...walk(dir).map((f) => statSync(f).mtimeMs));
+		const srcDir = join(ROOT, 'src');
+		if (existsSync(srcDir) && newest(srcDir) > Math.max(...allFiles.map((f) => statSync(f).mtimeMs))) {
+			console.error('dist/ 比 src/ 舊——先跑 astro build，否則驗的是上一次的產物。');
+			process.exit(2);
+		}
+	}
 	const textFiles = allFiles.filter((f) => /\.(html|css|svg)$/i.test(f));
 	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css'));
 
@@ -697,7 +755,7 @@ function main() {
 	checkChartPixels();
 
 	console.log('— 2／6 對比度');
-	checkContrast(vars);
+	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
 	console.log('— 3／6 色盲安全');

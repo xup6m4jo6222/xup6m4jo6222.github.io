@@ -66,6 +66,20 @@ const cases = [
 			),
 		expect: /reduced-motion[\s\S]*\.fake-kf/,
 	},
+	{
+		// 對比度那一類原本只驗「判準宣告的配對」，驗不到「產物實際把哪個顏色當文字用」。
+		// 這一條就是那個漏洞的迴歸測試：把某條規則的文字色換成沒人管的階，必須紅。
+		name: '把某條規則的文字色換成沒有配對在管的階',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-text{color:var(--n-300)}\n`),
+		expect: /未認領的文字色 #5d505a/,
+	},
+	{
+		name: '把 :root 的 muted 調暗到過不了 4.5',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, readFileSync(f, 'utf8').replace('--color-text-muted:var(--n-600)', '--color-text-muted:var(--n-400)')),
+		expect: /contrast[\s\S]*muted/,
+	},
 ];
 
 let failed = 0;

@@ -16,40 +16,30 @@
 	--n-800: #d2cad0;
 	--n-900: #ebe5eb;
 
-	/* ── 圖表色（票 07 才會套用到 21 張圖上）────────────────────────
-	   類別色要求與中性階相反：彼此差異盡量大，且在三型色盲模擬下仍分得開。
-	   兩色的明度差是刻意的——低彩度下等亮度過不了色盲門檻，明度是第二個區分維度。 */
-	--cat-1: #6e8eb8;
-	--cat-2: #dedba3;
-
-	/* 連續色帶（熱圖）：L 單調且步距等距，色相自背景主色 335 漂移到元素主色 255。 */
-	--seq-0: #20121d;
-	--seq-1: #5c4e68;
-	--seq-2: #9497bf;
-	--seq-3: #c7eaff;
+	/* 圖表色（類別色與連續色帶）不放這裡：它們只被產圖腳本讀，CSS 從來沒有使用者。
+	   放進 :root 只會讓產物多出六個沒有人渲染的顏色，反而把白名單撐鬆。
+	   值的正本在 scripts/palette-config.mjs 與產圖腳本的常數。 */
 
 	/* ── 語義名：一律為階的別名，元件 CSS 不再出現任何色碼字面值 ──── */
 	--color-bg: var(--n-50);
 
-	/* 卡底與 hover 底都封頂在 n-100。**這是一條硬約束，不是保守**：元素主色是凍結值
-	   （L 67.3），疊在各階上的對比是 n-50 6.05／n-100 4.84／n-200 3.61——而卡片上有
-	   元素主色的小標（.tl-solo em、.cs-side--me em、.cs-track--kept 的 em）。卡底一旦
-	   提到 n-200，那些標籤就掉到 4.5 以下。
-	   所以「卡片浮起來」改由邊框承擔：見下方 --color-border-card。
-	   要讓卡底再亮，只有兩條路，兩條都是本人的決定：解凍元素主色、或把那些小標改成
-	   中性階。 */
-	--color-bg-alt: var(--n-100);
-	--color-bg-hover: var(--n-100);
+	/* 兩種表面。分界不是「叫什麼名字」，是**上面有沒有元素主色的字**。
+	   元素主色是凍結值（L 67.3），疊上去的對比是 n-100 4.84、n-200 只剩 3.61。
+	   所以承載元素主色小標的面板（決策開關、角標卡）封頂在 n-100；沒有這個負擔的
+	   列表卡可以提到 n-200。 */
+	--color-bg-card: var(--n-200); /* .card ——內部一個元素主色的字都沒有 */
+	--color-bg-alt: var(--n-100); /* 有元素主色小標的面板，封頂 */
 
 	--color-text: var(--n-900);
 	--color-text-muted: var(--n-600);
-	--color-text-hover: var(--n-900); /* 原 #f2ecf2，與內文色差 ΔL 2.1，在感知門檻之下 */
 
-	/* 三層邊界，由弱到強。卡片邊框自 n-200 提到 n-400（對背景 1.68 → 3.33）——
-	   一眼看得出邊界靠的是這條線，不是底色差。 */
-	--color-border: var(--n-300); /* 分隔線、規則線 */
-	--color-border-card: var(--n-400); /* 卡片與面板的外框 */
-	--color-border-strong: var(--n-500); /* 比對器、決策開關這類需要框住一整塊的 */
+	/* 兩種邊界。分界是**線還是框**：
+	   線只做分隔，不承載「這是一個獨立區塊／可操作元件」的資訊；
+	   框要標示一個區塊或控制項，依 WCAG 1.4.11 必須對**所有背景狀態**都 ≥3.0。
+	   背景疊了兩道 fixed 漸層，n-400 在藍暈峰值上只有 2.91，所以框取 n-500
+	   （純底 4.66／黑莓暈 4.33／藍暈 4.08）。這個值是量出來的，不是挑的。 */
+	--color-border: var(--n-300); /* 線：分隔線、規則線、表格格線、時間軸軸線 */
+	--color-border-strong: var(--n-500); /* 框：卡片、按鈕、標籤、比對器、決策開關 */
 
 	/* 凍結色與它們的透明度衍生。換色時這幾行是唯一要動的地方。 */
 	--color-accent: #7998c3;
@@ -467,7 +457,7 @@ html {
 	z-index: 20;
 	color: var(--color-text-muted);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-	border: 1px solid var(--color-border-card);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: var(--sp-xs) var(--sp-sm);
 	opacity: 0;
@@ -520,7 +510,7 @@ html {
 .entry-links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border-card);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: var(--sp-sm) var(--sp-lg);
 	transition:
@@ -570,8 +560,8 @@ html {
 	gap: var(--sp-sm);
 	text-decoration: none;
 	color: inherit;
-	background: var(--color-bg-alt);
-	border: 1px solid var(--color-border-card);
+	background: var(--color-bg-card);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: var(--sp-0-75);
 	transition: border-color var(--dur-sm) var(--ease);
@@ -585,7 +575,7 @@ html {
 	position: relative;
 	display: block;
 	margin: calc(-1 * var(--sp-0-75)) calc(-1 * var(--sp-0-75)) var(--sp-sm);
-	border-bottom: 1px solid var(--color-border-card);
+	border-bottom: 1px solid var(--color-border);
 	overflow: hidden;
 }
 
@@ -631,7 +621,8 @@ html {
 
 .card p {
 	margin: 0;
-	color: var(--color-text-muted);
+	/* 卡底提到 n-200 之後 n-600 只剩 3.79，改用 n-700（5.08）。 */
+	color: var(--n-700);
 	/* 摘要寫成多行時保留斷行（單行摘要不受影響） */
 	white-space: pre-line;
 }
@@ -700,9 +691,10 @@ main > h1 {
 }
 
 .tags li::before {
-	/* 裝飾性字元也是字，取對背景 4.66 的 n-500，比內文暗四階但讀得到 */
+	/* 裝飾性字元也是字。n-500 在純底上有 4.66，但疊上藍暈與顆粒層只剩 3.83——
+	   量的是渲染值不是宣告值，所以取 muted 同階。 */
 	content: '#';
-	color: var(--n-500);
+	color: var(--color-text-muted);
 	margin-right: var(--sp-xs);
 }
 
@@ -718,7 +710,7 @@ main > h1 {
 .links a {
 	text-decoration: none;
 	color: var(--color-text);
-	border: 1px solid var(--color-border-card);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: var(--sp-sm) var(--sp-lg);
 	transition:
@@ -759,7 +751,7 @@ main > h1 {
 }
 
 .cs-stats i {
-	color: var(--n-500);
+	color: var(--color-text-muted);
 	font-style: normal;
 	margin: 0 var(--sp-sm);
 }
@@ -839,7 +831,7 @@ main > h1 {
 	top: 0.6rem;
 	padding: var(--sp-xs) var(--sp-sm);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-	border: 1px solid var(--color-border-card);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	color: var(--color-text-muted);
 	pointer-events: none;
@@ -887,11 +879,6 @@ main > h1 {
 	border-radius: var(--radius);
 	background: var(--color-bg-alt);
 	overflow: hidden;
-	transition: background-color var(--dur-lg) var(--ease);
-}
-
-.cs-track:hover {
-	background-color: var(--color-bg-hover);
 }
 
 .cs-track:hover .cs-side {
@@ -925,14 +912,6 @@ main > h1 {
 	color: var(--color-accent);
 }
 
-.cs-track--kept::before {
-	border-color: var(--color-accent);
-}
-
-.cs-track--kept .cs-side--ai em {
-	color: var(--color-accent);
-}
-
 .cs-reason {
 	margin: var(--sp-sm) 0 0;
 	color: var(--color-text-muted);
@@ -952,7 +931,7 @@ main > h1 {
 
 /* 文字所有權卡的內嵌對質 */
 .cs-pair {
-	border-top: 1px solid var(--color-border-strong);
+	border-top: 1px solid var(--color-border);
 	margin-top: var(--sp-md);
 	padding: var(--sp-md) var(--sp-lg);
 	display: grid;
@@ -981,7 +960,7 @@ main > h1 {
 
 .cs-rawchip {
 	display: inline-block;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: 0 var(--sp-sm);
 	margin-right: var(--sp-sm);
@@ -989,7 +968,7 @@ main > h1 {
 
 .content details {
 	margin-top: var(--sp-1);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius);
 	padding: var(--sp-md) var(--sp-lg);
 }
@@ -1113,10 +1092,7 @@ main > h1 {
 	border-radius: var(--radius);
 	padding: var(--sp-lg);
 	color: var(--color-text);
-	transition:
-		background-size var(--dur-md) var(--ease) 0.1s,
-		background-color var(--dur-lg) var(--ease),
-		color var(--dur-lg) var(--ease);
+	transition: background-size var(--dur-md) var(--ease) 0.1s;
 }
 
 .tl-solo::before,
@@ -1147,10 +1123,10 @@ main > h1 {
 	border-bottom-right-radius: 0.55rem;
 }
 
+/* hover：角標長成整框＋墨線下掃。底色與文字色不變——承載元素主色小標的面板
+   封頂在 n-100，沒有更高的階可以換，而 n-900 之上也沒有更亮的字色。 */
 .tl-solo:hover {
 	background-size: 2px 100%, auto;
-	background-color: var(--color-bg-hover);
-	color: var(--color-text-hover);
 }
 
 .tl-solo:hover::before,
@@ -1172,12 +1148,6 @@ main > h1 {
 		transform: none;
 		filter: none;
 		transition: none;
-	}
-
-	.tl-solo {
-		transition:
-			background-color var(--dur-lg) var(--ease),
-			color var(--dur-lg) var(--ease);
 	}
 
 	.tl-solo:hover {
