@@ -7,12 +7,30 @@
  *
  * 六類檢查見 SPEC-design-system.md「Testing Decisions」與
  * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」。
+ *
+ * ── 這道閘門守得到什麼、守不到什麼（請不要過度信任它）────────────────────
+ *
+ * 它守的是**無心的漂移**：某個值被順手改掉、某個新元件忘了對齊判準、某張圖忘了
+ * 重跑。三輪抗辯裡被實測證明會漏的每一種漂移，都已經在 verify-selftest.mjs
+ * 變成一個會紅的例子。
+ *
+ * 它守不住**存心繞路的作者**，而且結構上守不住：這支腳本是掃產物的 CSS 文字，
+ * 不是跑一個瀏覽器。已知且刻意不追的繞路（抗辯實測過）：
+ *   · `-webkit-text-fill-color`、`filter: brightness()` 之類會改變最終文字顏色，
+ *     但不叫 `color` 的屬性
+ *   · 把 `opacity` 拆到父層規則上（守衛要求同一條規則同時有 color 與 opacity）
+ *   · 在 `@media` 或 `body` 上重新宣告自訂屬性——這裡的 var 解析沒有層疊概念
+ *   · `color-mix()` 之類無法靜態求值的底色
+ *
+ * 要蓋掉這些得跑真的瀏覽器去取樣渲染結果，那是另一個量級的工具。
+ * 在那之前，這一段就是這道閘門的誠實邊界——**綠燈的意思是「沒有漂移」，
+ * 不是「不可能有問題」。**
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as C from './color-math.mjs';
-import { countColors } from './png-read.mjs';
+import { countColors, readPng } from './png-read.mjs';
 import * as CFG from './palette-config.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -66,7 +84,9 @@ function matchBrace(src, open) {
 	for (let i = open; i < src.length; i++) {
 		const ch = src[i];
 		if (ch === '/' && src[i + 1] === '*') {
-			i = src.indexOf('*/', i + 2) + 1;
+			const end = src.indexOf('*/', i + 2);
+			if (end < 0) break; // 未閉合的註解：不要讓 -1 把索引倒退回去變成無限迴圈
+			i = end + 1;
 			continue;
 		}
 		if (ch === '"' || ch === "'") {
@@ -89,7 +109,9 @@ function splitTop(src, sepChar) {
 	for (let i = 0; i < src.length; i++) {
 		const ch = src[i];
 		if (ch === '/' && src[i + 1] === '*') {
-			i = src.indexOf('*/', i + 2) + 1;
+			const end = src.indexOf('*/', i + 2);
+			if (end < 0) break; // 未閉合的註解：不要讓 -1 把索引倒退回去變成無限迴圈
+			i = end + 1;
 			continue;
 		}
 		if (ch === '"' || ch === "'") {
@@ -134,7 +156,9 @@ function parseCss(src, source) {
 		while (i < text.length) {
 			const ch = text[i];
 			if (ch === '/' && text[i + 1] === '*') {
-				i = text.indexOf('*/', i + 2) + 2;
+				const end = text.indexOf('*/', i + 2);
+				if (end < 0) break; // 未閉合的註解：不要讓 -1 把索引倒退回去變成無限迴圈
+				i = end + 2;
 				continue;
 			}
 			if (ch === '"' || ch === "'") {
@@ -393,8 +417,61 @@ function resolveSurface(spec, vars) {
 	return normalizeColor(resolveVars(spec, vars));
 }
 
+/**
+ * 顆粒層的模型端點必須與材質檔本身對得上。
+ * 沒有這道核對，材質哪天被換掉或重生成，「量的是渲染值」就悄悄變回一句空話——
+ * 而那正是這整支腳本要修的 failure mode。
+ */
+function checkGrainModel() {
+	const file = join(ROOT, CFG.GRAIN.texture);
+	if (!existsSync(file)) {
+		fail('grain', CFG.GRAIN.texture, '找不到顆粒材質，背景的渲染值模型失去依據');
+		return;
+	}
+	const { width, height, rgb } = readPng(file);
+	let lo = 255;
+	let hi = 0;
+	for (let i = 0; i < width * height; i++) {
+		const v = (rgb[i * 3] + rgb[i * 3 + 1] + rgb[i * 3 + 2]) / 3;
+		if (v < lo) lo = v;
+		if (v > hi) hi = v;
+	}
+	note(`顆粒材質 ${width}×${height}　實測極值 ${lo.toFixed(0)}–${hi.toFixed(0)}　模型用 ${CFG.GRAIN.low}–${CFG.GRAIN.high}`);
+	if (Math.round(lo) !== CFG.GRAIN.low || Math.round(hi) !== CFG.GRAIN.high) {
+		fail(
+			'grain',
+			'端點與材質不符',
+			`材質實測極值 ${lo.toFixed(0)}–${hi.toFixed(0)}，判準寫的是 ${CFG.GRAIN.low}–${CFG.GRAIN.high}——背景的渲染值模型已與實物脫節`,
+		);
+	}
+}
+
+/** 找出某個選擇器實際宣告的顏色（取最後一條，即層疊後勝出的那個） */
+function declaredValue(siteRules, selector, props, vars) {
+	let found = null;
+	for (const rule of siteRules) {
+		if (rule.at.length) continue; // 媒體查詢內的覆蓋不算基準態
+		if (!rule.selectors.includes(selector)) continue;
+		for (const d of rule.decls) {
+			if (!props.includes(d.prop)) continue;
+			// background 簡寫可以有多層，底色是最後一層（.tl-solo 就是漸層＋底色兩層）
+			const layers = splitTop(resolveVars(d.value, vars), ',');
+			const last = layers[layers.length - 1] ?? '';
+			for (const token of last.trim().split(/\s+/)) {
+				const hex = normalizeColor(token);
+				if (hex) {
+					found = opaque(hex);
+					break;
+				}
+			}
+		}
+	}
+	return found;
+}
+
 function checkContrast(vars, siteRules) {
 	const declaredFg = new Set();
+	const claimedSelectors = new Set();
 
 	for (const pair of CFG.CONTRAST_PAIRS) {
 		const fg = resolveSurface(pair.fg, vars);
@@ -404,11 +481,16 @@ function checkContrast(vars, siteRules) {
 		}
 		const min = pair.min ?? CFG.CONTRAST_MIN;
 		/**
-		 * **只有文字檔位（4.5）的配對才算「認領」。**非文字配對（外框的 3.0）驗過的顏色
-		 * 不代表它可以拿來當文字用——把它一起登記進來，等於讓「只驗過 3.0 的顏色」
-		 * 從文字認領檢查旁邊溜過去。
+		 * 認領有兩種強度，混在一起就是漏洞：
+		 *   **無條件**——配對的背景是頁面表面，代表這個顏色疊在頁上到處都安全。
+		 *   **限定選擇器**——配對的背景是某個元件的底，那它只在那幾條規則上安全。
+		 * 早期版本把兩者混為一談，於是「深字反白」那組把頁底色登記成合法文字色，
+		 * 誰在別處寫 `color: var(--color-bg)` 都會過——實際對比 1.00，隱形字。
 		 */
-		if (min === CFG.CONTRAST_MIN) declaredFg.add(opaque(fg));
+		if (min === CFG.CONTRAST_MIN) {
+			if (pair.bgs === CFG.PAGE_SURFACES) declaredFg.add(opaque(fg));
+			else for (const s of pair.fgOn ?? []) claimedSelectors.add(s);
+		}
 
 		// 一組配對可以有多個背景狀態（漸層 × 顆粒）。全部量，只回報最壞的那個——
 		// 報九行只是噪音，但少量八個就得假設「前景一定比背景亮」這個會過期的前提。
@@ -437,6 +519,29 @@ function checkContrast(vars, siteRules) {
 				`${pair.where}：最壞情況（${worst.label || '單一背景'}）實測 ${worst.ratio.toFixed(2)}，低於 ${min}`,
 			);
 		}
+
+		// 兩端釘到真的選擇器：配對說「誰疊在誰上面」，這裡驗產物真的是那樣接的。
+		for (const sel of pair.fgOn ?? []) {
+			const got = declaredValue(siteRules, sel, ['color'], vars);
+			if (got !== opaque(fg)) {
+				fail(
+					'contrast',
+					`${sel} 的文字色`,
+					`${pair.where}：判準說 ${sel} 的文字色是 ${opaque(fg)}，產物是 ${got ?? '（找不到這條規則）'}`,
+				);
+			}
+		}
+		if (pair.bgOn) {
+			const bgHex = resolveSurface(pair.bg, vars);
+			const got = declaredValue(siteRules, pair.bgOn, ['background-color', 'background'], vars);
+			if (bgHex && got !== opaque(bgHex)) {
+				fail(
+					'contrast',
+					`${pair.bgOn} 的底色`,
+					`${pair.where}：判準說 ${pair.bgOn} 的底是 ${opaque(bgHex)}，產物是 ${got ?? '（找不到這條規則）'}`,
+				);
+			}
+		}
 	}
 
 	/**
@@ -450,10 +555,20 @@ function checkContrast(vars, siteRules) {
 			const hex = normalizeColor(resolveVars(d.value, vars));
 			if (!hex) continue; // color-mix()／currentColor／inherit 等無法靜態求值
 			if (hex.length === 9 && hex.endsWith('00')) continue;
-			if (declaredFg.has(opaque(hex))) continue;
+			// 半透明的文字色＝宣告值不等於渲染值，與 opacity 當層級用是同一件事
+			if (hex.length === 9) {
+				fail(
+					'contrast',
+					`半透明文字色 ${hex}`,
+					`${rule.selectors.join(', ')} 的文字色帶 alpha，實際渲染會與底色混色——對比度量不到真的東西`,
+				);
+				continue;
+			}
+			if (declaredFg.has(hex)) continue;
+			if (rule.selectors.some((s) => claimedSelectors.has(s))) continue;
 			fail(
 				'contrast',
-				`未認領的文字色 ${opaque(hex)}`,
+				`未認領的文字色 ${hex}`,
 				`${rule.selectors.join(', ')} 用 ${d.value} 當文字色，但 CONTRAST_PAIRS 裡沒有任何一組在管它`,
 			);
 		}
@@ -724,14 +839,12 @@ function main() {
 	const allFiles = walk(DIST);
 
 	const textFiles = allFiles.filter((f) => /\.(html|css|svg)$/i.test(f));
-	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css'));
+	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css') && !isProcessPage(f));
 
 	const allowedCss = new Set(
 		[
 			...Object.keys(CFG.SITE_PALETTE),
 			...Object.keys(CFG.RAMP_PALETTE),
-			...CFG.CATEGORICAL,
-			...CFG.SEQUENTIAL,
 			...Object.keys(CFG.FROZEN_DEMO_PALETTE),
 			...Object.keys(CFG.ILLUSTRATIVE_PALETTE),
 		].map((h) => normalizeColor(h)),
@@ -745,7 +858,8 @@ function main() {
 			siteParsed.push(parseCss(m[1], relative(ROOT, f)));
 		}
 		// 內聯 style="" 也是產物裡真實存在的宣告
-		const inline = [...html.matchAll(/\sstyle="([^"]*)"/g)].map((m) => m[1]);
+		// 單引號版本原本漏掉——那是「掃字串找用法」型檢查最容易留的縫
+		const inline = [...html.matchAll(/\sstyle=("([^"]*)"|'([^']*)')/g)].map((m) => m[2] ?? m[3]);
 		if (inline.length) {
 			siteParsed.push({
 				rules: inline.map((body) => ({
@@ -767,6 +881,7 @@ function main() {
 	checkChartPixels();
 
 	console.log('— 2／6 對比度');
+	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 

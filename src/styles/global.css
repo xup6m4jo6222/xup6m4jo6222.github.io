@@ -522,7 +522,6 @@ html {
 .entry-links a:hover {
 	border-color: var(--color-accent);
 	color: var(--color-accent);
-	background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
 .entry-links a:active {
@@ -722,7 +721,6 @@ main > h1 {
 .links a:hover {
 	border-color: var(--color-accent);
 	color: var(--color-accent);
-	background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
 .links a:active {

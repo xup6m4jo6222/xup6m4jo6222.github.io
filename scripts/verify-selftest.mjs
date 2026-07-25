@@ -82,6 +82,30 @@ const cases = [
 		expect: /未認領的文字色 #8a7f87/,
 	},
 	{
+		// 「深字反白」那組把頁底色驗過了，但那個顏色只有疊在元素主色上才合法。
+		// 早期版本讓它變成無條件認領，於是任何地方寫 color: var(--color-bg) 都能過——
+		// 那是 1.00 的隱形字。
+		name: '在別處拿頁底色當文字（隱形字）',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-invisible{color:var(--color-bg)}\n`),
+		expect: /未認領的文字色 #20131d/,
+	},
+	{
+		// 配對兩端要釘到真的選擇器，否則只是願望清單。
+		name: '把卡片摘要的字色改回 muted（在 n-200 卡底上只有 3.79）',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(f, readFileSync(f, 'utf8').replace(/(\.card p\{[^}]*?)var\(--n-700\)/, '$1var(--color-text-muted)')),
+		expect: /\.card p 的文字色/,
+	},
+	{
+		name: '把決策開關的底換成列表卡的底（元素主色小標掉到 3.61）',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(f, readFileSync(f, 'utf8').replace(/(\.cs-track\{[^}]*?)var\(--color-bg-alt\)/, '$1var(--color-bg-card)')),
+		expect: /\.cs-track 的底色/,
+	},
+	{
 		name: '把 :root 的 muted 調暗到過不了 4.5',
 		expectPass: false,
 		mutate: (f) => writeFileSync(f, readFileSync(f, 'utf8').replace('--color-text-muted:var(--n-600)', '--color-text-muted:var(--n-400)')),

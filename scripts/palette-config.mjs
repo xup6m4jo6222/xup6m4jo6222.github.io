@@ -140,13 +140,19 @@ export const PNG_SEGMENT_TOLERANCE = 4;
 // 值一律由產物的 `:root` 解析，這裡只宣告「誰疊在誰上面」。
 // ---------------------------------------------------------------------------
 /**
- * 背景不是單一色，量純底會漏掉最壞的那個：
+ * 頁面背景不是單一色，量純底會漏掉最壞的那個：
  *   1. body 疊了兩道 `background-attachment: fixed` 的 radial 漸層（0% stop 不透明）
- *   2. 整個視窗之上還蓋著一層顆粒材質，`mix-blend-mode: soft-light` ＋ 17% 不透明
- * 任何疊在頁底上的東西都必須對**所有狀態**都合格。顆粒的兩個極值取自
- * `public/textures/grain.png` 的實測分布（p1 = 62、p99 = 192，320×320）。
+ *   2. 其上還有一層顆粒材質，`mix-blend-mode: soft-light` ＋ 17% 不透明
+ *
+ * **顆粒層只影響頁面背景，不影響元件填色。**`body::before` 的 `z-index: -1` 讓它畫在
+ * 內容之下、頁面背景之上，所以 `.card`／`.cs-track` 這些有不透明底的表面不吃顆粒。
+ * 不要把這句話反過來讀——照反的去「修正」程式碼會讓模型變錯。
+ *
+ * 兩個端點取材質的**真實極值**（不是分位數）：判準自己寫「對所有狀態都合格」，
+ * 那就不能只模中間 98%。值由 `verify-palette.mjs` 直接讀 `public/textures/grain.png`
+ * 核對——沒有這道核對，材質哪天被換掉，整個「渲染值」模型就悄悄變回虛構。
  */
-export const GRAIN = { alpha: 0.17, low: 62, high: 192 };
+export const GRAIN = { alpha: 0.17, low: 27, high: 224, texture: 'public/textures/grain.png' };
 
 const surface = (spec, label) => [
 	{ bg: spec, label },
@@ -168,25 +174,51 @@ export const CONTRAST_PAIRS = [
 	onPage('var(--color-text-muted)', 'muted'),
 	onPage('var(--color-accent)', '連結'),
 
-	// 列表卡：底提到 n-200，摘要因此改用 n-700
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg-card)', where: '卡片標題 on 列表卡底' },
-	{ fg: 'var(--n-700)', bg: 'var(--color-bg-card)', where: '卡片摘要 on 列表卡底' },
+	/**
+	 * 以下這幾組的合格與否**取決於它疊在哪個表面上**，所以兩端都要釘到真的選擇器：
+	 * `fgOn` 說「這幾條規則的文字色必須是 fg」，`bgOn` 說「這個選擇器的底必須是 bg」。
+	 * 沒有這兩個欄位的話，配對只是一張願望清單——把 `.card p` 改回 muted（在 n-200 上
+	 * 只有 3.79）或把 `.cs-track` 的底換成列表卡的底（元素主色小標掉到 3.61），
+	 * 閘門都照樣綠。這兩個突變都實測過。
+	 */
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg-card)', where: '卡片標題 on 列表卡底', bgOn: '.card' },
+	{ fg: 'var(--n-700)', bg: 'var(--color-bg-card)', where: '卡片摘要 on 列表卡底', fgOn: ['.card p'], bgOn: '.card' },
 
 	// 承載元素主色小標的面板：封頂 n-100 就是被這一條逼出來的
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-alt)', where: '面板上的元素主色小標' },
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '面板內文' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-alt)', where: '比對器 AI 側（原本靠 opacity 降權）' },
+	{
+		fg: 'var(--color-accent)',
+		bg: 'var(--color-bg-alt)',
+		where: '面板上的元素主色小標',
+		fgOn: ['.tl-solo em', '.cs-track .cs-side--me em'],
+		bgOn: '.cs-track',
+	},
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '面板內文', bgOn: '.tl-solo' },
+	{
+		fg: 'var(--color-text-muted)',
+		bg: 'var(--color-bg-alt)',
+		where: '比對器 AI 側（原本靠 opacity 降權）',
+		fgOn: ['.cs-track .cs-side--ai'],
+	},
 
-	{ fg: 'var(--color-bg)', bg: 'var(--color-accent)', where: '選取文字／按鈕 active（深字反白）' },
+	{
+		fg: 'var(--color-bg)',
+		bg: 'var(--color-accent)',
+		where: '選取文字／按鈕 active（深字反白）',
+		// 這個顏色只有疊在元素主色上才合法——不列 fgOn 的話，誰在別處寫
+		// color: var(--color-bg) 都會被這一組放行，而那是 1.00 的隱形字。
+		fgOn: ['::selection', '.entry-links a:active', '.links a:active'],
+	},
 
 	/**
 	 * 非文字對比（WCAG 1.4.11，門檻 3.0）。
 	 * 「卡片浮起來」有一部分是靠外框承擔的，那條線就必須自己合格。
 	 * n-400 在藍暈峰值上只有 2.91，框取 n-500 就是這一條逼出來的。
-	 * 元素主色的 hover 外框不另列：它已經有一組 4.5 的配對在管，3.0 是那組的真子集。
+	 *
+	 * **只驗外側。**外側是把元件與周圍分開的那條邊，「這是一個獨立區塊」的資訊在那裡；
+	 * 內側是元件自己的框與自己的填色之間，不承載辨識資訊（n-500 疊在卡底 n-200 上是
+	 * 2.78——要讓內側也過 3.0 得用 n-600，那是 muted 文字的亮度，1px 的線用不到）。
 	 */
-	onPage('var(--color-border-strong)', '閉合外框', 3),
-	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-card)', where: '卡片 hover 外框 on 列表卡底', min: 3 },
+	onPage('var(--color-border-strong)', '閉合外框（外側）', 3),
 ];
 
 export const CONTRAST_MIN = 4.5;
