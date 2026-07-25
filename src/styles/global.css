@@ -88,6 +88,19 @@ main.wide {
 	transform: translateY(0);
 }
 
+/* 降低動態偏好：只關空間位移，淡化保留。
+   全部關掉會讓元素硬跳出來，那比淡入更晃——淡化本來就是規範建議用來取代動態的替代方案。 */
+@media (prefers-reduced-motion: reduce) {
+	.js [data-reveal] {
+		transform: none;
+		transition: opacity var(--dur) ease;
+	}
+
+	.js [data-reveal].is-visible {
+		transform: none;
+	}
+}
+
 /* Text selection / keyboard focus / scrollbars — site-wide */
 ::selection {
 	background: var(--color-accent);
