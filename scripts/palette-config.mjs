@@ -160,12 +160,13 @@ export const PAGE_SURFACES = [
 	...surface('bloom:var(--color-accent)@0.1/var(--color-bg)', '藍暈峰值'),
 ];
 
-const onPage = (fg, what, min) => PAGE_SURFACES.map((s) => ({ fg, bg: s.bg, where: `${what} on ${s.label}`, min }));
+/** 疊在頁底上的東西：九種背景狀態全部量，回報時只印最壞的那一個。 */
+const onPage = (fg, what, min) => ({ fg, bgs: PAGE_SURFACES, where: `${what} on 頁底（含漸層與顆粒）`, min });
 
 export const CONTRAST_PAIRS = [
-	...onPage('var(--color-text)', '內文'),
-	...onPage('var(--color-text-muted)', 'muted'),
-	...onPage('var(--color-accent)', '連結'),
+	onPage('var(--color-text)', '內文'),
+	onPage('var(--color-text-muted)', 'muted'),
+	onPage('var(--color-accent)', '連結'),
 
 	// 列表卡：底提到 n-200，摘要因此改用 n-700
 	{ fg: 'var(--color-text)', bg: 'var(--color-bg-card)', where: '卡片標題 on 列表卡底' },
@@ -180,11 +181,11 @@ export const CONTRAST_PAIRS = [
 
 	/**
 	 * 非文字對比（WCAG 1.4.11，門檻 3.0）。
-	 * 「卡片浮起來」現在有一部分是靠外框承擔的，那條線就必須自己合格——
-	 * 而且要對三種背景狀態都合格。n-400 在藍暈峰值上只有 2.91，就是這幾條抓出來的。
+	 * 「卡片浮起來」有一部分是靠外框承擔的，那條線就必須自己合格。
+	 * n-400 在藍暈峰值上只有 2.91，框取 n-500 就是這一條逼出來的。
+	 * 元素主色的 hover 外框不另列：它已經有一組 4.5 的配對在管，3.0 是那組的真子集。
 	 */
-	...onPage('var(--color-border-strong)', '閉合外框', 3),
-	...onPage('var(--color-accent)', '卡片 hover 外框', 3),
+	onPage('var(--color-border-strong)', '閉合外框', 3),
 	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-card)', where: '卡片 hover 外框 on 列表卡底', min: 3 },
 ];
 

@@ -75,6 +75,13 @@ const cases = [
 		expect: /未認領的文字色 #5d505a/,
 	},
 	{
+		// 只驗過非文字 3.0 的顏色（外框用的 n-500），不得因此被登記成合法的文字色。
+		name: '拿只驗過 3.0 的外框色當文字用',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-body{color:var(--n-500)}\n`),
+		expect: /未認領的文字色 #8a7f87/,
+	},
+	{
 		name: '把 :root 的 muted 調暗到過不了 4.5',
 		expectPass: false,
 		mutate: (f) => writeFileSync(f, readFileSync(f, 'utf8').replace('--color-text-muted:var(--n-600)', '--color-text-muted:var(--n-400)')),

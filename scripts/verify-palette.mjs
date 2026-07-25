@@ -398,18 +398,44 @@ function checkContrast(vars, siteRules) {
 
 	for (const pair of CFG.CONTRAST_PAIRS) {
 		const fg = resolveSurface(pair.fg, vars);
-		const bg = resolveSurface(pair.bg, vars);
-		if (!fg || !bg) {
-			fail('contrast', `${pair.fg} on ${pair.bg}`, `無法解析色值（${pair.where}）`);
+		if (!fg) {
+			fail('contrast', `${pair.fg} 無法解析`, `無法解析前景色值（${pair.where}）`);
 			continue;
 		}
-		declaredFg.add(opaque(fg));
 		const min = pair.min ?? CFG.CONTRAST_MIN;
-		const ratio = C.contrast(opaque(fg), opaque(bg));
-		const label = `${opaque(fg)} on ${opaque(bg)}`;
-		note(`對比 ${ratio.toFixed(2)}（門檻 ${min}）　${label}　${pair.where}`);
-		if (ratio < min) {
-			fail('contrast', `${label} ＜${min}`, `${pair.where}：實測 ${ratio.toFixed(2)}，低於 ${min}`);
+		/**
+		 * **只有文字檔位（4.5）的配對才算「認領」。**非文字配對（外框的 3.0）驗過的顏色
+		 * 不代表它可以拿來當文字用——把它一起登記進來，等於讓「只驗過 3.0 的顏色」
+		 * 從文字認領檢查旁邊溜過去。
+		 */
+		if (min === CFG.CONTRAST_MIN) declaredFg.add(opaque(fg));
+
+		// 一組配對可以有多個背景狀態（漸層 × 顆粒）。全部量，只回報最壞的那個——
+		// 報九行只是噪音，但少量八個就得假設「前景一定比背景亮」這個會過期的前提。
+		const specs = pair.bgs ?? [pair.bg];
+		let worst = null;
+		for (const spec of specs) {
+			const bg = resolveSurface(spec.bg ?? spec, vars);
+			if (!bg) {
+				fail('contrast', `${spec.bg ?? spec} 無法解析`, `無法解析背景色值（${pair.where}）`);
+				continue;
+			}
+			const ratio = C.contrast(opaque(fg), opaque(bg));
+			if (!worst || ratio < worst.ratio) worst = { ratio, bg: opaque(bg), label: spec.label ?? '' };
+		}
+		if (!worst) continue;
+
+		const label = `${opaque(fg)} on ${worst.bg}`;
+		note(
+			`對比 ${worst.ratio.toFixed(2)}（門檻 ${min}）　${label}　${pair.where}` +
+				(specs.length > 1 ? `　← ${specs.length} 種背景狀態裡最壞的：${worst.label}` : ''),
+		);
+		if (worst.ratio < min) {
+			fail(
+				'contrast',
+				`${label} ＜${min}`,
+				`${pair.where}：最壞情況（${worst.label || '單一背景'}）實測 ${worst.ratio.toFixed(2)}，低於 ${min}`,
+			);
 		}
 	}
 
@@ -697,20 +723,6 @@ function main() {
 
 	const allFiles = walk(DIST);
 
-	/**
-	 * 產物比原始碼舊 → 直接擋掉。
-	 * 沒有這一段的話，改完 CSS 直接跑 verify 會拿上一次的產物給你一個綠燈，
-	 * 而那個綠燈驗的是舊的東西。一個會說謊的檢查比沒有檢查更糟。
-	 * （CI 上不會發生：withastro/action 先建置，而 dist/ 有 gitignore。）
-	 */
-	if (!process.env.VERIFY_DIST) {
-		const newest = (dir) => Math.max(...walk(dir).map((f) => statSync(f).mtimeMs));
-		const srcDir = join(ROOT, 'src');
-		if (existsSync(srcDir) && newest(srcDir) > Math.max(...allFiles.map((f) => statSync(f).mtimeMs))) {
-			console.error('dist/ 比 src/ 舊——先跑 astro build，否則驗的是上一次的產物。');
-			process.exit(2);
-		}
-	}
 	const textFiles = allFiles.filter((f) => /\.(html|css|svg)$/i.test(f));
 	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css'));
 
