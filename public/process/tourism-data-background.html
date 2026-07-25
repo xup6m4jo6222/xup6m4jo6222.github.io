@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="color-scheme:dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>資料背景與前處理決策</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--a:#7998c3;--bg:#20131d;--alt:#2f1e2b;--text:#ebe5eb;--muted:#a79aa5;--line:#3d2e3a;--line2:#56506a}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(60% 42% at 72% 6%,rgba(121,152,195,.1) 0%,transparent 64%),radial-gradient(70% 55% at 12% 80%,#2a1829 0%,transparent 62%),#1d1119;background-attachment:fixed;color:var(--text);font-family:'Noto Sans TC',system-ui,'Microsoft JhengHei',sans-serif;line-height:1.8;padding:2.8rem 1.25rem;display:grid;place-items:center;min-height:100vh;font-size:1rem}
+.wrap{max-width:640px;width:100%}
+a{color:var(--a);text-decoration:underline dotted;text-underline-offset:4px}
+::selection{background:var(--a);color:#20131d}
+h1{font-family:'Noto Serif TC',serif;font-weight:400;letter-spacing:.06em;font-size:1.55rem;margin:0 0 .35rem;color:var(--text)}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 2.4rem}
+.lead{font-size:.98rem;margin:0 0 2.4rem;color:var(--text)}
+h2{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.12rem;letter-spacing:.03em;margin:2.8rem 0 1.1rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+p{font-size:.95rem}
+img{max-width:100%;border-radius:.5rem;display:block;margin:1rem 0}
+.defs{width:100%;border-collapse:collapse;margin:.4rem 0 .6rem;font-size:.9rem}
+.defs th,.defs td{border:1px solid var(--line);padding:.7rem .85rem;text-align:left;vertical-align:top}
+.defs th{font-family:'Noto Serif TC',serif;font-weight:600;color:var(--a);white-space:nowrap;width:6.5rem}
+.defs td{color:var(--text)}
+footer{margin-top:3rem;padding-top:1.4rem;border-top:1px solid var(--line);font-size:.9rem}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url(/textures/grain.png) repeat;background-size:320px;mix-blend-mode:soft-light;opacity:.17;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>資料背景與前處理決策</h1>
+<p class="sub">統計專案 #1-1 的支援頁・資料在分析之前先經過了什麼</p>
+
+<p class="lead">政府開放的資料不是下載完就能直接算的。這一頁講的是分析開始之前，我對這份資料做了哪些判斷。有些問題非處理不可，有些看起來像問題、查證之後決定原樣保留，還有一些沒辦法解決，只能記住它、讀結論時打個折。</p>
+
+<h2>資料是怎麼湊起來的</h2>
+
+<p>原始資料是交通部觀光署的「來臺旅客消費及動向調查」，從政府資料開放平台下載，一年一個檔案，十年共六萬多筆。</p>
+
+<p>麻煩的是每一年的問卷都不太一樣。同樣一個「國籍」欄位，某幾年用 1 代表日本，另外幾年可能用別的編號；活動、幣別也都有好幾套編法。我得逐年建立對照表，把它們翻譯成同一套說法，才能合在一起算。</p>
+
+<p>金額也一樣。旅客用日圓、韓元、人民幣回報的都有，我按各年的平均匯率統一換成美元，跨年比較才有意義。</p>
+
+<h2>這十年中間，斷了一次</h2>
+
+<p>這是整份資料最需要注意的地方。</p>
+
+<img src="/images/taiwan-tourism/data-structure.png" alt="各年樣本數與中國籍旅客佔比" width="860" loading="lazy" />
+
+<p>民國 111 年那一整年沒有調查，疫情的關係。109 到 110 年雖然有做，樣本數卻只剩一半。</p>
+
+<p>更關鍵的是來的人換了一批。疫情前中國籍旅客佔了大約一半，疫情之後掉到兩成。</p>
+
+<p>這件事的影響是這樣：如果我把十年混在一起算，然後得出「不同國籍的旅客行為不一樣」，這個結論裡其實混進了年代的效果。是國籍造成的，還是不同年份來的人本來就不同，混在一起就分不出來了。所以後面凡是跟國籍有關的結論，都要記得這一點。</p>
+
+<h2>分析前動了哪些手腳</h2>
+
+<p>資料很少是完美的，總會有缺漏。以下是我做的處理，每一項都寫清楚為什麼。</p>
+
+<table class="defs">
+  <tbody>
+    <tr><th>有人沒填停留幾晚</th><td>用同一年其他人的中位數補上。特別注意是「同一年」而不是全體，因為疫情那幾年能入境的人待特別久，用全體的數字補會把那個特性抹掉。</td></tr>
+    <tr><th>有人只待了不到一晚</th><td>算「每天花多少」時會除以零。這種情況一律當作一晚計算，資料本身不刪。</td></tr>
+    <tr><th>新增一個欄位</th><td>用總花費除以停留天數，得到「每天花多少」。這個欄位很有用，但它天生跟停留天數綁在一起，會製造假的關聯，主頁有專門一段在處理這件事。</td></tr>
+    <tr><th>沒填金額的</th><td>本來打算刪掉，檢查之後發現一筆都沒有，資料在彙整階段就已經補齊了。</td></tr>
+  </tbody>
+</table>
+
+<h2>那些花很多錢的人，我沒有刪</h2>
+
+<p>資料裡有幾個非常極端的數字。最高的一筆花了 507,246 美元，最久的一位待了 120 個晚上。</p>
+
+<p>統計課本常見的做法是把這種離群的資料刪掉，因為它們會把結果拉歪。我一開始也想這麼做。</p>
+
+<p>但刪之前我先去查了這些人是誰。結果發現待超過 60 晚的那 1,814 個人裡面，有 65% 是來探親的、23% 是來出差的。<b>這不是登錄錯誤，是真實存在的一群人。</b>來台灣住兩個月的探親旅客，本來就會待那麼久。</p>
+
+<p>所以我全部保留，一筆都沒刪。改成換方法，用只看排名、不看金額大小的統計工具，讓分析本身耐得住這些極端值。<b>與其刪資料去遷就方法，不如換一個受得了這種資料的方法。</b></p>
+
+<h2>三件我沒辦法解決、只能記住的事</h2>
+
+<table class="defs">
+  <tbody>
+    <tr><th>會再來的人太多了</th><td>62,365 人說會再來，只有 811 人說不會。要從這麼少的反例裡找規律，任何算出來的關聯強度都會被壓得很低，只能看方向、不能看大小。</td></tr>
+    <tr><th>有個欄位其實在偷講年份</th><td>「看過廣告」這欄裡，有兩個選項只在民國 108 年之後才出現，那是問卷改版留下的痕跡。它表面上在問廣告，實際上洩漏了年份，不能當成真的答案來解讀。</td></tr>
+    <tr><th>國籍跟年代分不開</th><td>就是上面那張圖講的問題。混在一起算的國籍效果，裡面有年代的成分。我後來把疫情前後拆開重跑了一次，寫成獨立的一篇。</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  <a href="/projects/stats/taiwan-tourism/">← 回統計專案 #1</a>
+</footer>
+
+</div>
+</body>
+</html>

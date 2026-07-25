@@ -26,3 +26,5 @@ pnpm-debug.log*
 .claude/
 DECISIONS.md
 HANDOVER.md
+SPEC-*.md
+.scratch/

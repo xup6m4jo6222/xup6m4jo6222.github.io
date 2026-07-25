@@ -360,6 +360,8 @@ html {
 	margin: 0;
 	color: var(--color-text-muted);
 	font-size: 0.92rem;
+	/* 摘要寫成多行時保留斷行（單行摘要不受影響） */
+	white-space: pre-line;
 }
 
 /* Project detail */
@@ -984,6 +986,60 @@ main > h1 {
 
 	.cs-wipe.demo-handle .cs-wipe-handle {
 		animation: none;
+	}
+}
+
+/* 統計專案頁：結構化表格（st-table＝總覽/摘要矩陣，dmr＝結論|決策|方法） */
+.st-table{width:100%;border-collapse:collapse;margin:0.6rem 0 0.4rem;font-size:0.88rem;line-height:1.6}
+.st-table th,.st-table td{border:1px solid var(--color-border);padding:0.55rem 0.7rem;text-align:left;vertical-align:top}
+.st-table thead th{font-family:var(--font-display);font-weight:600;color:var(--color-text);font-size:0.88rem;white-space:nowrap}
+.st-table td{color:var(--color-text-muted)}
+.st-table td b{color:var(--color-accent);font-weight:600}
+.st-table a{text-decoration:none;color:var(--color-text)}
+.st-table a:hover{color:var(--color-accent)}
+.st-table tbody tr{transition:background-color 0.15s ease}
+.st-table tbody tr:hover{background:color-mix(in srgb,var(--color-accent) 7%,transparent)}
+.dmr{width:100%;border-collapse:collapse;margin:0.5rem 0 0.9rem;font-size:0.9rem;line-height:1.7}
+.dmr th{font-family:var(--font-display);font-weight:600;color:var(--color-accent);white-space:nowrap;width:3.6rem;border:0;padding:0.3rem 0.8rem 0.3rem 0;text-align:left;vertical-align:top;letter-spacing:0.08em}
+.dmr td{border:0;border-left:2px solid var(--color-border);padding:0.3rem 0 0.3rem 0.8rem;color:var(--color-text-muted)}
+.dmr td b{color:var(--color-text);font-weight:600}
+.content h2{font-family:var(--font-display);font-weight:500;font-size:1.45rem;letter-spacing:0.04em;scroll-margin-top:5rem}
+.st-note{font-size:0.82rem;color:var(--color-text-muted);margin:0.2rem 0 0}
+.st-sub{font-size:0.78rem;color:var(--color-text-muted)}
+
+/* 統計專案頁：易讀行寬只套在文字元素上，表格與圖表用滿版面寬度。
+   （不用負邊界，因為那在視窗介於 561–720px 時會把表格推出左邊界。） */
+.content--stats {
+	max-width: none;
+}
+
+.content--stats > p,
+.content--stats > ul,
+.content--stats > ol,
+.content--stats > h2,
+.content--stats > h3,
+.content--stats > details,
+.content--stats > blockquote {
+	max-width: 56ch;
+}
+
+/* 窄螢幕：多欄表格先讓表頭斷行縮小，仍放不下就自己橫向捲動，不讓整頁橫捲 */
+@media (max-width: 560px) {
+	.st-table {
+		display: block;
+		overflow-x: auto;
+		font-size: 0.8rem;
+	}
+	.st-table thead th {
+		white-space: normal;
+	}
+	.st-table th,
+	.st-table td {
+		padding: 0.4rem 0.5rem;
+	}
+	.dmr th {
+		width: auto;
+		padding-right: 0.5rem;
 	}
 }
 

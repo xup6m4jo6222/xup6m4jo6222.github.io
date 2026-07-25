@@ -22,7 +22,7 @@ const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 
 <BaseLayout title={`${project.data.title} | 林郁為`} backLink={{ href: '/projects/', label: '← Projects' }}>
 	<h1>{project.data.title}</h1>
 	<p class="category-label">{categoryLabels[project.data.category]}</p>
-	<div class="content">
+	<div class={`content content--${project.data.category}`}>
 		<Content />
 	</div>
 	{
