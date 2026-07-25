@@ -1,12 +1,55 @@
 :root {
 	color-scheme: dark;
-	--color-bg: #20131d;
-	--color-bg-alt: #2f1e2b;
-	--color-text: #ebe5eb;
-	--color-text-muted: #a79aa5;
-	--color-border: #3d2e3a;
-	--color-border-strong: #56506a;
+
+	/* ── 中性階（primitive，無語義）───────────────────────────────────
+	   L 感知等距 ΔL=8、C 隨 L 線性遞減 .030→.010、H 全階 335（＝背景主色自己的色相）。
+	   兩端沿用凍結／既有字面值，其餘取公式值。推導與對比度表見 SPEC-design-system.md。
+	   說「比邊框深一階」時指的就是這排數字，不要再發明新的語義名。 */
+	--n-50: #20131d;
+	--n-100: #342630;
+	--n-200: #483a45;
+	--n-300: #5d505a;
+	--n-400: #736770;
+	--n-500: #8a7f87;
+	--n-600: #a2979f;
+	--n-700: #bab0b7;
+	--n-800: #d2cad0;
+	--n-900: #ebe5eb;
+
+	/* ── 圖表色（票 07 才會套用到 21 張圖上）────────────────────────
+	   類別色要求與中性階相反：彼此差異盡量大，且在三型色盲模擬下仍分得開。
+	   兩色的明度差是刻意的——低彩度下等亮度過不了色盲門檻，明度是第二個區分維度。 */
+	--cat-1: #6e8eb8;
+	--cat-2: #dedba3;
+
+	/* 連續色帶（熱圖）：L 單調且步距等距，色相自背景主色 335 漂移到元素主色 255。 */
+	--seq-0: #20121d;
+	--seq-1: #5c4e68;
+	--seq-2: #9497bf;
+	--seq-3: #c7eaff;
+
+	/* ── 語義名：一律為階的別名，元件 CSS 不再出現任何色碼字面值 ──── */
+	--color-bg: var(--n-50);
+	--color-bg-alt: var(--n-100); /* 卡底。層級重新分配在票 06 */
+	/* hover 底。現況的卡底與 hover 底只差 ΔL 1.6，而階的最小間隔是 8——兩者在階上
+	   落在同一格。這裡先與卡底同階（hover 的主要提示本來就是文字提亮與角標長框，
+	   不是底色），層級真正拉開是票 06 的事。 */
+	--color-bg-hover: var(--n-100);
+	--color-text: var(--n-900);
+	--color-text-muted: var(--n-600);
+	--color-text-hover: var(--n-900); /* 原 #f2ecf2，與內文色差 ΔL 2.1，在感知門檻之下 */
+	--color-border: var(--n-200);
+	--color-border-strong: var(--n-300); /* 原 #56506a 色相 295 偏冷，本次拉回 335 */
+
+	/* 凍結色與它們的透明度衍生。換色時這幾行是唯一要動的地方。 */
 	--color-accent: #7998c3;
+	--color-accent-fade: #7998c355; /* 捲軸拉桿＝元素主色 33% */
+	--color-accent-bloom: rgba(121, 152, 195, 0.1); /* 背景右上的藍暈 */
+	--color-nav-bg: #20131dd9; /* 導覽列半透明底＝背景主色 85% */
+	/* 背景左下的黑莓暗暈。刻意不上階：它與上面那道藍暈成對，是背景主色的組成，
+	   不是承載層級的表面——上了階會被連帶提亮，那道暈就沒了。 */
+	--color-bloom-dark: #2a1829;
+
 	--font-display: 'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
 	--font-sans:
 		'Noto Sans TC', system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei',
@@ -29,9 +72,9 @@ body {
 
 body {
 	background:
-		radial-gradient(60% 42% at 72% 6%, rgba(121, 152, 195, 0.1) 0%, transparent 64%),
-		radial-gradient(70% 55% at 12% 80%, #2a1829 0%, transparent 62%),
-		#1d1119;
+		radial-gradient(60% 42% at 72% 6%, var(--color-accent-bloom) 0%, transparent 64%),
+		radial-gradient(70% 55% at 12% 80%, var(--color-bloom-dark) 0%, transparent 62%),
+		var(--color-bg);
 	background-attachment: fixed;
 	color: var(--color-text);
 	font-family: var(--font-sans);
@@ -104,7 +147,7 @@ main.wide {
 /* Text selection / keyboard focus / scrollbars — site-wide */
 ::selection {
 	background: var(--color-accent);
-	color: #20131d;
+	color: var(--color-bg);
 }
 
 :focus-visible {
@@ -115,7 +158,7 @@ main.wide {
 
 html {
 	scrollbar-width: thin;
-	scrollbar-color: #7998c355 transparent;
+	scrollbar-color: var(--color-accent-fade) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -128,12 +171,12 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #7998c355;
+	background: var(--color-accent-fade);
 	border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: #7998c3;
+	background: var(--color-accent);
 }
 
 /* 頁面切換：約 0.25s 交叉淡化 */
@@ -147,7 +190,7 @@ html {
 	border-bottom: 1px solid var(--color-border);
 	position: sticky;
 	top: 0;
-	background: #20131dd9;
+	background: var(--color-nav-bg);
 	backdrop-filter: blur(6px);
 	z-index: 10;
 }
@@ -272,7 +315,7 @@ html {
 
 .entry-links a:active {
 	background: var(--color-accent);
-	color: #20131d;
+	color: var(--color-bg);
 	border-color: var(--color-accent);
 }
 
@@ -482,7 +525,7 @@ main > h1 {
 
 .links a:active {
 	background: var(--color-accent);
-	color: #20131d;
+	color: var(--color-bg);
 	border-color: var(--color-accent);
 }
 
@@ -649,7 +692,7 @@ main > h1 {
 }
 
 .cs-track:hover {
-	background-color: #33222f;
+	background-color: var(--color-bg-hover);
 }
 
 .cs-track:hover .cs-side {
@@ -931,8 +974,8 @@ main > h1 {
 
 .tl-solo:hover {
 	background-size: 2px 100%, auto;
-	background-color: #33222f;
-	color: #f2ecf2;
+	background-color: var(--color-bg-hover);
+	color: var(--color-text-hover);
 }
 
 .tl-solo:hover::before,

@@ -317,6 +317,9 @@ function checkSiteColorsOnRamp() {
 		const { L } = C.hexToOklch(base);
 		fail('offramp', hex, `${why}：L=${L.toFixed(1)}，不在中性階的任何一階上`);
 	}
+	for (const [hex, why] of Object.entries(CFG.PNG_LEGACY)) {
+		fail('pnglegacy', hex, `${why}：舊圖表色仍在 PNG 白名單上`);
+	}
 }
 
 function checkChartPixels() {
@@ -656,6 +659,8 @@ function main() {
 		[
 			...Object.keys(CFG.SITE_PALETTE),
 			...Object.keys(CFG.RAMP_PALETTE),
+			...CFG.CATEGORICAL,
+			...CFG.SEQUENTIAL,
 			...Object.keys(CFG.FROZEN_DEMO_PALETTE),
 			...Object.keys(CFG.ILLUSTRATIVE_PALETTE),
 		].map((h) => normalizeColor(h)),

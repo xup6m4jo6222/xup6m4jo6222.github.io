@@ -53,10 +53,20 @@ export const RAMP_RULES = {
 };
 
 // ---------------------------------------------------------------------------
-// 圖表色：本檔為「現況」值，票 07 換成 SPEC 的新配對後同步改這裡。
+// 圖表色（判準值）。票 02 已定義成 token，票 07 才套用到 21 張圖上。
 // ---------------------------------------------------------------------------
-export const CATEGORICAL = ['#548bd4', '#c97a48'];
-export const SEQUENTIAL = ['#2a1a26', '#3b3f63', '#548bd4', '#9fc2ee'];
+export const CATEGORICAL = ['#6e8eb8', '#dedba3'];
+export const SEQUENTIAL = ['#20121d', '#5c4e68', '#9497bf', '#c7eaff'];
+
+/** 還烤在 21 張 PNG 裡的舊圖表色。票 07 重跑圖之後整段刪掉。 */
+export const PNG_LEGACY = {
+	'#548bd4': '舊類別色（藍）',
+	'#c97a48': '舊類別色（橘）——DECISIONS 查無此項，本輪的起因',
+	'#2a1a26': '舊色帶節點 0',
+	'#3b3f63': '舊色帶節點 1',
+	'#9fc2ee': '舊色帶節點 3',
+	'#1a1016': '淺色熱圖格上的深色數字',
+};
 
 /** 類別色在 protan／deutan／tritan 模擬下的最壞 ΔEok 下限（本站自訂基準，SPEC-design-system）。 */
 export const CVD_MIN_DELTA_EOK = 0.185;
@@ -68,24 +78,23 @@ export const SEQUENTIAL_STEP_TOLERANCE = 1.0;
 // 色碼白名單
 // ---------------------------------------------------------------------------
 
-/** 網站自己的色（`global.css` 與 `/process/` 九頁共用的中性家族＋元素主色） */
+/** 網站自己的色。中性家族一律取自階（見 RAMP_PALETTE），這裡只剩凍結色與其衍生。 */
 export const SITE_PALETTE = {
-	'#20131d': '背景主色（凍結）／中性階 50',
 	'#20131dd9': '導覽列半透明底＝背景主色 85%',
-	'#2f1e2b': '卡底（票 06 重新分配層級前的現況）',
-	'#33222f': 'hover 底（現況）',
-	'#3d2e3a': '邊框（現況）',
-	'#56506a': '邊框強（現況，色相 295 偏冷，票 02 拉正）',
-	'#a79aa5': 'muted 文字（現況）',
-	'#ebe5eb': '內文色／中性階 900',
-	'#f2ecf2': 'hover 文字',
 	'#2a1829': '背景漸層的黑莓暗暈',
-	'#1d1119': '頁面最底層',
-	'#191017': 'favicon 底板（2026-07-19 曾因不在清單上而漏掃）',
 	'#7998c3': '元素主色（凍結）',
 	'#7998c355': '捲軸拉桿＝元素主色 33%',
 	'#7998c31a': '背景漸層＝元素主色 10%（建置後由 rgba() 縮寫而來）',
 	'#0000': 'transparent 的縮寫（建置產生）',
+	// —— 以下是 `/process/` 九頁尚未同步的舊中性色，票 03 清除 ——
+	'#2f1e2b': '舊卡底（僅存於 /process/ 九頁）',
+	'#33222f': '舊 hover 底（僅存於 /process/ 九頁）',
+	'#3d2e3a': '舊邊框（僅存於 /process/ 九頁）',
+	'#56506a': '舊邊框強（僅存於 /process/ 九頁）',
+	'#a79aa5': '舊 muted 文字（僅存於 /process/ 九頁）',
+	'#f2ecf2': '舊 hover 文字（僅存於 /process/ 九頁）',
+	'#1d1119': '舊頁面最底層（僅存於 /process/ 九頁）',
+	'#191017': 'favicon 底板（2026-07-19 曾因不在清單上而漏掃）',
 };
 
 /** 中性階新增的階（票 02 起會出現在產物裡；先列入白名單，expand 階段兩組並存） */
@@ -120,14 +129,14 @@ export const ILLUSTRATIVE_RULES = { minL: 68.8, maxL: 76.8, maxC: 0.073, minCont
 
 /** 圖表 PNG 允許出現的端點色。像素若落在任兩個端點的連線上（抗鋸齒／漸層），視為合格。 */
 export const PNG_PALETTE = {
-	'#20131d': '圖表背景＝網站背景主色',
-	'#2f1e2b': '圖表面板底',
-	'#3d2e3a': '格線',
-	'#a79aa5': '次要標註文字',
-	'#ebe5eb': '主要標註文字',
-	'#1a1016': '淺色熱圖格上的深色數字（現況值，票 07 對映到階）',
+	[NEUTRAL_RAMP[50]]: '圖表背景＝中性階 50',
+	[NEUTRAL_RAMP[100]]: '圖表面板底＝中性階 100',
+	[NEUTRAL_RAMP[200]]: '格線＝中性階 200',
+	[NEUTRAL_RAMP[600]]: '次要標註文字＝中性階 600',
+	[NEUTRAL_RAMP[900]]: '主要標註文字＝中性階 900',
 	...Object.fromEntries(CATEGORICAL.map((c) => [c, '類別色'])),
 	...Object.fromEntries(SEQUENTIAL.map((c) => [c, '連續色帶節點'])),
+	...PNG_LEGACY,
 };
 
 /** PNG 判準：低於此比例的像素視為抗鋸齒雜訊不追究；容差為 sRGB 各通道最大差（4/255 ≈ 1.6%）。 */
@@ -139,24 +148,23 @@ export const PNG_SEGMENT_TOLERANCE = 4;
 // 值一律由產物的 `:root` 解析，這裡只宣告「誰疊在誰上面」。
 // ---------------------------------------------------------------------------
 export const CONTRAST_PAIRS = [
-	{ fg: 'var(--color-text)', bg: '#1d1119', where: '內文 on 頁底' },
-	{ fg: 'var(--color-text)', bg: '#2a1829', where: '內文 on 背景暗暈' },
-	{ fg: 'var(--color-text-muted)', bg: '#1d1119', where: 'muted on 頁底' },
-	{ fg: 'var(--color-text-muted)', bg: '#2a1829', where: 'muted on 背景暗暈' },
-	{ fg: 'var(--color-accent)', bg: '#1d1119', where: '連結 on 頁底' },
-	{ fg: 'var(--color-accent)', bg: '#2a1829', where: '連結 on 背景暗暈' },
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg)', where: '內文 on 頁底' },
+	{ fg: 'var(--color-text)', bg: 'var(--color-bloom-dark)', where: '內文 on 背景暗暈' },
+	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg)', where: 'muted on 頁底' },
+	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bloom-dark)', where: 'muted on 背景暗暈' },
+	{ fg: 'var(--color-accent)', bg: 'var(--color-bg)', where: '連結 on 頁底' },
+	{ fg: 'var(--color-accent)', bg: 'var(--color-bloom-dark)', where: '連結 on 背景暗暈' },
 	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '卡片標題 on 卡底' },
 	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-alt)', where: '卡片摘要 on 卡底' },
 	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-alt)', where: '角標卡強調 on 卡底' },
-	{ fg: '#f2ecf2', bg: '#33222f', where: '角標卡 hover 文字 on hover 底' },
-	{ fg: 'var(--color-text)', bg: '#33222f', where: '決策開關 hover 文字 on hover 底' },
-	{ fg: 'var(--color-text-muted)', bg: '#33222f', where: 'muted on hover 底' },
+	{ fg: 'var(--color-text-hover)', bg: 'var(--color-bg-hover)', where: '角標卡 hover 文字 on hover 底' },
+	{ fg: 'var(--color-text)', bg: 'var(--color-bg-hover)', where: '決策開關 hover 文字 on hover 底' },
+	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg-hover)', where: 'muted 小標 on hover 底' },
+	{ fg: 'var(--color-accent)', bg: 'var(--color-bg-hover)', where: '角標卡小標 on hover 底' },
 	{ fg: 'var(--color-bg)', bg: 'var(--color-accent)', where: '選取文字／按鈕 active（深字反白）' },
-	{ fg: 'var(--color-text-muted)', bg: 'var(--color-bg)', where: '導覽列 on 導覽列底' },
-	{ fg: 'var(--color-text)', bg: 'var(--color-bg)', where: '導覽列當前頁 on 導覽列底' },
 	{
 		fg: 'var(--color-border)',
-		bg: '#1d1119',
+		bg: 'var(--color-bg)',
 		where: '標籤前的 `#` 與統計列的分隔符（裝飾性字元）',
 		decorative: true,
 	},
@@ -230,7 +238,7 @@ const group = (keys, reason, clearedBy) => keys.map((key) => ({ key, reason, cle
 
 export const EXCEPTIONS = {
 	contrast: group(
-		['#3d2e3a on #1d1119'],
+		['#483a45 on #20131d'],
 		'標籤前的 `#` 與統計列的 `·` 分隔符，皆為裝飾性字元。是否納入 4.5 判準待本人裁決；票 06 重新分配邊框階後複驗。',
 		'票 06',
 	),
@@ -241,23 +249,26 @@ export const EXCEPTIONS = {
 		'票 06',
 	),
 
-	// 現況的語義色沒有一個落在中性階上（階本身尚未建立）。
 	offramp: [
 		...group(
-			['#2f1e2b', '#33222f', '#3d2e3a', '#56506a', '#a79aa5', '#f2ecf2'],
-			'現況語義色，中性階建立後改為指向階值。',
-			'票 02',
-		),
-		...group(
-			['#2a1829', '#1d1119'],
-			'背景漸層的暗暈與頁面底層，兩者都不在階上；對映哪一階或列為永久例外由票 02 決定。',
-			'票 02',
+			['#2f1e2b', '#33222f', '#3d2e3a', '#56506a', '#a79aa5', '#f2ecf2', '#1d1119'],
+			'`/process/` 九頁的凍結副本還在用的舊中性色，主站已改為指向階。',
+			'票 03',
 		),
 		...group(['#191017'], 'favicon 底板，2026-07-19 盤點時曾因不在換色協議清單上而漏掃。', '票 03'),
+		...group(
+			['#2a1829'],
+			'背景漸層左下的黑莓暗暈。刻意不上階：它與右上那道元素主色 10% 的藍暈成對，是背景主色的組成而非承載層級的表面，上了階會被連帶提亮、暈就沒了。',
+			'永久（書面理由）',
+		),
 	],
 
-	// 連續色帶的現況節點步距為 14／25／17，正是判準要修掉的假邊界。
-	ramp: group(['band 0', 'band 1', 'band 2'], '現況熱圖色帶 L 步距不等距（14／25／17），造成假分界。', '票 07'),
+	/** 還烤在 21 張 PNG 裡的舊圖表色。票 07 重跑圖之後整段刪掉。 */
+	pnglegacy: group(
+		Object.keys(PNG_LEGACY),
+		'舊圖表色仍烤在 21 張 PNG 裡，尚未依新類別色與色帶重跑。',
+		'票 07',
+	),
 
 	illustrative: group(
 		['#a48fe6', '#d97b7b', '#7ea6dd', '#6b90da'],
