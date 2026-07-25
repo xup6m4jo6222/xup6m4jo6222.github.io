@@ -58,15 +58,8 @@ export const RAMP_RULES = {
 export const CATEGORICAL = ['#6e8eb8', '#dedba3'];
 export const SEQUENTIAL = ['#20121d', '#5c4e68', '#9497bf', '#c7eaff'];
 
-/** 還烤在 21 張 PNG 裡的舊圖表色。票 07 重跑圖之後整段刪掉。 */
-export const PNG_LEGACY = {
-	'#548bd4': '舊類別色（藍）',
-	'#c97a48': '舊類別色（橘）——DECISIONS 查無此項，本輪的起因',
-	'#2a1a26': '舊色帶節點 0',
-	'#3b3f63': '舊色帶節點 1',
-	'#9fc2ee': '舊色帶節點 3',
-	'#1a1016': '淺色熱圖格上的深色數字',
-};
+/** 票 07 已把 21 張圖依新色票重跑，舊圖表色全數退場。 */
+export const PNG_LEGACY = {};
 
 /** 類別色在 protan／deutan／tritan 模擬下的最壞 ΔEok 下限（本站自訂基準，SPEC-design-system）。 */
 export const CVD_MIN_DELTA_EOK = 0.185;
@@ -246,12 +239,8 @@ export const EXCEPTIONS = {
 		),
 	],
 
-	/** 還烤在 21 張 PNG 裡的舊圖表色。票 07 重跑圖之後整段刪掉。 */
-	pnglegacy: group(
-		Object.keys(PNG_LEGACY),
-		'舊圖表色仍烤在 21 張 PNG 裡，尚未依新類別色與色帶重跑。',
-		'票 07',
-	),
+	// 票 07 已清空：21 張圖依新類別色與新色帶重跑。
+	pnglegacy: [],
 
 	// 票 03 已清空：四個示意色依判準重算（色相保留詞義，L 落在 600–700 區、C ≤ .073）。
 	illustrative: [],
