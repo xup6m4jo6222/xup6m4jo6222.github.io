@@ -29,8 +29,13 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		<meta name="generator" content={Astro.generator} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		{/* 只載入實際用得到的四個字重（Sans 700 與 Serif 700 改完字重後成為死載入）。
+		    display=fallback 而非 swap：swap 的規格定義是阻擋期 0 秒、交換期無限，
+		    **保證**先用備援字畫一次再換，中文備援與 Noto 的字面度量不同，換的那一刻整頁
+		    重排。fallback 的 100ms 阻擋期低於人眼的瞬間門檻，換掉了那次必然的重排。
+		    不用 optional：首訪在慢網路下會整站落回系統字，襯線標題是設計的載體。 */}
 		<link
-			href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;600;700&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@400;600&display=fallback"
 			rel="stylesheet"
 		/>
 		<meta name="description" content="統計背景，正朝資料科學邁進。" />

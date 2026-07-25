@@ -289,42 +289,6 @@ export const EXCEPTIONS = {
 		'票 05',
 	),
 
-	// 現況 20 個字級值＋兩個斷點的 html font-size＋首頁 clamp、4 個字距值、46 條缺 line-height 的規則。
-	typography: [
-		...group(
-			[
-				'字級 .75rem', '字級 .78rem', '字級 .8rem', '字級 .82rem', '字級 .85rem', '字級 .86rem',
-				'字級 .88rem', '字級 .9rem', '字級 .92rem', '字級 .94rem', '字級 .95rem', '字級 1.02rem',
-				'字級 1.05rem', '字級 1.08rem', '字級 1.1rem', '字級 1.15rem', '字級 1.2rem', '字級 1.45rem',
-				'字級 1.6rem', '字級 1.9rem', '字級 clamp(3.2rem,10vw,5.5rem)', '字級 17.5px', '字級 19px',
-			],
-			'現況 20 個字級值（其中十個擠在 0.78–0.95rem）＋首頁 v7 的原型 clamp ＋ 1440／1920 斷點的 html font-size。',
-			'票 04',
-		),
-		...group(
-			['字距 .01em', '字距 .02em', '字距 .05em', '字距 .08em'],
-			'現況字距六個值，判準收成三檔（0／.06em／.04em）。',
-			'票 04',
-		),
-		...group(
-			[
-				'缺 line-height：html', '缺 line-height：footer', '缺 line-height：main>h1',
-				'缺 line-height：.site-nav a', '缺 line-height：.site-nav .nav-brand', '缺 line-height：.nav-progress',
-				'缺 line-height：.hero p', '缺 line-height：.entry-links a', '缺 line-height：.intro',
-				'缺 line-height：.category h2', '缺 line-height：.card h3', '缺 line-height：.card p',
-				'缺 line-height：.back-link', '缺 line-height：.category-label', '缺 line-height：.tags li',
-				'缺 line-height：.links a', '缺 line-height：.cs-lead', '缺 line-height：.cs-stats',
-				'缺 line-height：.cs-stats b', '缺 line-height：.cs-wipe-invite', '缺 line-height：.cs-wipe-handle:after',
-				'缺 line-height：.cs-wipe-tag', '缺 line-height：.cs-wipe-hint', '缺 line-height：.cs-toggle-name',
-				'缺 line-height：.cs-side', '缺 line-height：.cs-side em', '缺 line-height：.cs-reason',
-				'缺 line-height：.cs-evi', '缺 line-height：.cs-pair em', '缺 line-height：.cs-raw',
-				'缺 line-height：.cs-rawchip', '缺 line-height：.content details summary', '缺 line-height：.content details p',
-				'缺 line-height：.content h2', '缺 line-height：.tl-era h2', '缺 line-height：.tl-era p',
-				'缺 line-height：.tl-solo', '缺 line-height：.tl-solo em', '缺 line-height：.st-table',
-				'缺 line-height：.st-table thead th', '缺 line-height：.st-note', '缺 line-height：.st-sub',
-			],
-			'設了 font-size 卻沒設 line-height 的規則——`main > h1` 現況即因此吃到 body 的 1.65。',
-			'票 04',
-		),
-	],
+	// 票 04 已清空：九階 clamp 落地、字距收成三檔、每一條設了字級的規則都有行高。
+	typography: [],
 };

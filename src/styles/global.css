@@ -54,7 +54,44 @@
 	--font-sans:
 		'Noto Sans TC', system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei',
 		sans-serif;
-	--max-width: 720px;
+	/* ── 字級九階 ───────────────────────────────────────────────────
+	   兩套等比尺度，之間線性內插：手機 375px base 1.0rem／r=1.1808，
+	   桌機 1440px base 1.125rem／r=1.2585。r = 5^(1/7)，來源是「主標約內文 5 倍」
+	   走七階，不是外部音階表。比值必須隨螢幕壓縮（手機 3.2 倍、桌機 5.0 倍）——
+	   那是物理限制不是設計選擇：恆為 5 倍會逼出 10.2px 的手機內文。
+	   階 −1 的下限釘死 0.875rem（14px）：易讀是硬下限，優先於等比。 */
+	--fs--1: clamp(0.875rem, 0.868rem + 0.029vw, 0.894rem);
+	--fs-0: clamp(1rem, 0.956rem + 0.188vw, 1.125rem);
+	--fs-1: clamp(1.181rem, 1.098rem + 0.353vw, 1.416rem);
+	--fs-2: clamp(1.394rem, 1.257rem + 0.583vw, 1.782rem);
+	--fs-3: clamp(1.646rem, 1.436rem + 0.895vw, 2.242rem);
+	--fs-4: clamp(1.944rem, 1.635rem + 1.319vw, 2.822rem);
+	--fs-5: clamp(2.295rem, 1.852rem + 1.888vw, 3.552rem);
+	--fs-6: clamp(2.71rem, 2.09rem + 2.644vw, 4.47rem);
+	--fs-7: clamp(3.2rem, 2.346rem + 3.643vw, 5.625rem);
+
+	/* 行高：連續公式 max(1.05, 1.9 − 0.12 × 階)。兩端與現況吻合。 */
+	--lh--1: 2.02;
+	--lh-0: 1.9;
+	--lh-1: 1.78;
+	--lh-2: 1.66;
+	--lh-3: 1.54;
+	--lh-4: 1.42;
+	--lh-5: 1.3;
+	--lh-6: 1.18;
+	--lh-7: 1.06;
+
+	/* 字距三檔。否決「隨字級遞減」的公式化做法——那是拉丁字的光學修正，對方塊字
+	   無依據；中文無詞間空格，內文加字距會破壞切詞。 */
+	--ls-body: 0;
+	--ls-display: 0.06em; /* 襯線大標 */
+	--ls-label: 0.04em; /* 短標籤 */
+
+	/* 版面寬度：原本在 1440／1920 跳 720→800→860，改為連續。
+	   三個值各加 48px（＝main 的左右 padding 1.5rem×2），讓內文欄實際落在 40em＝720px
+	   上；原本 720px 的容器扣掉 padding 只剩 672px，行長其實是 37 個字，40em 根本沒有
+	   在管事。加上之後，管行長的是 .content 的 40em，容器只負責兩側留白。 */
+	--max-width: clamp(768px, 348px + 29.167vw, 908px);
 	--rhythm: 1.5rem;
 	--dur: 0.45s;
 	--ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -78,7 +115,6 @@ body {
 	background-attachment: fixed;
 	color: var(--color-text);
 	font-family: var(--font-sans);
-	line-height: 1.65;
 	display: flex;
 	flex-direction: column;
 	min-height: 100vh;
@@ -86,6 +122,147 @@ body {
 
 a {
 	color: var(--color-accent);
+}
+
+/* ══ 排版樣式 ════════════════════════════════════════════════════════
+   一個樣式＝字級／行高／字距／字重四者一次到位。新增元件時把選擇器加進其中一組，
+   **不要單獨設 font-size**——拆開設正是缺陷的來源（main > h1 現況即因此吃到 body
+   的行高）。驗證腳本會擋下任何設了字級卻沒設行高的規則。
+
+   字重只有三個合法值：Sans 400／500、Serif 600。宣告了但沒載入的字重會被 CSS
+   字體匹配演算法靜默替換成別的字重——站上原本的 Sans 600 實際渲染成 700、
+   Serif 500 實際渲染成 400，兩個方向的 bug 都在本次修掉。 */
+
+/* 樣式：內文（階 0）。body 設一次，其餘元素繼承。 */
+body,
+.content,
+.cs-lead {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：註記（階 −1）。全站唯一的小字級——現況八個 0.75–0.88rem 的值全部收斂到這裡。 */
+.site-nav a,
+.nav-progress,
+.entry-links a,
+.card p,
+.back-link,
+.category-label,
+.tags li,
+.links a,
+.cs-stats,
+.cs-wipe-invite,
+.cs-wipe-handle::after,
+.cs-wipe-hint,
+.cs-side,
+.cs-reason,
+.cs-pair,
+.cs-raw,
+.content details summary,
+.content details p,
+.tl-era p,
+.tl-solo,
+.st-table,
+.dmr,
+.st-note,
+footer {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：短標籤（階 −1 ＋ 字距）。分類名、角標、原件標籤這類單獨成行的短詞。 */
+.cs-wipe-tag,
+.cs-toggle-name,
+.cs-side em,
+.cs-evi,
+.cs-evi span,
+.cs-pair em,
+.cs-rawchip,
+.tl-solo em,
+.st-sub {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-label);
+	font-weight: 400;
+}
+
+/* 樣式：介面強調（階 0 ／半粗）。導覽列當前頁、卡片標題、統計數字、表格粗體。
+   這五處原本宣告 600，但 Sans 只載入 400/500——實際渲染是 700，不是設計時想要的
+   半粗。改用已載入的 500 回到原意，不新增字體請求。 */
+.site-nav nav a[aria-current='page'],
+.card h3,
+.cs-stats b,
+.st-table td b,
+.dmr td b {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 500;
+}
+
+/* 樣式：導覽列品牌（階 0 ／襯線） */
+.site-nav .nav-brand {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-label);
+	font-weight: 400;
+}
+
+/* 樣式：段落標題（階 1 ／襯線 600）。三個同級標題自此字重一致——
+   .content h2 現況宣告 500 但 Serif 未載入 500，實際渲染是 400，
+   是一個從未被實現過的意圖，改成已載入的 600 不推翻任何人看過的東西。 */
+.category h2,
+.tl-era h2,
+.content h2 {
+	font-size: var(--fs-1);
+	line-height: var(--lh-1);
+	letter-spacing: var(--ls-display);
+	font-weight: 600;
+}
+
+/* 樣式：表頭（階 −1 ／襯線 600）。表格裡的欄名與列名，量級跟著表格內文走。 */
+.st-table thead th,
+.dmr th {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-label);
+	font-weight: 600;
+}
+
+/* 內文裡的粗體。Sans 只載入 400／500，UA 預設的 bold（700）會被靜默替換，
+   所以明講 500——與介面強調同一個半粗。 */
+.content strong,
+.content b {
+	font-weight: 500;
+}
+
+/* 樣式：頁面主標（階 5 ／襯線）。自 1.9rem 提到與首頁同量級——
+   解掉「從首頁點進專案頁像另一個站」。 */
+main > h1 {
+	font-size: var(--fs-5);
+	line-height: var(--lh-5);
+	letter-spacing: var(--ls-display);
+	font-weight: 400;
+}
+
+/* 樣式：首頁副標（階 2） */
+.hero p {
+	font-size: var(--fs-2);
+	line-height: var(--lh-2);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：首頁大字（階 7 ／襯線）。桌機約內文 5 倍、手機 3.2 倍。 */
+.hero h1 {
+	font-size: var(--fs-7);
+	line-height: var(--lh-7);
+	letter-spacing: var(--ls-display);
+	font-weight: 400;
 }
 
 /* 材質：絲絨顆粒（雙層不均勻，soft-light 17%） */
@@ -207,7 +384,6 @@ html {
 .site-nav a {
 	color: var(--color-text-muted);
 	text-decoration: none;
-	font-size: 0.95rem;
 }
 
 .site-nav a:hover {
@@ -217,7 +393,6 @@ html {
 .site-nav .nav-brand {
 	font-family: var(--font-display);
 	color: var(--color-text);
-	font-size: 1.1rem;
 	margin-right: 0.25rem;
 	transition: color 0.15s ease;
 }
@@ -229,7 +404,6 @@ html {
 .site-nav nav a[aria-current='page'] {
 	position: relative;
 	color: var(--color-text);
-	font-weight: 600;
 }
 
 /* 捲動進度：固定於右下角的角標膠囊，不佔導覽列空間（窄螢幕會擠壓選項列） */
@@ -238,7 +412,6 @@ html {
 	right: 0.9rem;
 	bottom: 0.9rem;
 	z-index: 20;
-	font-size: 0.78rem;
 	color: var(--color-text-muted);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
@@ -274,17 +447,14 @@ html {
 
 .hero h1 {
 	font-family: var(--font-display);
-	font-weight: 400;
-	letter-spacing: 0.06em;
-	font-size: clamp(3.2rem, 10vw, 5.5rem);
-	line-height: 1.05;
 	margin: 0;
 }
 
 .hero p {
 	color: var(--color-text-muted);
-	font-size: 1.6rem;
-	max-width: 30ch;
+	/* 17em ≈ 現況 30ch 的實測寬度（459px）。改用 em 的理由同內文行長：
+	   ch 是數字 0 的寬度，中文字體裡不到 1em，算出來會歪。 */
+	max-width: 17em;
 	margin: 2.5rem 0 0;
 }
 
@@ -300,7 +470,6 @@ html {
 	border: 1px solid var(--color-border);
 	border-radius: 0.55rem;
 	padding: 0.5rem 1.1rem;
-	font-size: 0.92rem;
 	transition:
 		border-color 0.15s ease,
 		background-color 0.15s ease,
@@ -323,7 +492,6 @@ html {
 .intro {
 	color: var(--color-text-muted);
 	margin: 0 0 calc(var(--rhythm) * 1.5);
-	font-size: 1.05rem;
 }
 
 .category {
@@ -332,8 +500,6 @@ html {
 
 .category h2 {
 	font-family: var(--font-display);
-	font-size: 1.2rem;
-	font-weight: 600;
 	margin: 0 0 var(--rhythm);
 	padding-bottom: 0.4rem;
 	border-bottom: 1px solid var(--color-border);
@@ -408,14 +574,11 @@ html {
 
 .card h3 {
 	margin: 0;
-	font-size: 1.02rem;
-	font-weight: 600;
 }
 
 .card p {
 	margin: 0;
 	color: var(--color-text-muted);
-	font-size: 0.92rem;
 	/* 摘要寫成多行時保留斷行（單行摘要不受影響） */
 	white-space: pre-line;
 }
@@ -426,7 +589,6 @@ html {
 	margin-bottom: var(--rhythm);
 	color: var(--color-text-muted);
 	text-decoration: none;
-	font-size: 0.9rem;
 	transition: color 0.15s ease;
 }
 
@@ -436,23 +598,19 @@ html {
 
 main > h1 {
 	font-family: var(--font-display);
-	font-weight: 400;
-	letter-spacing: 0.06em;
 	margin: 0 0 0.4rem;
-	font-size: 1.9rem;
 }
 
 .category-label {
 	color: var(--color-text-muted);
-	font-size: 0.9rem;
 	margin: 0 0 calc(var(--rhythm) * 1.5);
 }
 
+/* 行長：40em ＝ 40 個漢字（漢字為全角，一字剛好 1em）。不用 ch——那是數字 0 的
+   寬度，中文字體裡不到 1em，算出來會歪。40em 在 18px base 下等於 720px，與現況等價，
+   但行長從此由文字自己負責，不再是容器寬度的副作用。 */
 .content {
-	max-width: 56ch;
-	font-size: 1.08rem;
-	line-height: 1.95;
-	letter-spacing: 0.01em;
+	max-width: 40em;
 }
 
 .content :is(h2, h3) {
@@ -486,7 +644,6 @@ main > h1 {
 
 .tags li {
 	color: var(--color-text-muted);
-	font-size: 0.85rem;
 }
 
 .tags li::before {
@@ -510,7 +667,6 @@ main > h1 {
 	border: 1px solid var(--color-border);
 	border-radius: 0.55rem;
 	padding: 0.5rem 1.1rem;
-	font-size: 0.9rem;
 	transition:
 		border-color 0.15s ease,
 		background-color 0.15s ease,
@@ -531,15 +687,12 @@ main > h1 {
 
 /* Case study（專案頁的證據版面） */
 .cs-lead {
-	font-size: 1.08rem;
 	margin: 0 0 calc(var(--rhythm) * 1.5);
 }
 
 .cs-stats {
 	margin: calc(var(--rhythm) * -0.5) 0 var(--rhythm);
 	color: var(--color-text-muted);
-	font-size: 0.9rem;
-	letter-spacing: 0.02em;
 }
 
 .cs-stats span {
@@ -548,8 +701,6 @@ main > h1 {
 
 .cs-stats b {
 	color: var(--color-accent);
-	font-weight: 600;
-	font-size: 1.05rem;
 	margin: 0 0.15rem;
 }
 
@@ -561,7 +712,6 @@ main > h1 {
 
 .cs-wipe-invite {
 	color: var(--color-text-muted);
-	font-size: 0.92rem;
 	margin: 0 0 0.6rem;
 }
 
@@ -613,7 +763,6 @@ main > h1 {
 	border: 1px solid var(--color-accent);
 	border-radius: 50%;
 	color: var(--color-accent);
-	font-size: 0.9rem;
 }
 
 .cs-wipe input[type='range'] {
@@ -634,7 +783,6 @@ main > h1 {
 .cs-wipe-tag {
 	position: absolute;
 	top: 0.6rem;
-	font-size: 0.78rem;
 	padding: 0.15rem 0.55rem;
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
@@ -655,7 +803,6 @@ main > h1 {
 
 .cs-wipe-hint {
 	color: var(--color-text-muted);
-	font-size: 0.9rem;
 	margin: 0.6rem 0 calc(var(--rhythm) * 1.5);
 }
 
@@ -674,9 +821,7 @@ main > h1 {
 }
 
 .cs-toggle-name {
-	font-size: 0.85rem;
 	color: var(--color-text-muted);
-	letter-spacing: 0.05em;
 	margin-bottom: 0.45rem;
 }
 
@@ -701,17 +846,14 @@ main > h1 {
 
 .cs-side {
 	padding: 0.8rem 1rem;
-	font-size: 0.94rem;
 	transition: color 0.45s ease, opacity 0.45s ease;
 }
 
 .cs-side em {
 	display: block;
 	font-style: normal;
-	font-size: 0.78rem;
 	color: var(--color-text-muted);
 	margin-bottom: 0.25rem;
-	letter-spacing: 0.05em;
 }
 
 .cs-track .cs-side--ai {
@@ -737,7 +879,6 @@ main > h1 {
 
 .cs-reason {
 	margin: 0.45rem 0 0;
-	font-size: 0.88rem;
 	color: var(--color-text-muted);
 }
 
@@ -747,12 +888,10 @@ main > h1 {
 	align-items: baseline;
 	gap: 0.6rem;
 	margin-top: 0.55rem;
-	font-size: 0.82rem;
 }
 
 .cs-evi span {
 	color: var(--color-text-muted);
-	letter-spacing: 0.04em;
 }
 
 /* 文字所有權卡的內嵌對質 */
@@ -762,17 +901,13 @@ main > h1 {
 	padding: 0.8rem 1rem 0.9rem;
 	display: grid;
 	gap: 0.7rem;
-	font-size: 0.86rem;
-	line-height: 1.7;
 }
 
 .cs-pair em {
 	display: block;
 	font-style: normal;
-	font-size: 0.78rem;
 	color: var(--color-text-muted);
 	margin-bottom: 0.25rem;
-	letter-spacing: 0.05em;
 }
 
 .cs-pair-ai {
@@ -786,17 +921,14 @@ main > h1 {
 /* 頁尾原件附錄 */
 .cs-raw {
 	color: var(--color-text-muted);
-	font-size: 0.85rem;
 }
 
 .cs-rawchip {
 	display: inline-block;
-	font-size: 0.75rem;
 	border: 1px solid var(--color-border);
 	border-radius: 0.55rem;
 	padding: 0.05rem 0.55rem;
 	margin-right: 0.5rem;
-	letter-spacing: 0.04em;
 }
 
 .content details {
@@ -808,7 +940,6 @@ main > h1 {
 
 .content details summary {
 	cursor: pointer;
-	font-size: 0.95rem;
 	color: var(--color-text-muted);
 	transition: color 0.15s ease;
 }
@@ -823,7 +954,6 @@ main > h1 {
 }
 
 .content details p {
-	font-size: 0.95rem;
 	color: var(--color-text-muted);
 	margin: 0.4rem 0;
 }
@@ -836,7 +966,6 @@ main > h1 {
 
 @media (max-width: 560px) {
 	.cs-side {
-		font-size: 0.88rem;
 		padding: 0.65rem 0.75rem;
 	}
 }
@@ -885,13 +1014,10 @@ main > h1 {
 .tl-era h2 {
 	font-family: var(--font-display);
 	margin: 0;
-	font-size: 1.15rem;
-	font-weight: 600;
 }
 
 .tl-era p {
 	margin: 0.15rem 0 0;
-	font-size: 0.88rem;
 	color: var(--color-text-muted);
 }
 
@@ -936,7 +1062,6 @@ main > h1 {
 		var(--color-bg-alt);
 	border-radius: 0.55rem;
 	padding: 1rem 1.2rem;
-	font-size: 0.94rem;
 	color: var(--color-text);
 	transition:
 		background-size 0.3s var(--ease-spring) 0.1s,
@@ -987,10 +1112,8 @@ main > h1 {
 .tl-solo em {
 	display: block;
 	font-style: normal;
-	font-size: 0.78rem;
 	color: var(--color-accent);
 	margin-bottom: 0.25rem;
-	letter-spacing: 0.05em;
 }
 
 /* 比對器把手示範擺動一次 */
@@ -1046,22 +1169,92 @@ main > h1 {
 }
 
 /* 統計專案頁：結構化表格（st-table＝總覽/摘要矩陣，dmr＝結論|決策|方法） */
-.st-table{width:100%;border-collapse:collapse;margin:0.6rem 0 0.4rem;font-size:0.88rem;line-height:1.6}
-.st-table th,.st-table td{border:1px solid var(--color-border);padding:0.55rem 0.7rem;text-align:left;vertical-align:top}
-.st-table thead th{font-family:var(--font-display);font-weight:600;color:var(--color-text);font-size:0.88rem;white-space:nowrap}
-.st-table td{color:var(--color-text-muted)}
-.st-table td b{color:var(--color-accent);font-weight:600}
-.st-table a{text-decoration:none;color:var(--color-text)}
-.st-table a:hover{color:var(--color-accent)}
-.st-table tbody tr{transition:background-color 0.15s ease}
-.st-table tbody tr:hover{background:color-mix(in srgb,var(--color-accent) 7%,transparent)}
-.dmr{width:100%;border-collapse:collapse;margin:0.5rem 0 0.9rem;font-size:0.9rem;line-height:1.7}
-.dmr th{font-family:var(--font-display);font-weight:600;color:var(--color-accent);white-space:nowrap;width:3.6rem;border:0;padding:0.3rem 0.8rem 0.3rem 0;text-align:left;vertical-align:top;letter-spacing:0.08em}
-.dmr td{border:0;border-left:2px solid var(--color-border);padding:0.3rem 0 0.3rem 0.8rem;color:var(--color-text-muted)}
-.dmr td b{color:var(--color-text);font-weight:600}
-.content h2{font-family:var(--font-display);font-weight:500;font-size:1.45rem;letter-spacing:0.04em;scroll-margin-top:5rem}
-.st-note{font-size:0.82rem;color:var(--color-text-muted);margin:0.2rem 0 0}
-.st-sub{font-size:0.78rem;color:var(--color-text-muted)}
+.st-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0.6rem 0 0.4rem;
+}
+
+.st-table th,
+.st-table td {
+	border: 1px solid var(--color-border);
+	padding: 0.55rem 0.7rem;
+	text-align: left;
+	vertical-align: top;
+}
+
+.st-table thead th {
+	font-family: var(--font-display);
+	color: var(--color-text);
+	white-space: nowrap;
+}
+
+.st-table td {
+	color: var(--color-text-muted);
+}
+
+.st-table td b {
+	color: var(--color-accent);
+}
+
+.st-table a {
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.st-table a:hover {
+	color: var(--color-accent);
+}
+
+.st-table tbody tr {
+	transition: background-color 0.15s ease;
+}
+
+.st-table tbody tr:hover {
+	background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+.dmr {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 0.5rem 0 0.9rem;
+}
+
+.dmr th {
+	font-family: var(--font-display);
+	color: var(--color-accent);
+	white-space: nowrap;
+	width: 3.6rem;
+	border: 0;
+	padding: 0.3rem 0.8rem 0.3rem 0;
+	text-align: left;
+	vertical-align: top;
+}
+
+.dmr td {
+	border: 0;
+	border-left: 2px solid var(--color-border);
+	padding: 0.3rem 0 0.3rem 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.dmr td b {
+	color: var(--color-text);
+}
+
+.content h2 {
+	font-family: var(--font-display);
+	scroll-margin-top: 5rem;
+}
+
+.st-note {
+	color: var(--color-text-muted);
+	margin: 0.2rem 0 0;
+}
+
+.st-sub {
+	color: var(--color-text-muted);
+}
 
 /* 統計專案頁：易讀行寬只套在文字元素上，表格與圖表用滿版面寬度。
    （不用負邊界，因為那在視窗介於 561–720px 時會把表格推出左邊界。） */
@@ -1076,7 +1269,7 @@ main > h1 {
 .content--stats > h3,
 .content--stats > details,
 .content--stats > blockquote {
-	max-width: 56ch;
+	max-width: 40em;
 }
 
 /* 窄螢幕：多欄表格先讓表頭斷行縮小，仍放不下就自己橫向捲動，不讓整頁橫捲 */
@@ -1084,7 +1277,6 @@ main > h1 {
 	.st-table {
 		display: block;
 		overflow-x: auto;
-		font-size: 0.8rem;
 	}
 	.st-table thead th {
 		white-space: normal;
@@ -1102,7 +1294,6 @@ main > h1 {
 /* Footer */
 footer {
 	color: var(--color-text-muted);
-	font-size: 0.85rem;
 	border-top: 1px solid var(--color-border);
 }
 
@@ -1129,22 +1320,7 @@ footer {
 	}
 }
 
-@media (min-width: 1440px) {
-	html {
-		font-size: 17.5px;
-	}
-
-	:root {
-		--max-width: 800px;
-	}
-}
-
-@media (min-width: 1920px) {
-	html {
-		font-size: 19px;
-	}
-
-	:root {
-		--max-width: 860px;
-	}
-}
+/* 1440／1920 兩個斷點整塊砍除：斷點只用於版面結構必須改變時（欄數變化、元素換排列
+   方式），純尺寸變化一律 clamp() 流動處理——讀者的螢幕不會在 1441px 突然變成另一種
+   裝置。原本那兩塊各做兩件事：html 的 font-size（改由九階 clamp 承擔）與 --max-width
+   （改成下方的 clamp）。全站自此只剩 560px 與 900px 兩個斷點，各對應一個結構改變。 */
