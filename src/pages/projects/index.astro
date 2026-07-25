@@ -18,6 +18,9 @@ const categories = [
 			return (
 				<section class="category">
 					<h2>{category.label}</h2>
+					{/* 接力進場的 stagger 間隔。紅線②「delay + duration 總和 ≤ 1s」在這裡產生
+					    一個可以算出來的上限：(1000 − 350) / 80 ≈ 8，**每類最多 8 張卡**。
+					    第 9 張起必須縮短間隔，否則最後一張要等超過一秒才出現。 */}
 					<div class="cards">
 						{items.map((item, i) => {
 							const slug = item.id.split('/').slice(1).join('/');

@@ -93,8 +93,29 @@
 	   在管事。加上之後，管行長的是 .content 的 40em，容器只負責兩側留白。 */
 	--max-width: clamp(768px, 348px + 29.167vw, 908px);
 	--rhythm: 1.5rem;
-	--dur: 0.45s;
-	--ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+	/* ── 動效 ────────────────────────────────────────────────────────
+	   兩條紅線（判準，不只是這裡的值）：
+	     ① 單一動作時長 ≤ 0.35s ——這個動作有多顯眼
+	     ② delay + duration 總和 ≤ 1s ——使用者等多久
+	   時長三檔：X／X×2⁄3／0.15s。中檔取 0.25 而非公式值 0.233——兩者差 7%，
+	   在時距辨識門檻（約一成）之內屬同一個值，取站上既有值省一處遷移。
+	   小檔 0.15s 是硬下限：低於 100ms 人眼感知為瞬間，色變會變成硬切。 */
+	--dur-lg: 0.35s; /* 進場、時間軸滑入、角標長框 */
+	--dur-md: 0.25s; /* 卡片上浮、封面縮放、換頁淡化 */
+	--dur-sm: 0.15s; /* hover 色變 */
+
+	/* 全站唯一一條曲線（強減速）。站上只有一種動作類型——回應狀態改變的過場——
+	   所以不需要第二條。末段 50% 的時間裡只走 12% 的距離，動作在時長一半處就幾乎
+	   停了，感知到的長度短於實際 0.35s。
+	   **不得有超越量。**這推翻了「微回彈曲線」：現值超越量 5.29%，套在主力進場的
+	   10px 上是 0.53px（次像素，本來就看不見），而 overshoot 的物理語義是「被推了
+	   會彈」，與「捏下去不變形」正面衝突。 */
+	--ease: cubic-bezier(0.2, 0, 0, 1);
+
+	/* 容器圓角唯一值。內文圖片原本的 0.5rem 併入（兩者差 10%，在圓角上屬同一個值）。
+	   不收銳到 4px：柔和是外表，本輪已經在動效層把「硬」做出來了。
+	   兩個功能特例不受此值管，理由寫在各自旁邊：捲軸拉桿 5px、焦點框 2px。 */
+	--radius: 0.55rem;
 }
 
 * {
@@ -297,10 +318,10 @@ main.wide {
    stays visible by default if JS never runs. */
 .js [data-reveal] {
 	opacity: 0;
-	transform: translateY(10px);
+	transform: translateY(10px); /* 位移標準檔 */
 	transition:
-		opacity var(--dur) ease,
-		transform var(--dur) var(--ease-spring);
+		opacity var(--dur-lg) var(--ease),
+		transform var(--dur-lg) var(--ease);
 }
 
 .js [data-reveal].is-visible {
@@ -313,7 +334,7 @@ main.wide {
 @media (prefers-reduced-motion: reduce) {
 	.js [data-reveal] {
 		transform: none;
-		transition: opacity var(--dur) ease;
+		transition: opacity var(--dur-lg) var(--ease);
 	}
 
 	.js [data-reveal].is-visible {
@@ -330,6 +351,7 @@ main.wide {
 :focus-visible {
 	outline: 2px solid var(--color-accent);
 	outline-offset: 3px;
+	/* 圓角特例：焦點框不吃 --radius。大圓角會讓框看起來鬆、不貼著元素。 */
 	border-radius: 2px;
 }
 
@@ -349,6 +371,7 @@ html {
 
 ::-webkit-scrollbar-thumb {
 	background: var(--color-accent-fade);
+	/* 圓角特例：拉桿寬度就是 5px，這裡等於做成膠囊，不是漏網之魚。 */
 	border-radius: 5px;
 }
 
@@ -356,10 +379,10 @@ html {
 	background: var(--color-accent);
 }
 
-/* 頁面切換：約 0.25s 交叉淡化 */
+/* 頁面切換：約 var(--dur-md) 交叉淡化 */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-	animation-duration: 0.25s;
+	animation-duration: var(--dur-md);
 }
 
 /* Nav */
@@ -394,7 +417,7 @@ html {
 	font-family: var(--font-display);
 	color: var(--color-text);
 	margin-right: 0.25rem;
-	transition: color 0.15s ease;
+	transition: color var(--dur-sm) var(--ease);
 }
 
 .site-nav .nav-brand:hover {
@@ -415,10 +438,10 @@ html {
 	color: var(--color-text-muted);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 0.15rem 0.55rem;
 	opacity: 0;
-	transition: opacity var(--dur) ease;
+	transition: opacity var(--dur-lg) var(--ease);
 	white-space: nowrap;
 	pointer-events: none;
 }
@@ -468,12 +491,12 @@ html {
 	text-decoration: none;
 	color: var(--color-text);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 0.5rem 1.1rem;
 	transition:
-		border-color 0.15s ease,
-		background-color 0.15s ease,
-		color 0.15s ease;
+		border-color var(--dur-sm) var(--ease),
+		background-color var(--dur-sm) var(--ease),
+		color var(--dur-sm) var(--ease);
 }
 
 .entry-links a:hover {
@@ -519,9 +542,9 @@ html {
 	color: inherit;
 	background: var(--color-bg-alt);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 1.25rem;
-	transition: border-color 0.15s ease;
+	transition: border-color var(--dur-sm) var(--ease);
 }
 
 .card:hover {
@@ -543,21 +566,21 @@ html {
 }
 
 .card-cover img {
-	transition: transform 0.3s ease;
+	transition: transform var(--dur-md) var(--ease);
 }
 
 .card:hover .card-cover img {
-	transform: scale(1.03);
+	transform: scale(1.03); /* 位移微檔（與下方的 3px 成對） */
 }
 
 .card {
 	transition:
-		border-color 0.15s ease,
-		transform 0.3s ease;
+		border-color var(--dur-sm) var(--ease),
+		transform var(--dur-md) var(--ease);
 }
 
 .card:hover {
-	transform: translateY(-3px);
+	transform: translateY(-3px); /* 位移微檔 */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -589,7 +612,7 @@ html {
 	margin-bottom: var(--rhythm);
 	color: var(--color-text-muted);
 	text-decoration: none;
-	transition: color 0.15s ease;
+	transition: color var(--dur-sm) var(--ease);
 }
 
 .back-link:hover {
@@ -624,8 +647,8 @@ main > h1 {
 
 .content img {
 	max-width: 100%;
-	border-radius: 0.5rem;
-	transition: opacity 0.6s ease;
+	border-radius: var(--radius);
+	transition: opacity var(--dur-lg) var(--ease);
 }
 
 .content img.is-loading {
@@ -665,12 +688,12 @@ main > h1 {
 	text-decoration: none;
 	color: var(--color-text);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 0.5rem 1.1rem;
 	transition:
-		border-color 0.15s ease,
-		background-color 0.15s ease,
-		color 0.15s ease;
+		border-color var(--dur-sm) var(--ease),
+		background-color var(--dur-sm) var(--ease),
+		color var(--dur-sm) var(--ease);
 }
 
 .links a:hover {
@@ -719,7 +742,7 @@ main > h1 {
 .cs-wipe {
 	position: relative;
 	border: 1px solid var(--color-border-strong);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	overflow: hidden;
 	touch-action: none;
 	--pos: 50%;
@@ -786,7 +809,7 @@ main > h1 {
 	padding: 0.15rem 0.55rem;
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	color: var(--color-text-muted);
 	pointer-events: none;
 }
@@ -830,10 +853,10 @@ main > h1 {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	border: 1px solid var(--color-border-strong);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	background: var(--color-bg-alt);
 	overflow: hidden;
-	transition: background-color var(--dur) ease;
+	transition: background-color var(--dur-lg) var(--ease);
 }
 
 .cs-track:hover {
@@ -846,7 +869,7 @@ main > h1 {
 
 .cs-side {
 	padding: 0.8rem 1rem;
-	transition: color 0.45s ease, opacity 0.45s ease;
+	transition: color var(--dur-lg) var(--ease), opacity var(--dur-lg) var(--ease);
 }
 
 .cs-side em {
@@ -926,7 +949,7 @@ main > h1 {
 .cs-rawchip {
 	display: inline-block;
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 0.05rem 0.55rem;
 	margin-right: 0.5rem;
 }
@@ -934,14 +957,14 @@ main > h1 {
 .content details {
 	margin-top: calc(var(--rhythm) * 1.5);
 	border: 1px solid var(--color-border);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 0.85rem 1.25rem;
 }
 
 .content details summary {
 	cursor: pointer;
 	color: var(--color-text-muted);
-	transition: color 0.15s ease;
+	transition: color var(--dur-sm) var(--ease);
 }
 
 .content details summary:hover {
@@ -1039,12 +1062,12 @@ main > h1 {
 
 .js .tl-item {
 	opacity: 0.18;
-	transform: translateX(-36px);
+	transform: translateX(-36px); /* 位移強調檔——全站只有時間軸卡用，那個動效本身就是作品的展示內容 */
 	filter: blur(2.5px);
 	transition:
-		opacity var(--dur) ease,
-		filter var(--dur) ease,
-		transform var(--dur) var(--ease-spring);
+		opacity var(--dur-lg) var(--ease),
+		filter var(--dur-lg) var(--ease),
+		transform var(--dur-lg) var(--ease);
 }
 
 .js .tl-item.is-centered {
@@ -1060,13 +1083,13 @@ main > h1 {
 	background:
 		linear-gradient(var(--color-accent), var(--color-accent)) top left / 2px 0 no-repeat,
 		var(--color-bg-alt);
-	border-radius: 0.55rem;
+	border-radius: var(--radius);
 	padding: 1rem 1.2rem;
 	color: var(--color-text);
 	transition:
-		background-size 0.3s var(--ease-spring) 0.1s,
-		background-color var(--dur) ease,
-		color var(--dur) ease;
+		background-size var(--dur-md) var(--ease) 0.1s,
+		background-color var(--dur-lg) var(--ease),
+		color var(--dur-lg) var(--ease);
 }
 
 .tl-solo::before,
@@ -1077,8 +1100,8 @@ main > h1 {
 	height: 12px;
 	pointer-events: none;
 	transition:
-		width 0.3s var(--ease-spring),
-		height 0.3s var(--ease-spring);
+		width var(--dur-md) var(--ease),
+		height var(--dur-md) var(--ease);
 }
 
 .tl-solo::before {
@@ -1131,7 +1154,7 @@ main > h1 {
 }
 
 .cs-wipe.demo-handle .cs-wipe-handle {
-	animation: handle-demo 1.1s var(--ease-spring);
+	animation: handle-demo 1.1s var(--ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1144,8 +1167,8 @@ main > h1 {
 
 	.tl-solo {
 		transition:
-			background-color var(--dur) ease,
-			color var(--dur) ease;
+			background-color var(--dur-lg) var(--ease),
+			color var(--dur-lg) var(--ease);
 	}
 
 	.tl-solo:hover {
@@ -1207,7 +1230,7 @@ main > h1 {
 }
 
 .st-table tbody tr {
-	transition: background-color 0.15s ease;
+	transition: background-color var(--dur-sm) var(--ease);
 }
 
 .st-table tbody tr:hover {
