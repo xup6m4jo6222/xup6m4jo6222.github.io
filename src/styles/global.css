@@ -92,7 +92,25 @@
 	   上；原本 720px 的容器扣掉 padding 只剩 672px，行長其實是 37 個字，40em 根本沒有
 	   在管事。加上之後，管行長的是 .content 的 40em，容器只負責兩側留白。 */
 	--max-width: clamp(768px, 348px + 29.167vw, 908px);
-	--rhythm: 1.5rem;
+
+	/* ── 間距：兩組階梯 ─────────────────────────────────────────────
+	   版面間距受垂直節奏約束，基線＝內文行高 1.9 × 1.125rem = 2.1375rem。
+	   不同區塊的文字因此落在同一組看不見的橫線上。 */
+	--sp-0-5: 1.069rem;
+	--sp-0-75: 1.603rem;
+	--sp-1: 2.138rem;
+	--sp-1-5: 3.206rem;
+	--sp-2: 4.275rem;
+	--sp-3: 6.413rem;
+	--sp-4: 8.55rem;
+	--sp-6: 12.825rem; /* 首頁下緣的大留白（原 14rem ≈ 6.55×，取 6×） */
+
+	/* 元件內間距（按鈕內距、圖示間隙、標籤 padding）**不受節奏約束**——它們不落在
+	   文字基線上，硬套會讓元件膨脹（最小的節奏階是 17.1px，按鈕會腫）。 */
+	--sp-xs: 4px;
+	--sp-sm: 8px;
+	--sp-md: 12px;
+	--sp-lg: 16px;
 	/* ── 動效 ────────────────────────────────────────────────────────
 	   兩條紅線（判準，不只是這裡的值）：
 	     ① 單一動作時長 ≤ 0.35s ——這個動作有多顯眼
@@ -305,13 +323,15 @@ main {
 	width: 100%;
 	max-width: var(--max-width);
 	margin-inline: auto;
-	padding: calc(var(--rhythm) * 2) 1.5rem calc(var(--rhythm) * 3);
+	padding: var(--sp-1-5) var(--sp-0-75) var(--sp-2);
 }
 
 /* 破框：全站唯一的寬版開關（--max-width token 不動，導覽列與頁尾仍吃它） */
 main.wide {
 	max-width: 1200px;
-	padding: 8rem 3rem 14rem;
+	/* 左右留白流動：375px 時 0.75×、900px 以上 1.5×。原本這是 560px 斷點上的一條
+	   padding 微調——純尺寸變化不配得上一個斷點。 */
+	padding: var(--sp-4) clamp(var(--sp-0-75), 7.33px + 4.886vw, var(--sp-1-5)) var(--sp-6);
 }
 
 /* Scroll reveal — quiet, functional, once. Opt-in via .js so content
@@ -398,10 +418,10 @@ html {
 .site-nav nav {
 	max-width: var(--max-width);
 	margin-inline: auto;
-	padding: 1.1rem 1.5rem;
+	padding: var(--sp-0-5) var(--sp-0-75);
 	display: flex;
 	align-items: center;
-	gap: 1.5rem;
+	gap: var(--sp-0-75);
 }
 
 .site-nav a {
@@ -416,7 +436,7 @@ html {
 .site-nav .nav-brand {
 	font-family: var(--font-display);
 	color: var(--color-text);
-	margin-right: 0.25rem;
+	margin-right: var(--sp-xs);
 	transition: color var(--dur-sm) var(--ease);
 }
 
@@ -439,7 +459,7 @@ html {
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 0.15rem 0.55rem;
+	padding: var(--sp-xs) var(--sp-sm);
 	opacity: 0;
 	transition: opacity var(--dur-lg) var(--ease);
 	white-space: nowrap;
@@ -464,7 +484,7 @@ html {
 .home {
 	display: grid;
 	grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-	gap: 4rem;
+	gap: var(--sp-2);
 	align-items: end;
 }
 
@@ -478,13 +498,13 @@ html {
 	/* 17em ≈ 現況 30ch 的實測寬度（459px）。改用 em 的理由同內文行長：
 	   ch 是數字 0 的寬度，中文字體裡不到 1em，算出來會歪。 */
 	max-width: 17em;
-	margin: 2.5rem 0 0;
+	margin: var(--sp-1) 0 0;
 }
 
 .entry-links {
 	display: grid;
 	justify-items: start;
-	gap: 0.75rem;
+	gap: var(--sp-md);
 }
 
 .entry-links a {
@@ -492,7 +512,7 @@ html {
 	color: var(--color-text);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 0.5rem 1.1rem;
+	padding: var(--sp-sm) var(--sp-lg);
 	transition:
 		border-color var(--dur-sm) var(--ease),
 		background-color var(--dur-sm) var(--ease),
@@ -514,36 +534,36 @@ html {
 /* Projects list */
 .intro {
 	color: var(--color-text-muted);
-	margin: 0 0 calc(var(--rhythm) * 1.5);
+	margin: 0 0 var(--sp-1);
 }
 
 .category {
-	margin-bottom: calc(var(--rhythm) * 2);
+	margin-bottom: var(--sp-1-5);
 }
 
 .category h2 {
 	font-family: var(--font-display);
-	margin: 0 0 var(--rhythm);
-	padding-bottom: 0.4rem;
+	margin: 0 0 var(--sp-0-75);
+	padding-bottom: var(--sp-sm);
 	border-bottom: 1px solid var(--color-border);
 }
 
 .cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-	gap: 1.25rem;
+	gap: var(--sp-0-75);
 }
 
 .card {
 	display: flex;
 	flex-direction: column;
-	gap: 0.4rem;
+	gap: var(--sp-sm);
 	text-decoration: none;
 	color: inherit;
 	background: var(--color-bg-alt);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 1.25rem;
+	padding: var(--sp-0-75);
 	transition: border-color var(--dur-sm) var(--ease);
 }
 
@@ -554,7 +574,7 @@ html {
 .card-cover {
 	position: relative;
 	display: block;
-	margin: -1.25rem -1.25rem 0.6rem;
+	margin: calc(-1 * var(--sp-0-75)) calc(-1 * var(--sp-0-75)) var(--sp-sm);
 	border-bottom: 1px solid var(--color-border);
 	overflow: hidden;
 }
@@ -609,7 +629,7 @@ html {
 /* Project detail */
 .back-link {
 	display: inline-block;
-	margin-bottom: var(--rhythm);
+	margin-bottom: var(--sp-0-75);
 	color: var(--color-text-muted);
 	text-decoration: none;
 	transition: color var(--dur-sm) var(--ease);
@@ -621,12 +641,12 @@ html {
 
 main > h1 {
 	font-family: var(--font-display);
-	margin: 0 0 0.4rem;
+	margin: 0 0 var(--sp-0-5);
 }
 
 .category-label {
 	color: var(--color-text-muted);
-	margin: 0 0 calc(var(--rhythm) * 1.5);
+	margin: 0 0 var(--sp-1);
 }
 
 /* 行長：40em ＝ 40 個漢字（漢字為全角，一字剛好 1em）。不用 ch——那是數字 0 的
@@ -637,7 +657,7 @@ main > h1 {
 }
 
 .content :is(h2, h3) {
-	margin-top: var(--rhythm);
+	margin-top: var(--sp-1);
 }
 
 .content a {
@@ -659,9 +679,9 @@ main > h1 {
 	list-style: none;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem 1rem;
-	margin: calc(var(--rhythm) * 1.5) 0 0;
-	padding: var(--rhythm) 0 0;
+	gap: var(--sp-sm) var(--sp-lg);
+	margin: var(--sp-1) 0 0;
+	padding: var(--sp-0-75) 0 0;
 	border-top: 1px solid var(--color-border);
 }
 
@@ -672,15 +692,15 @@ main > h1 {
 .tags li::before {
 	content: '#';
 	color: var(--color-border);
-	margin-right: 0.15em;
+	margin-right: var(--sp-xs);
 }
 
 .links {
 	list-style: none;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.75rem;
-	margin: var(--rhythm) 0 0;
+	gap: var(--sp-md);
+	margin: var(--sp-0-75) 0 0;
 	padding: 0;
 }
 
@@ -689,7 +709,7 @@ main > h1 {
 	color: var(--color-text);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 0.5rem 1.1rem;
+	padding: var(--sp-sm) var(--sp-lg);
 	transition:
 		border-color var(--dur-sm) var(--ease),
 		background-color var(--dur-sm) var(--ease),
@@ -710,11 +730,11 @@ main > h1 {
 
 /* Case study（專案頁的證據版面） */
 .cs-lead {
-	margin: 0 0 calc(var(--rhythm) * 1.5);
+	margin: 0 0 var(--sp-1);
 }
 
 .cs-stats {
-	margin: calc(var(--rhythm) * -0.5) 0 var(--rhythm);
+	margin: calc(-1 * var(--sp-md)) 0 var(--sp-0-75);
 	color: var(--color-text-muted);
 }
 
@@ -724,18 +744,18 @@ main > h1 {
 
 .cs-stats b {
 	color: var(--color-accent);
-	margin: 0 0.15rem;
+	margin: 0 var(--sp-xs);
 }
 
 .cs-stats i {
 	color: var(--color-border);
 	font-style: normal;
-	margin: 0 0.5rem;
+	margin: 0 var(--sp-sm);
 }
 
 .cs-wipe-invite {
 	color: var(--color-text-muted);
-	margin: 0 0 0.6rem;
+	margin: 0 0 var(--sp-sm);
 }
 
 /* 拖曳比對器 */
@@ -806,7 +826,7 @@ main > h1 {
 .cs-wipe-tag {
 	position: absolute;
 	top: 0.6rem;
-	padding: 0.15rem 0.55rem;
+	padding: var(--sp-xs) var(--sp-sm);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
@@ -826,26 +846,26 @@ main > h1 {
 
 .cs-wipe-hint {
 	color: var(--color-text-muted);
-	margin: 0.6rem 0 calc(var(--rhythm) * 1.5);
+	margin: var(--sp-sm) 0 var(--sp-1);
 }
 
 .cs-wipe--embed {
-	margin-top: 0.8rem;
+	margin-top: var(--sp-md);
 }
 
 /* 決策開關 */
 .cs-toggles {
 	list-style: none;
-	margin: var(--rhythm) 0 0;
+	margin: var(--sp-0-75) 0 0;
 	padding: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 1.4rem;
+	gap: var(--sp-0-75);
 }
 
 .cs-toggle-name {
 	color: var(--color-text-muted);
-	margin-bottom: 0.45rem;
+	margin-bottom: var(--sp-sm);
 }
 
 .cs-track {
@@ -868,7 +888,7 @@ main > h1 {
 }
 
 .cs-side {
-	padding: 0.8rem 1rem;
+	padding: var(--sp-md) var(--sp-lg);
 	transition: color var(--dur-lg) var(--ease), opacity var(--dur-lg) var(--ease);
 }
 
@@ -876,7 +896,7 @@ main > h1 {
 	display: block;
 	font-style: normal;
 	color: var(--color-text-muted);
-	margin-bottom: 0.25rem;
+	margin-bottom: var(--sp-xs);
 }
 
 .cs-track .cs-side--ai {
@@ -901,7 +921,7 @@ main > h1 {
 }
 
 .cs-reason {
-	margin: 0.45rem 0 0;
+	margin: var(--sp-sm) 0 0;
 	color: var(--color-text-muted);
 }
 
@@ -909,8 +929,8 @@ main > h1 {
 .cs-evi {
 	display: flex;
 	align-items: baseline;
-	gap: 0.6rem;
-	margin-top: 0.55rem;
+	gap: var(--sp-sm);
+	margin-top: var(--sp-sm);
 }
 
 .cs-evi span {
@@ -920,17 +940,17 @@ main > h1 {
 /* 文字所有權卡的內嵌對質 */
 .cs-pair {
 	border-top: 1px solid var(--color-border-strong);
-	margin-top: 0.8rem;
-	padding: 0.8rem 1rem 0.9rem;
+	margin-top: var(--sp-md);
+	padding: var(--sp-md) var(--sp-lg);
 	display: grid;
-	gap: 0.7rem;
+	gap: var(--sp-md);
 }
 
 .cs-pair em {
 	display: block;
 	font-style: normal;
 	color: var(--color-text-muted);
-	margin-bottom: 0.25rem;
+	margin-bottom: var(--sp-xs);
 }
 
 .cs-pair-ai {
@@ -950,15 +970,15 @@ main > h1 {
 	display: inline-block;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 0.05rem 0.55rem;
-	margin-right: 0.5rem;
+	padding: 0 var(--sp-sm);
+	margin-right: var(--sp-sm);
 }
 
 .content details {
-	margin-top: calc(var(--rhythm) * 1.5);
+	margin-top: var(--sp-1);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
-	padding: 0.85rem 1.25rem;
+	padding: var(--sp-md) var(--sp-lg);
 }
 
 .content details summary {
@@ -973,12 +993,12 @@ main > h1 {
 
 .content details[open] summary {
 	color: var(--color-text);
-	margin-bottom: 0.6rem;
+	margin-bottom: var(--sp-sm);
 }
 
 .content details p {
 	color: var(--color-text-muted);
-	margin: 0.4rem 0;
+	margin: var(--sp-sm) 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -987,21 +1007,15 @@ main > h1 {
 	}
 }
 
-@media (max-width: 560px) {
-	.cs-side {
-		padding: 0.65rem 0.75rem;
-	}
-}
-
 /* 決策時間軸 */
 .tl {
 	list-style: none;
-	margin: var(--rhythm) 0 0;
-	padding: 0 0 0 1.4rem;
+	margin: var(--sp-0-75) 0 0;
+	padding: 0 0 0 var(--sp-0-75);
 	border-left: 1px solid var(--color-border);
 	display: flex;
 	flex-direction: column;
-	gap: calc(var(--rhythm) * 1.6);
+	gap: var(--sp-1);
 	position: relative;
 }
 
@@ -1018,13 +1032,13 @@ main > h1 {
 
 .tl-era {
 	position: relative;
-	margin: 0.4rem 0 -0.4rem;
+	margin: var(--sp-sm) 0 calc(-1 * var(--sp-sm));
 }
 
 .tl-era::before {
 	content: '';
 	position: absolute;
-	left: calc(-1.4rem - 4px);
+	left: calc(-1 * var(--sp-0-75) - 4px);
 	top: 50%;
 	transform: translateY(-50%);
 	width: 9px;
@@ -1040,7 +1054,7 @@ main > h1 {
 }
 
 .tl-era p {
-	margin: 0.15rem 0 0;
+	margin: var(--sp-xs) 0 0;
 	color: var(--color-text-muted);
 }
 
@@ -1051,7 +1065,7 @@ main > h1 {
 .tl-item::before {
 	content: '';
 	position: absolute;
-	left: calc(-1.4rem - 4px);
+	left: calc(-1 * var(--sp-0-75) - 4px);
 	top: 0.5rem;
 	width: 7px;
 	height: 7px;
@@ -1084,7 +1098,7 @@ main > h1 {
 		linear-gradient(var(--color-accent), var(--color-accent)) top left / 2px 0 no-repeat,
 		var(--color-bg-alt);
 	border-radius: var(--radius);
-	padding: 1rem 1.2rem;
+	padding: var(--sp-lg);
 	color: var(--color-text);
 	transition:
 		background-size var(--dur-md) var(--ease) 0.1s,
@@ -1136,7 +1150,7 @@ main > h1 {
 	display: block;
 	font-style: normal;
 	color: var(--color-accent);
-	margin-bottom: 0.25rem;
+	margin-bottom: var(--sp-xs);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1173,13 +1187,13 @@ main > h1 {
 .st-table {
 	width: 100%;
 	border-collapse: collapse;
-	margin: 0.6rem 0 0.4rem;
+	margin: var(--sp-sm) 0 var(--sp-sm);
 }
 
 .st-table th,
 .st-table td {
 	border: 1px solid var(--color-border);
-	padding: 0.55rem 0.7rem;
+	padding: var(--sp-sm) var(--sp-md);
 	text-align: left;
 	vertical-align: top;
 }
@@ -1218,7 +1232,7 @@ main > h1 {
 .dmr {
 	width: 100%;
 	border-collapse: collapse;
-	margin: 0.5rem 0 0.9rem;
+	margin: var(--sp-sm) 0 var(--sp-md);
 }
 
 .dmr th {
@@ -1227,7 +1241,7 @@ main > h1 {
 	white-space: nowrap;
 	width: 3.6rem;
 	border: 0;
-	padding: 0.3rem 0.8rem 0.3rem 0;
+	padding: var(--sp-xs) var(--sp-md) var(--sp-xs) 0;
 	text-align: left;
 	vertical-align: top;
 }
@@ -1235,7 +1249,7 @@ main > h1 {
 .dmr td {
 	border: 0;
 	border-left: 2px solid var(--color-border);
-	padding: 0.3rem 0 0.3rem 0.8rem;
+	padding: var(--sp-xs) 0 var(--sp-xs) var(--sp-md);
 	color: var(--color-text-muted);
 }
 
@@ -1250,7 +1264,7 @@ main > h1 {
 
 .st-note {
 	color: var(--color-text-muted);
-	margin: 0.2rem 0 0;
+	margin: var(--sp-xs) 0 0;
 }
 
 .st-sub {
@@ -1284,11 +1298,11 @@ main > h1 {
 	}
 	.st-table th,
 	.st-table td {
-		padding: 0.4rem 0.5rem;
+		padding: var(--sp-sm) var(--sp-sm);
 	}
 	.dmr th {
 		width: auto;
-		padding-right: 0.5rem;
+		padding-right: var(--sp-sm);
 	}
 }
 
@@ -1301,23 +1315,17 @@ footer {
 .footer-inner {
 	max-width: var(--max-width);
 	margin-inline: auto;
-	padding: 1.5rem 1.5rem 2rem;
+	padding: var(--sp-0-75) var(--sp-0-75) var(--sp-1);
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: 0.4rem 1rem;
+	gap: var(--sp-sm) var(--sp-lg);
 }
 
 /* 首頁：塌成單欄，DOM 順序即視覺順序 */
 @media (max-width: 900px) {
 	.home {
 		grid-template-columns: 1fr;
-	}
-}
-
-@media (max-width: 560px) {
-	main.wide {
-		padding-inline: 1.5rem;
 	}
 }
 

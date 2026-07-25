@@ -103,7 +103,7 @@ cover: /images/portfolio-site/current-v6.png
   </li>
 </ul>
 
-<p class="cs-stats" style="margin-top:2rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><span>全部對話（尚未開放，整理中）</span></p>
+<p class="cs-stats" style="margin-top:2.138rem"><span>對照評選<b>4</b>輪</span><i>·</i><span>被評估選項<b>40+</b></span><i>·</i><span>設計對話<b>5</b>篇</span><i>·</i><span>全部對話（尚未開放，整理中）</span></p>
 
 <script>
 (() => {

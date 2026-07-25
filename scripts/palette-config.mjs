@@ -199,7 +199,7 @@ export const ALLOWED_LETTER_SPACING = ['0', '0em', 'normal', '0.06em', '0.04em']
 // 版面間距基線＝內文行高 1.9 × 1.125rem = 2.1375rem；元件內間距自成小階梯。
 // ---------------------------------------------------------------------------
 export const RHYTHM_BASE_REM = 2.1375;
-export const LAYOUT_MULTIPLES = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+export const LAYOUT_MULTIPLES = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6];
 export const COMPONENT_SPACING_PX = [4, 8, 12, 16];
 
 export const SPACING_PROPERTIES = [
@@ -266,18 +266,8 @@ export const EXCEPTIONS = {
 	// 票 03 已清空：四個示意色依判準重算（色相保留詞義，L 落在 600–700 區、C ≤ .073）。
 	illustrative: [],
 
-	// 現況 29 個間距值。
-	spacing: group(
-		[
-			'間距 48.0px', '間距 24.0px', '間距 72.0px', '間距 128.0px', '間距 224.0px', '間距 17.6px',
-			'間距 2.4px', '間距 8.8px', '間距 64.0px', '間距 40.0px', '間距 36.0px', '間距 6.4px',
-			'間距 20.0px', '間距 -20.0px', '間距 9.6px', '間距 12.8px', '間距 22.4px', '間距 7.2px',
-			'間距 11.2px', '間距 14.4px', '間距 0.8px', '間距 13.6px', '間距 10.4px', '間距 38.4px',
-			'間距 -6.4px', '間距 19.2px', '間距 4.8px', '間距 3.2px', '間距 32.0px',
-		],
-		'現況 29 個間距值，尚未收斂到版面節奏與元件內兩組階梯。',
-		'票 05',
-	),
+	// 票 05 已清空：29 個值收斂到版面節奏（基線 2.1375rem 的倍數）與元件內 4/8/12/16px。
+	spacing: [],
 
 	// 票 04 已清空：九階 clamp 落地、字距收成三檔、每一條設了字級的規則都有行高。
 	typography: [],
