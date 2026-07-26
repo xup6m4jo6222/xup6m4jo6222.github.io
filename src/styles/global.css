@@ -282,8 +282,8 @@ footer {
 /* 樣式：頁面主標（階 5 ／襯線）。自 1.9rem 提到與首頁同量級——
    解掉「從首頁點進專案頁像另一個站」。 */
 main > h1 {
-	font-size: var(--fs-5);
-	line-height: var(--lh-5);
+	font-size: var(--fs-4);
+	line-height: var(--lh-4);
 	letter-spacing: var(--ls-display);
 	font-weight: 400;
 }
@@ -298,8 +298,8 @@ main > h1 {
 
 /* 樣式：首頁大字（階 7 ／襯線）。桌機約內文 5 倍、手機 3.2 倍。 */
 .hero h1 {
-	font-size: var(--fs-7);
-	line-height: var(--lh-7);
+	font-size: var(--fs-6);
+	line-height: var(--lh-6);
 	letter-spacing: var(--ls-display);
 	font-weight: 400;
 }
