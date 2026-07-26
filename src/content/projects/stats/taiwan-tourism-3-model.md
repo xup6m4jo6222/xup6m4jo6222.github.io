@@ -37,7 +37,7 @@ date: 2026-07-24
 
 <p>兩個都做了同一件事：把那 811 個少數樣本的重要性調高，逼模型認真看待他們，不要因為人少就忽略。</p>
 
-<img src="/images/taiwan-tourism/m2-roc.png" alt="測試集 ROC 曲線，邏輯迴歸與隨機森林" width="720" loading="lazy" />
+<a href="/images/taiwan-tourism/m2-roc.png"><img src="/images/taiwan-tourism/m2-roc.png" alt="測試集 ROC 曲線，邏輯迴歸與隨機森林" width="720" loading="lazy" /></a>
 
 <p>這張圖叫 ROC 曲線，看法是曲線越往左上角靠越好。斜的那條虛線代表完全瞎猜。兩個模型都明顯在虛線上方，代表確實學到東西。</p>
 
@@ -72,7 +72,7 @@ date: 2026-07-24
 
 <p>我把考試那份資料，按模型判斷的風險高低排隊，然後切成十等分來看。</p>
 
-<img src="/images/taiwan-tourism/m2-lift.png" alt="風險十等分的提升度與累積捕獲曲線" width="900" loading="lazy" />
+<a href="/images/taiwan-tourism/m2-lift.png"><img src="/images/taiwan-tourism/m2-lift.png" alt="風險十等分的提升度與累積捕獲曲線" width="900" loading="lazy" /></a>
 
 <p>全體平均有 1.28% 的人不想再來。但模型排在最前面那一等分，這個比例是 5.06%，<b>接近平均的四倍</b>。</p>
 
@@ -84,7 +84,7 @@ date: 2026-07-24
 
 <p>知道它有用之後，下一個問題是：它是根據什麼判斷的？</p>
 
-<img src="/images/taiwan-tourism/m2-coef.png" alt="邏輯迴歸係數，正推向不願重遊、負推向願意重遊" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m2-coef.png"><img src="/images/taiwan-tourism/m2-coef.png" alt="邏輯迴歸係數，正推向不願重遊、負推向願意重遊" width="860" loading="lazy" /></a>
 
 <p>往右邊的是推向「不想再來」，往左邊的是推向「會再來」。</p>
 

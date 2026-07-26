@@ -45,7 +45,7 @@
 	--color-accent: #7998c3;
 	--color-accent-fade: #7998c355; /* 捲軸拉桿＝元素主色 33% */
 	--color-accent-bloom: rgba(121, 152, 195, 0.1); /* 背景右上的藍暈 */
-	--color-nav-bg: #20131dd9; /* 導覽列半透明底＝背景主色 85% */
+	--color-nav-bg: #20131deb; /* 導覽列半透明底＝背景主色 92%。85% 時亮圖捲到導覽列下方，muted 連結掉到 4.41 */
 	/* 背景左下的黑莓暗暈。刻意不上階：它與上面那道藍暈成對，是背景主色的組成，
 	   不是承載層級的表面——上了階會被連帶提亮，那道暈就沒了。 */
 	--color-bloom-dark: #2a1829;
@@ -663,6 +663,12 @@ main > h1 {
 .content a {
 	text-decoration: underline dotted;
 	text-underline-offset: 4px;
+}
+
+/* 圖表外面那層連結只是「點開看原圖」的載體，不是行文裡的連結 */
+.content a:has(> img) {
+	text-decoration: none;
+	display: block;
 }
 
 .content img {

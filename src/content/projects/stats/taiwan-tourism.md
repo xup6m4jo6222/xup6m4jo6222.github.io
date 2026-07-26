@@ -63,7 +63,7 @@ date: 2026-07-24
 
 <p>算出來最強的是停留天數，0.507。待越久花越多這件事不意外，不過強度高到可以說，想知道一個旅客花多少錢，先問他待幾天就好。其他因素都遠遠落後，出發前多早開始計畫只有 0.127，來過幾次幾乎是零。</p>
 
-<img src="/images/taiwan-tourism/q1-total-usd.png" alt="總消費金額的相關性與效果量" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q1-total-usd.png"><img src="/images/taiwan-tourism/q1-total-usd.png" alt="總消費金額的相關性與效果量" width="860" loading="lazy" /></a>
 
 <p>不過總花費多，可能只是因為待得久。所以我換一個問法：<b>改看每天花多少。</b></p>
 
@@ -75,7 +75,7 @@ date: 2026-07-24
 
 <p>撇開這個陷阱，每天花多少的真正答案是<b>來台目的</b>。來洽公的、來玩的、來探親的，每天的開銷結構完全不同。</p>
 
-<img src="/images/taiwan-tourism/q2-daily-usd.png" alt="日均消費金額的相關性與效果量" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q2-daily-usd.png"><img src="/images/taiwan-tourism/q2-daily-usd.png" alt="日均消費金額的相關性與效果量" width="860" loading="lazy" /></a>
 
 <details>
 <summary>為什麼用這些方法</summary>
@@ -109,7 +109,7 @@ date: 2026-07-24
 
 <p>換成上面那個能量化大小的指標，六個因素立刻拉開成十倍以上的差距。最後一名的旅遊方式只有 0.023，統計上確實有差，但小到任何決策都不必理它。<b>顯著跟重要是兩件事。</b></p>
 
-<img src="/images/taiwan-tourism/q3-stay.png" alt="影響停留夜數的類別因子效果量" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q3-stay.png"><img src="/images/taiwan-tourism/q3-stay.png" alt="影響停留夜數的類別因子效果量" width="860" loading="lazy" /></a>
 
 <details>
 <summary>為什麼用這些方法</summary>
@@ -131,7 +131,7 @@ date: 2026-07-24
 
 <p>下面這張圖，每一格是某一群人做某件事的比例，顏色越亮代表比例越高。</p>
 
-<img src="/images/taiwan-tourism/q4-activities.png" alt="前五名活動的各客群參與率熱圖" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q4-activities.png"><img src="/images/taiwan-tourism/q4-activities.png" alt="前五名活動的各客群參與率熱圖" width="860" loading="lazy" /></a>
 
 <p>購物跟夜市幾乎人人都去，整排都是亮的。這兩件事沒辦法區分客群，因為所有人都做。</p>
 
@@ -141,7 +141,7 @@ date: 2026-07-24
 
 <p>再看另一個角度：什麼決定了一個人選擇跟團還是自己玩？</p>
 
-<img src="/images/taiwan-tourism/q5-travel-type.png" alt="各旅遊方式的國籍組成熱圖" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q5-travel-type.png"><img src="/images/taiwan-tourism/q5-travel-type.png" alt="各旅遊方式的國籍組成熱圖" width="860" loading="lazy" /></a>
 
 <p>答案又是國籍，關聯強度 0.190，是六個因素裡最高的。想猜一個旅客會怎麼安排行程，知道他從哪裡來最有幫助。最沒用的是性別，只有 0.061，男生女生選擇跟團或自助的比例幾乎一樣。</p>
 
@@ -171,13 +171,13 @@ date: 2026-07-24
 
 <p>先照標準做法算相關係數看看。</p>
 
-<img src="/images/taiwan-tourism/q6-revisit-yes.png" alt="願意重遊的正相關特徵" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q6-revisit-yes.png"><img src="/images/taiwan-tourism/q6-revisit-yes.png" alt="願意重遊的正相關特徵" width="860" loading="lazy" /></a>
 
 <p>結果所有數字都很小，最高的才 0.068。關聯是有的，只是一面倒的資料會把這種係數壓在很低的天花板下。<b>所以這張圖只能看排名，不能看數值大小。</b></p>
 
 <p>反過來看不願意再來的那一邊，我沒有重算一次。因為答案只有「會」跟「不會」兩種，沒有第三個選項，所以「跟不願意的關聯」在數學上就是上面那張圖的數字前面加個負號。確認過確實只有兩類之後，直接翻面就好，重算不會多出任何資訊。</p>
 
-<img src="/images/taiwan-tourism/q7-revisit-no.png" alt="不願意重遊的正相關特徵" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q7-revisit-no.png"><img src="/images/taiwan-tourism/q7-revisit-no.png" alt="不願意重遊的正相關特徵" width="860" loading="lazy" /></a>
 
 <p>跟團排第一，退休族第二。</p>
 
@@ -185,7 +185,7 @@ date: 2026-07-24
 
 <p>下面這張是整頁的結論。</p>
 
-<img src="/images/taiwan-tourism/q8-gap.png" alt="願意與不願意重遊兩群的比例差" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/q8-gap.png"><img src="/images/taiwan-tourism/q8-gap.png" alt="願意與不願意重遊兩群的比例差" width="860" loading="lazy" /></a>
 
 <p>訊號很清楚。願意再來的人裡面，全自助旅客多了 24 個百分點；不願意再來的人裡面，跟團旅客多了 29 個百分點。</p>
 

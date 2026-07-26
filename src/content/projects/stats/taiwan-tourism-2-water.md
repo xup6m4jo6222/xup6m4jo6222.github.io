@@ -19,7 +19,7 @@ date: 2026-07-24
 
 <p>但我在 #1-1 整理活動的時候注意到一件事，讓我覺得沒那麼單純。<b>會去玩水的，根本不是隨機的一群人。</b></p>
 
-<img src="/images/taiwan-tourism/m1-confound.png" alt="水上活動參與率在各客群的落差" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m1-confound.png"><img src="/images/taiwan-tourism/m1-confound.png" alt="水上活動參與率在各客群的落差" width="860" loading="lazy" /></a>
 
 <p>全體只有 17.9% 的人下過水。但如果這個人既是中國籍又是跟團，比例衝到 <b>82.1%</b>，十個裡有八個。反過來，日本籍又自己排行程的，只有 3.9%。兩邊差了二十一倍。</p>
 
@@ -33,7 +33,7 @@ date: 2026-07-24
 
 <p>先按旅遊方式把人切開，然後在「同樣都是跟團」的這群人裡面，單獨比較有下水跟沒下水的差別。如果水上活動真的有問題，那在每一組裡面都應該看得到差距。</p>
 
-<img src="/images/taiwan-tourism/m1-strata.png" alt="不願重遊率按旅遊方式分層，有無水上活動的對比" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m1-strata.png"><img src="/images/taiwan-tourism/m1-strata.png" alt="不願重遊率按旅遊方式分層，有無水上活動的對比" width="860" loading="lazy" /></a>
 
 <p>結果分成兩邊。</p>
 
@@ -49,7 +49,7 @@ date: 2026-07-24
 
 <p>這個工具叫邏輯迴歸。它的作用是同時放進多個因素一起算，然後回答：<b>把旅遊方式跟國籍都固定住之後，單獨屬於水上活動的效果還剩多少。</b></p>
 
-<img src="/images/taiwan-tourism/m1-forest.png" alt="水上活動對不願重遊的勝算比，未調整與調整後" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m1-forest.png"><img src="/images/taiwan-tourism/m1-forest.png" alt="水上活動對不願重遊的勝算比，未調整與調整後" width="860" loading="lazy" /></a>
 
 <p>上面那條是什麼都不控制的原始數字，3.20 倍。下面那條是控制之後，掉到 <b>1.43 倍</b>。</p>
 

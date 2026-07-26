@@ -25,7 +25,7 @@ date: 2026-07-24
 
 <p>先檢查 #1-1 用來排名的那些數字，在兩個年代各是多少。</p>
 
-<img src="/images/taiwan-tourism/m3-effects.png" alt="主力效果量在疫情前後的位移" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m3-effects.png"><img src="/images/taiwan-tourism/m3-effects.png" alt="主力效果量在疫情前後的位移" width="860" loading="lazy" /></a>
 
 <table class="st-table">
   <thead><tr><th>結論</th><th>疫情前</th><th>疫情起</th><th>判讀</th></tr></thead>
@@ -55,7 +55,7 @@ date: 2026-07-24
 
 <p>還有一個關鍵的判斷方式：<b>如果這條線橫跨了零，就代表連方向都說不準。</b>可能是正的，可能是負的，也可能根本沒差別。</p>
 
-<img src="/images/taiwan-tourism/m3-era.png" alt="兩個年代的比例差與 95% 信賴區間" width="860" loading="lazy" />
+<a href="/images/taiwan-tourism/m3-era.png"><img src="/images/taiwan-tourism/m3-era.png" alt="兩個年代的比例差與 95% 信賴區間" width="860" loading="lazy" /></a>
 
 <p>先看灰色的點，那是疫情前。每一條線都又短又離零很遠。七個特徵全部成立，跟 #1-1 講的完全一樣，自主性的分界確確實實存在。</p>
 
