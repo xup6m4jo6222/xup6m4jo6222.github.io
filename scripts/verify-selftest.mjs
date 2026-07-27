@@ -48,6 +48,22 @@ const injectMotif = (dir, params) =>
 		),
 	);
 
+/** 把產物裡所有 `data-motif` 屬性拿掉（模擬 canvas 改由 JS 建立、參數沒有進 HTML）。 */
+const stripMotifAttrs = (dir) => {
+	const walk = (d) => {
+		for (const e of readdirSync(d, { withFileTypes: true })) {
+			const p = join(d, e.name);
+			if (e.isDirectory()) walk(p);
+			else if (p.endsWith('.html')) {
+				const before = readFileSync(p, 'utf8');
+				const after = before.replace(/\sdata-motif(-[\w-]+)?=("[^"]*"|'[^']*')/g, '');
+				if (after !== before) writeFileSync(p, after);
+			}
+		}
+	};
+	walk(dir);
+};
+
 const cases = [
 	{
 		name: '未經注入的產物副本應該綠',
@@ -159,13 +175,19 @@ const cases = [
 	{
 		// 第七類的 fail-open 防線：母題在跑（有常駐迴圈）就必須找得到它的參數。
 		// 沒有這一條，把 canvas 改成由 JS 建立，整個第七類會靜靜地不作用。
+		//
+		// **票 02 起要先把真的屬性拿掉**：母題已經上線，產物本來就有 data-motif，
+		// 只塞一個假迴圈證明不了任何事（實測會綠）。這一條模擬的就是「canvas 改成
+		// 由 JS 建立」——迴圈照跑，但伺服器端沒有渲染出參數。
 		name: '母題在跑卻沒有把參數渲染進 HTML',
 		expectPass: false,
-		mutate: (_f, dir) =>
+		mutate: (_f, dir) => {
+			stripMotifAttrs(dir);
 			writeFileSync(
 				join(dir, '_astro', 'fake-motif-loop.js'),
 				"const still=matchMedia('(prefers-reduced-motion: reduce)');function loop(n){draw(n);requestAnimationFrame(loop);}if(!still.matches)requestAnimationFrame(loop);\n",
-			),
+			);
+		},
 		expect: /找不到任何 data-motif/,
 	},
 	{

@@ -10,7 +10,10 @@ const categories = [
 ] as const;
 ---
 
-<BaseLayout title="Projects | 林郁為">
+{/* 母題模式：**暫行值，本人尚未拍板**（SPEC-background-and-homepage 未定二）。
+    暫行採跟捲，理由是列表有卡片要讀、且點進內頁時背景行為不變不會跳。
+    本人 2026-07-27 給的方向是「列表頁未來可能自成第三種模式」，本輪不為它多做設計。 */}
+<BaseLayout title="Projects | 林郁為" motif="reading">
 	<p class="intro">這裡放的都是我自己做的小專案</p>
 	{
 		categories.map((category) => {
