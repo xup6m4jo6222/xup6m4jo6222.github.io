@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import * as CFG from './palette-config.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const VERIFIER = join(ROOT, 'scripts', 'verify-palette.mjs');
@@ -29,12 +30,23 @@ function withCopy(mutate) {
 		cpSync(join(ROOT, 'dist'), dir, { recursive: true });
 		const cssDir = join(dir, '_astro');
 		const cssFile = join(cssDir, readdirSync(cssDir).find((f) => f.endsWith('.css')));
-		mutate(cssFile);
+		// 票 01 起有注入到 JS 與 HTML 的案例，所以第二個參數把整個產物目錄交出去
+		mutate(cssFile, dir);
 		return run(dir);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
 }
+
+/** 在首頁塞一個帶 data-motif 的 canvas——母題上線後產物就長這樣。 */
+const injectMotif = (dir, params) =>
+	writeFileSync(
+		join(dir, 'index.html'),
+		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+			'</body>',
+			`<canvas aria-hidden="true" data-motif='${JSON.stringify(params)}'></canvas></body>`,
+		),
+	);
 
 const cases = [
 	{
@@ -110,6 +122,41 @@ const cases = [
 		expectPass: false,
 		mutate: (f) => writeFileSync(f, readFileSync(f, 'utf8').replace('--color-text-muted:var(--n-600)', '--color-text-muted:var(--n-400)')),
 		expect: /contrast[\s\S]*muted/,
+	},
+
+	// ── 票 01 新增的三種繞路（都是實際查出來的洞，不是想像的）──────────────
+	{
+		// 檢查 1 原本只掃 CSS 與 inline style。母題的色碼寫在腳本裡，那是一條白名單看不見的路。
+		name: '把白名單外的色碼藏在腳本裡',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			writeFileSync(join(dir, '_astro', 'fake-motif.js'), "const ACCENT='#c97a48';export default ACCENT;\n"),
+		expect: /#c97a48[\s\S]*fake-motif\.js|fake-motif\.js/,
+	},
+	{
+		// 檢查 6 看的是 CSS 的動態宣告。JS 驅動的逐幀動態沒有 CSS animation 可以被它掃到。
+		name: '加一個沒有降低動態偏好分支的常駐逐幀動態',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			writeFileSync(
+				join(dir, '_astro', 'fake-loop.js'),
+				'function loop(now){draw(now);requestAnimationFrame(loop);}requestAnimationFrame(loop);\n',
+			),
+		expect: /fake-loop\.js[\s\S]*loop/,
+	},
+	{
+		name: '把母題參數改成檔位以外的值',
+		expectPass: false,
+		mutate: (_f, dir) => injectMotif(dir, { ...CFG.MOTIF, fpsCap: 60 }),
+		expect: /fpsCap[\s\S]*母題參數漂離檔位/,
+	},
+	{
+		// 沒有這一條的話，第七類只要「有 data-motif 就紅」也會通過上一條——
+		// 那是一個永遠紅的檢查，跟永遠綠一樣沒用。
+		name: '母題參數照判準檔寫應該綠',
+		expectPass: true,
+		mutate: (_f, dir) => injectMotif(dir, CFG.MOTIF),
+		expect: null,
 	},
 ];
 

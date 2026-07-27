@@ -5,8 +5,9 @@
  * 讀的是 `astro build` 的產物 `dist/` 與 21 張圖表 PNG，不讀原始碼：
  * 重構 CSS、換 token 分層都不該讓這支腳本失敗。
  *
- * 六類檢查見 SPEC-design-system.md「Testing Decisions」與
- * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」。
+ * 七類檢查見 SPEC-design-system.md「Testing Decisions」、
+ * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」與
+ * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）。
  *
  * ── 這道閘門守得到什麼、守不到什麼（請不要過度信任它）────────────────────
  *
@@ -21,6 +22,14 @@
  *   · 把 `opacity` 拆到父層規則上（守衛要求同一條規則同時有 color 與 opacity）
  *   · 在 `@media` 或 `body` 上重新宣告自訂屬性——這裡的 var 解析沒有層疊概念
  *   · `color-mix()` 之類無法靜態求值的底色
+ *
+ * 票 01 把觀察範圍擴到產物 JS 之後，多了三條同樣誠實的邊界：
+ *   · **常駐動態只認「具名函式自己排自己」**。匿名遞迴的 `requestAnimationFrame(() => …)`、
+ *     或改用 `setInterval` 逐幀繪製，都在這個結構之外，抓不到
+ *   · **「有降低動態偏好的分支」的證明只到「同一個檔案裡出現 prefers-reduced-motion」**。
+ *     它不保證那個分支真的把動態關掉——那要跑瀏覽器才驗得到
+ *   · **母題比對的是 `data-motif` 與判準檔**。canvas 裡實際畫出來的像素不在觀察範圍內；
+ *     繪製程式若不從那個屬性取值而是另外寫一份數字，這一項看不見
  *
  * 要蓋掉這些得跑真的瀏覽器去取樣渲染結果，那是另一個量級的工具。
  * 在那之前，這一段就是這道閘門的誠實邊界——**綠燈的意思是「沒有漂移」，
@@ -316,9 +325,18 @@ function checkColorWhitelist(textFiles, allowedCss) {
 		const text = readFileSync(file, 'utf8');
 		const rel = relative(ROOT, file);
 		const seen = new Set();
-		for (const m of text.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g)) {
+		for (const m of text.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)|oklch\([^)]*\)/g)) {
 			const norm = normalizeColor(m[0]);
-			if (!norm || seen.has(norm)) continue;
+			if (!norm) {
+				// 白名單是一張 hex 字面清單。用另一種色彩函式寫同一個顏色，等於繞過字面比對——
+				// 就算值相等也不放行，否則「掃字串比對白名單」這件事本身就沒有意義了。
+				if (/^(hsla?|oklch)\(/i.test(m[0]) && !seen.has(m[0])) {
+					seen.add(m[0]);
+					fail('colors', `${m[0]} @ ${rel}`, '顏色不得以 hsl()／oklch() 書寫——白名單是 hex 字面清單');
+				}
+				continue;
+			}
+			if (seen.has(norm)) continue;
 			seen.add(norm);
 			if (!allowedCss.has(norm)) fail('colors', `${norm} @ ${rel}`, `產物出現不在白名單上的顏色 ${m[0]}`);
 		}
@@ -827,6 +845,125 @@ function checkReducedMotion(siteParsed) {
 	note(`降低動態偏好：${inScope.size} 個會位移／模糊的選擇器，覆蓋區塊涵蓋 ${covered.size} 個選擇器`);
 }
 
+/**
+ * 檢查 6 的 JavaScript 那一半（票 01）。
+ *
+ * 上面那一段看的是 CSS 的動態宣告。**JavaScript 驅動的逐幀動態沒有 CSS animation 可以被它掃到**，
+ * 換一個實作技術就整個從可及性檢查裡消失——這是實際讀腳本查出來的洞，不是推測。
+ *
+ * 要分清楚兩種 rAF：捲動時才排一次的（`.tl-fill`、`.nav-progress`）不是常駐動態，
+ * 沒有人在等它、它也不會自己一直跑。**常駐＝自己排自己**，所以認的是「函式的身體裡
+ * 有 requestAnimationFrame(它自己)」這個結構，不是「檔案裡出現過 rAF」。
+ */
+function extractFunctionBodies(text) {
+	const out = [];
+	const defRe =
+		/(?:function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?(?:function\s*\*?\s*[\w$]*\s*\([^)]*\)\s*|\([^)]*\)\s*=>\s*|[A-Za-z_$][\w$]*\s*=>\s*))\{/g;
+	for (const m of text.matchAll(defRe)) {
+		const name = m[1] || m[2];
+		if (!name) continue;
+		const open = m.index + m[0].length - 1;
+		out.push({ name, body: text.slice(open, matchBrace(text, open) + 1) });
+	}
+	return out;
+}
+
+function findStandingLoops(text) {
+	const loops = new Set();
+	for (const { name, body } of extractFunctionBodies(text)) {
+		if (new RegExp(`requestAnimationFrame\\s*\\(\\s*${name}\\s*\\)`).test(body)) loops.add(name);
+	}
+	return [...loops];
+}
+
+function checkStandingMotionReducedMotion(sources) {
+	let found = 0;
+	for (const { rel, text } of sources) {
+		const loops = findStandingLoops(text);
+		if (!loops.length) continue;
+		found += loops.length;
+		if (!/prefers-reduced-motion/.test(text)) {
+			// 與 CSS 那一半同樣不吃例外清單：可及性是硬下限
+			failures.push({
+				check: 'reduced-motion',
+				key: `${rel} :: ${loops.join('、')}`,
+				detail: '常駐的逐幀動態（函式自己排自己），但整個檔案裡找不到 prefers-reduced-motion 的分支',
+			});
+		}
+	}
+	note(`常駐逐幀動態：${found} 個自我排程的迴圈`);
+}
+
+// ===========================================================================
+// 檢查 7 — 母題參數必須落在票 00 定的檔位上
+// ===========================================================================
+/**
+ * 值一律取自 `palette-config.mjs` 的 `MOTIF`，**這支腳本裡不寫值**。
+ *
+ * 產物端的契約：母題的 canvas 帶一個 `data-motif` 屬性，內容是判準檔 `MOTIF` 的 JSON。
+ * 繪製程式從那個屬性取值，所以「判準檔 → 產物 → 執行期」是同一條路，
+ * 沒有第二份數字可以偷偷漂掉。母題尚未上線時這一項只驗判準檔本身。
+ */
+const decodeEntities = (s) =>
+	s.replace(/&(#34|quot|#39|apos|#38|amp|#x27);/gi, (_, e) =>
+		/^(#34|quot)$/i.test(e) ? '"' : /^(#38|amp)$/i.test(e) ? '&' : "'",
+	);
+
+const stable = (v) =>
+	JSON.stringify(v, (_, x) =>
+		x && typeof x === 'object' && !Array.isArray(x)
+			? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b)))
+			: x,
+	);
+
+/** 紅線③ 的量法：每個振盪分量的 `振幅 × 2π頻率` 相加，再取各軸的向量和。 */
+function motifPeakSpeed(m) {
+	const periods = [m.breathPeriod, m.breathPeriod / m.breathRatio, m.breathPeriod * m.breathRatio];
+	const breathRate = m.breathWeights.reduce((s, w, i) => s + (w * 2 * Math.PI) / periods[i], 0) / 2;
+	const breath = m.travel.normal * breathRate; // 呼吸只在垂直方向
+	const drift = m.driftAmplitude.reduce((s, a, i) => s + a * 2 * Math.PI * m.driftFrequency[i], 0);
+	return Math.hypot(breath + drift, drift);
+}
+
+function checkMotif(htmlFiles) {
+	const limit = CFG.STANDING_MOTION_PEAK_SPEED;
+	const peak = motifPeakSpeed(CFG.MOTIF);
+	if (peak > limit) {
+		fail('motif', '判準檔本身', `MOTIF 算出的峰值速度 ${peak.toFixed(1)} px/s 超過紅線③ 的 ${limit} px/s`);
+	}
+	note(`母題峰值速度 ${peak.toFixed(1)} px/s（紅線③ ${limit}）`);
+
+	const found = [];
+	for (const f of htmlFiles) {
+		const text = readFileSync(f, 'utf8');
+		for (const m of text.matchAll(/data-motif=("([^"]*)"|'([^']*)')/g)) {
+			found.push({ rel: relative(ROOT, f), raw: m[2] ?? m[3] });
+		}
+	}
+	if (!found.length) {
+		note('母題尚未上線（產物裡沒有 data-motif），本項只驗了判準檔');
+		return;
+	}
+
+	const expect = stable(CFG.MOTIF);
+	for (const { rel, raw } of found) {
+		let parsed;
+		try {
+			parsed = JSON.parse(decodeEntities(raw));
+		} catch {
+			fail('motif', rel, 'data-motif 不是合法的 JSON');
+			continue;
+		}
+		if (stable(parsed) === expect) continue;
+		const keys = new Set([...Object.keys(CFG.MOTIF), ...Object.keys(parsed)]);
+		for (const k of keys) {
+			const a = stable(parsed[k]);
+			const b = stable(CFG.MOTIF[k]);
+			if (a !== b) fail('motif', `${rel} :: ${k}`, `產物是 ${a}，判準檔是 ${b}——母題參數漂離檔位`);
+		}
+	}
+}
+
 // ===========================================================================
 // 主流程
 // ===========================================================================
@@ -838,7 +975,8 @@ function main() {
 
 	const allFiles = walk(DIST);
 
-	const textFiles = allFiles.filter((f) => /\.(html|css|svg)$/i.test(f));
+	// 票 01：`.js` 進來了。母題的色碼寫在腳本裡，不掃 JS 等於留一條白名單看不見的路。
+	const textFiles = allFiles.filter((f) => /\.(html|css|svg|js)$/i.test(f));
 	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css') && !isProcessPage(f));
 
 	const allowedCss = new Set(
@@ -875,27 +1013,37 @@ function main() {
 	const siteRules = siteParsed.flatMap((p) => p.rules);
 	const vars = collectRootVars(siteRules);
 
-	console.log('— 1／6 色碼白名單');
+	// 腳本端的觀察範圍：網站自己的 HTML（內聯 script）與產物 JS，不含 /process/ 的凍結存檔
+	const scriptSources = allFiles
+		.filter((f) => /\.(html|js)$/i.test(f) && !isProcessPage(f))
+		.map((f) => ({ rel: relative(ROOT, f), text: readFileSync(f, 'utf8') }));
+	const siteHtmlFiles = allFiles.filter((f) => /\.html$/i.test(f) && !isProcessPage(f));
+
+	console.log('— 1／7 色碼白名單');
 	checkColorWhitelist(textFiles, allowedCss);
 	checkSiteColorsOnRamp();
 	checkChartPixels();
 
-	console.log('— 2／6 對比度');
+	console.log('— 2／7 對比度');
 	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
-	console.log('— 3／6 色盲安全');
+	console.log('— 3／7 色盲安全');
 	checkColorVision();
 
-	console.log('— 4／6 色階規律');
+	console.log('— 4／7 色階規律');
 	checkRamps(vars);
 
-	console.log('— 5／6 排版與間距規律');
+	console.log('— 5／7 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／6 降低動態偏好覆蓋');
+	console.log('— 6／7 降低動態偏好覆蓋');
 	checkReducedMotion(siteParsed);
+	checkStandingMotionReducedMotion(scriptSources);
+
+	console.log('— 7／7 母題參數與常駐動態');
+	checkMotif(siteHtmlFiles);
 
 	// ---- 回報 ----
 	if (process.env.VERIFY_VERBOSE) {
@@ -936,7 +1084,7 @@ function main() {
 		process.exit(1);
 	}
 
-	console.log(`\n✓ 六類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
+	console.log(`\n✓ 七類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
 }
 
 main();
