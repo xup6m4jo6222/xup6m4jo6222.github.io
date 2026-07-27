@@ -76,14 +76,28 @@ const { mode } = Astro.props;
 				.toString(16)
 				.padStart(2, '0');
 
-		// ── 離散度：點的分布與線的實度共用這一個函式 ──────────────────────
-		// 兩處各寫一組數字必然不同步，那正是「趨勢線讀起來像裝飾框線」的成因。
+		/* ── 離散度：點的分布與線的實度共用這一個函式 ──────────────────────
+		   兩處各寫一組數字必然不同步，那正是「趨勢線讀起來像裝飾框線」的成因。
+
+		   實度是「相對於最散那一端收斂了多少」。**不要正規化成 0–1**——
+		   第一版寫成 (spread(0)−spread(u))/(spread(0)−spread(1))，代數上恆等於 u，
+		   `spreadEnds` 被整個約掉：點散得再開，線也照樣畫到全實。那是形式上共用、
+		   實際上沒接上。現在端點比 3.83 直接決定線最實處只到 0.739。 */
 		const spreadAt = (u: number) => M.spreadEnds[0] + (M.spreadEnds[1] - M.spreadEnds[0]) * u;
-		const solidity = (u: number) => (spreadAt(0) - spreadAt(u)) / (spreadAt(0) - spreadAt(1));
+		const solidity = (u: number) => 1 - spreadAt(u) / spreadAt(0);
 
 		// 指數成長：終點斜率是起點的 trendSlopeRatio 倍 → k = ln(ratio)
 		const k = Math.log(M.trendSlopeRatio);
 		const expT = (u: number) => (Math.exp(k * u) - 1) / (Math.exp(k) - 1);
+
+		/* 母題走向上的座標。**只有這一份**——點的位置與線的位置各寫一份的話，
+		   哪天改了構圖常數就會分家，那正是「共用同一個離散度函式」在防的同一件事。
+		   （W／H 是 let，所以寫成函式而不是在 resize 時算好。） */
+		const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
+		const trendY = (u: number) => H * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
+
+		/** 等距的漸層節點：判準檔給幾個顏色就分幾段，位置不另外寫一組數字。 */
+		const evenStops = (n: number) => Array.from({ length: n }, (_, i) => i / (n - 1));
 
 		/**
 		 * 呼吸曲線：三個週期比為 φ² 的正弦相加，權重比同樣是 φ²。
@@ -143,13 +157,11 @@ const { mode } = Astro.props;
 
 		// ── 首頁：散開位置、聚攏位置、各自的漂移 ──────────────────────────
 		function buildBreathe() {
-			const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
-			const trendY = (u: number) => H * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
 			pts = [];
 			const n = countFor(W * H, M.density.home);
 			for (let i = 0; i < n; i++) {
 				const u = Math.random();
-				const layer = i % 3; // 三層景深各佔三分之一
+				const layer = i % M.depthRadius.length; // 景深各層平分
 				const outlier = Math.random() < M.outlierRatio;
 				// 往上（冒險成功）：往下（冒險失敗）＝ 3：1。往上的會出現在姓名那一帶。
 				const dir = Math.random() < M.outlierUpRatio ? -1 : 1;
@@ -168,9 +180,12 @@ const { mode } = Astro.props;
 					r: M.depthRadius[layer],
 					a: M.depthAlpha[layer],
 					far: layer === 0, // 遠景固定：模糊靠大半徑的柔邊光點，不每幀重算
-					t0: Math.random() * periods[2], // 每個點在呼吸曲線上的時間偏移
-					px3: [Math.random(), Math.random(), Math.random()].map((r) => r * 2 * Math.PI),
-					py3: [Math.random(), Math.random(), Math.random()].map((r) => r * 2 * Math.PI),
+					// 呼吸曲線上的時間偏移。範圍只有一個週期的 1/8——**錯開不是打散**：
+					// 整團仍要一起散→聚→散，偏移大了整團的呼吸就被平均掉了（見判準檔）。
+					t0: Math.random() * M.breathPeriod * L.breathDesync,
+					// 每組漂移的起始相位各自隨機——組數由判準檔的振幅表決定，不另外寫一個 3
+					px3: M.driftAmplitude.map(() => Math.random() * 2 * Math.PI),
+					py3: M.driftAmplitude.map(() => Math.random() * 2 * Math.PI),
 				});
 			}
 		}
@@ -187,7 +202,7 @@ const { mode } = Astro.props;
 				// 離中線越近越容易被丟掉：正文在中間，背景讓開
 				const near = 1 - Math.min(1, Math.abs(x - centre) / half);
 				if (Math.random() < near * (1 - M.readingKeepRatio)) continue;
-				const layer = i % 3;
+				const layer = i % M.depthRadius.length;
 				pts.push({
 					x,
 					y: Math.random() * tile,
@@ -244,48 +259,56 @@ const { mode } = Astro.props;
 		 * **點還在，只是在文字帶內淡下來**：本人指定的是離群值的位置，不是亮度。
 		 *
 		 * 每一塊用可分離的兩道 ramp（水平 × 垂直）做，不是模糊——邊緣化開的寬度才算得準，
-		 * 而且不必每次重建都跑一次濾鏡。多塊之間用 lighter 疊成聯集。
+		 * 而且不必每次重建都跑一次濾鏡。
+		 *
+		 * **多塊先疊成「覆蓋率」再一次乘上減光量，不是每塊各自帶著減光量疊。**
+		 * 後者在閱讀頁會出事：main 與頁尾兩塊的左右邊界幾乎相同，兩份 0.9 疊起來夾成 1.0，
+		 * `destination-out` 就把正文欄整條挖光——上限變成全清，`readingKeepRatio` 也跟著成了死參數。
+		 * code review 抓到、瀏覽器實測確認（欄內非零像素 0 個）。
 		 */
 		function makeBandMask(boxes: Box[]) {
-			const m = document.createElement('canvas');
-			m.width = cv!.width;
-			m.height = cv!.height;
-			const g = m.getContext('2d')!;
-			const scratch = document.createElement('canvas');
-			scratch.width = m.width;
-			scratch.height = m.height;
-			const s = scratch.getContext('2d')!;
+			const sized = () => {
+				const c = document.createElement('canvas');
+				c.width = cv!.width;
+				c.height = cv!.height;
+				const g2 = c.getContext('2d')!;
+				g2.setTransform(DPR, 0, 0, DPR, 0, 0);
+				return [c, g2] as const;
+			};
+			const [m, g] = sized();
+			const [coverage, cover] = sized();
+			const [scratch, s] = sized();
 			const fw = col * L.textBandFeather;
-			const q = 1 - M.textBandMaxAlpha; // destination-out：挖掉這麼多，剩下的就是上限
 
-			/** 一道兩側化開的 ramp：外緣 0、內側整段 alpha。 */
-			const ramp = (a: number, b: number, alpha: number, vertical: boolean) => {
+			/** 一道兩側化開的 ramp：外緣 0、內側整段滿。 */
+			const ramp = (a: number, b: number, vertical: boolean) => {
 				const grad = vertical
 					? s.createLinearGradient(0, a - fw, 0, b + fw)
 					: s.createLinearGradient(a - fw, 0, b + fw, 0);
 				const stop = fw / Math.max(1, b - a + 2 * fw);
 				grad.addColorStop(0, withAlpha(M.gradient[0], 0));
-				grad.addColorStop(stop, withAlpha(M.gradient[0], alpha));
-				grad.addColorStop(1 - stop, withAlpha(M.gradient[0], alpha));
+				grad.addColorStop(stop, withAlpha(M.gradient[0], 1));
+				grad.addColorStop(1 - stop, withAlpha(M.gradient[0], 1));
 				grad.addColorStop(1, withAlpha(M.gradient[0], 0));
 				return grad;
 			};
 
-			g.globalCompositeOperation = 'lighter';
 			for (const box of boxes) {
-				s.setTransform(DPR, 0, 0, DPR, 0, 0);
 				s.globalCompositeOperation = 'source-over';
 				s.clearRect(0, 0, W, H);
-				s.fillStyle = ramp(box.left, box.right, q, false);
+				s.fillStyle = ramp(box.left, box.right, false);
 				s.fillRect(0, 0, W, H);
 				// 閱讀頁的正文欄貫穿整頁，垂直方向不收；首頁的文字只佔一塊，要收。
 				if (breathing) {
 					s.globalCompositeOperation = 'destination-in';
-					s.fillStyle = ramp(box.top - scrollY, box.bottom - scrollY, 1, true);
+					s.fillStyle = ramp(box.top - scrollY, box.bottom - scrollY, true);
 					s.fillRect(0, 0, W, H);
 				}
-				g.drawImage(scratch, 0, 0);
+				cover.drawImage(scratch, 0, 0, W, H);
 			}
+			// 覆蓋率 × 減光量：挖掉這麼多，剩下的就是上限 textBandMaxAlpha
+			g.globalAlpha = 1 - M.textBandMaxAlpha;
+			g.drawImage(coverage, 0, 0, W, H);
 			bandTop = scrollY;
 			return m;
 		}
@@ -311,16 +334,14 @@ const { mode } = Astro.props;
 
 			// 漸層跟著確定性走：最散亂的一端最灰、最收斂的一端最亮（亮端封頂中性階 700）
 			tint = ctx!.createLinearGradient(0, H, W, 0);
-			tint.addColorStop(0, M.gradient[0]);
-			tint.addColorStop(0.5, M.gradient[1]);
-			tint.addColorStop(1, M.gradient[2]);
+			evenStops(M.gradient.length).forEach((at, i) => tint!.addColorStop(at, M.gradient[i]));
 
 			const cx = W * L.fadeCenter[0];
 			const cy = H * L.fadeCenter[1];
 			fade = ctx!.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H));
-			fade.addColorStop(0, withAlpha(M.gradient[0], L.fadeStops[0]));
-			fade.addColorStop(0.5, withAlpha(M.gradient[0], L.fadeStops[1]));
-			fade.addColorStop(1, withAlpha(M.gradient[0], L.fadeStops[2]));
+			evenStops(L.fadeStops.length).forEach((at, i) =>
+				fade!.addColorStop(at, withAlpha(M.gradient[0], L.fadeStops[i])),
+			);
 
 			if (reshape) {
 				if (breathing) buildBreathe();
@@ -364,11 +385,11 @@ const { mode } = Astro.props;
 					let dx = 0;
 					let dy = 0;
 					if (!frozen) {
-						for (let i = 0; i < 3; i++) {
+						M.driftAmplitude.forEach((amp: number, i: number) => {
 							const w = 2 * Math.PI * M.driftFrequency[i] * sec;
-							dx += M.driftAmplitude[i] * Math.sin(w + p.px3[i]);
-							dy += M.driftAmplitude[i] * Math.sin(w + p.py3[i]);
-						}
+							dx += amp * Math.sin(w + p.px3[i]);
+							dy += amp * Math.sin(w + p.py3[i]);
+						});
 					}
 					// 每個點在呼吸曲線上取一個時間偏移，整團才不會像一個東西在脈動。
 					// 偏移的是時間不是振幅，所以峰值速度與閘門算的上界一致。
@@ -400,9 +421,6 @@ const { mode } = Astro.props;
 			// 左段點散得開則線幾乎不存在，越往右越收斂則線越實，右端自己收尾——
 			// 外推的地方沒有資料，本來就不該畫實線。閱讀頁沒有這條線。
 			if (breathing) {
-				const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
-				const trendY = (u: number) =>
-					H * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
 				ctx!.strokeStyle = tint!;
 				ctx!.lineCap = 'round';
 				ctx!.lineWidth = M.trendLineWidth;
