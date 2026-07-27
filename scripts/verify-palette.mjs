@@ -29,7 +29,10 @@
  *   · **「有降低動態偏好的分支」的證明只到「同一個檔案裡出現 prefers-reduced-motion」**。
  *     它不保證那個分支真的把動態關掉——那要跑瀏覽器才驗得到
  *   · **母題比對的是 `data-motif` 與判準檔**。canvas 裡實際畫出來的像素不在觀察範圍內；
- *     繪製程式若不從那個屬性取值而是另外寫一份數字，這一項看不見
+ *     繪製程式若不從那個屬性取值而是另外寫一份數字，這一項看不見。
+ *     （「屬性根本不出現」這條已經堵上：有常駐迴圈卻沒有 `data-motif` 會紅）
+ *   · **切函式身體用的是 CSS 那支括號配對**。它認得字串與區塊註解，但不認得
+ *     樣板字面與正則字面裡的大括號；那種寫法會讓身體的範圍抓錯
  *
  * 要蓋掉這些得跑真的瀏覽器去取樣渲染結果，那是另一個量級的工具。
  * 在那之前，這一段就是這道閘門的誠實邊界——**綠燈的意思是「沒有漂移」，
@@ -330,7 +333,9 @@ function checkColorWhitelist(textFiles, allowedCss) {
 			if (!norm) {
 				// 白名單是一張 hex 字面清單。用另一種色彩函式寫同一個顏色，等於繞過字面比對——
 				// 就算值相等也不放行，否則「掃字串比對白名單」這件事本身就沒有意義了。
-				if (/^(hsla?|oklch)\(/i.test(m[0]) && !seen.has(m[0])) {
+				// **`/process/` 九頁不套這條新規則**：那是標了日期的歷史存檔（CLAUDE.md 換色協議），
+				// 今天新增的規則不該回頭套到凍結的檔案上。
+				if (/^(hsla?|oklch)\(/i.test(m[0]) && !seen.has(m[0]) && !isProcessPage(file)) {
 					seen.add(m[0]);
 					fail('colors', `${m[0]} @ ${rel}`, '顏色不得以 hsl()／oklch() 書寫——白名單是 hex 字面清單');
 				}
@@ -855,25 +860,34 @@ function checkReducedMotion(siteParsed) {
  * 沒有人在等它、它也不會自己一直跑。**常駐＝自己排自己**，所以認的是「函式的身體裡
  * 有 requestAnimationFrame(它自己)」這個結構，不是「檔案裡出現過 rAF」。
  */
-function extractFunctionBodies(text) {
-	const out = [];
-	const defRe =
-		/(?:function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?(?:function\s*\*?\s*[\w$]*\s*\([^)]*\)\s*|\([^)]*\)\s*=>\s*|[A-Za-z_$][\w$]*\s*=>\s*))\{/g;
-	for (const m of text.matchAll(defRe)) {
-		const name = m[1] || m[2];
-		if (!name) continue;
-		const open = m.index + m[0].length - 1;
-		out.push({ name, body: text.slice(open, matchBrace(text, open) + 1) });
-	}
-	return out;
-}
-
+/**
+ * 只找「被 rAF 排程過的那幾個名字」的定義，不是列舉全檔的函式——
+ * **產物是壓縮過的**，`let a=0,loop=n=>{…}` 這種逗號串宣告、物件屬性、方法簡寫都要認得。
+ * 第一版只認 `function X(` 與 `const X =`，實測六種寫法漏掉四種，其中逗號串正是 Vite 的輸出樣子。
+ */
 function findStandingLoops(text) {
-	const loops = new Set();
-	for (const { name, body } of extractFunctionBodies(text)) {
-		if (new RegExp(`requestAnimationFrame\\s*\\(\\s*${name}\\s*\\)`).test(body)) loops.add(name);
+	const scheduled = new Set(
+		[...text.matchAll(/requestAnimationFrame\s*\(\s*([A-Za-z_$][\w$]*)\s*\)/g)].map((m) => m[1]),
+	);
+	const loops = [];
+	for (const name of scheduled) {
+		const self = new RegExp(`requestAnimationFrame\\s*\\(\\s*${name}\\s*\\)`);
+		// 這個名字的所有可能定義處：具名函式／賦值成函式或箭頭／物件屬性／方法簡寫
+		const defRe = new RegExp(
+			`(?:^|[^\\w$.])(?:function\\s*\\*?\\s*)?${name}\\s*` +
+				`(?:[=:]\\s*(?:async\\s+)?(?:function\\s*\\*?\\s*[\\w$]*\\s*)?(?:\\([^)]*\\)|[\\w$]+)\\s*(?:=>\\s*)?|\\([^)]*\\)\\s*)\\{`,
+			'g',
+		);
+		for (const m of text.matchAll(defRe)) {
+			const open = text.indexOf('{', m.index + m[0].length - 1);
+			if (open < 0) continue;
+			if (self.test(text.slice(open, matchBrace(text, open) + 1))) {
+				loops.push(name);
+				break;
+			}
+		}
 	}
-	return [...loops];
+	return loops;
 }
 
 function checkStandingMotionReducedMotion(sources) {
@@ -882,6 +896,7 @@ function checkStandingMotionReducedMotion(sources) {
 		const loops = findStandingLoops(text);
 		if (!loops.length) continue;
 		found += loops.length;
+		standingLoopFiles.push(rel);
 		if (!/prefers-reduced-motion/.test(text)) {
 			// 與 CSS 那一半同樣不吃例外清單：可及性是硬下限
 			failures.push({
@@ -904,34 +919,48 @@ function checkStandingMotionReducedMotion(sources) {
  * 繪製程式從那個屬性取值，所以「判準檔 → 產物 → 執行期」是同一條路，
  * 沒有第二份數字可以偷偷漂掉。母題尚未上線時這一項只驗判準檔本身。
  */
+/** 檢查 6 的 JS 那一半找到的常駐迴圈，檢查 7 要用它判斷「母題是不是已經上線了」。 */
+const standingLoopFiles = [];
+
 const decodeEntities = (s) =>
 	s.replace(/&(#34|quot|#39|apos|#38|amp|#x27);/gi, (_, e) =>
 		/^(#34|quot)$/i.test(e) ? '"' : /^(#38|amp)$/i.test(e) ? '&' : "'",
 	);
 
-const stable = (v) =>
+/** 鍵排序後的 JSON——兩份參數只有寫入順序不同時不該被判成不一樣。 */
+const canonicalJson = (v) =>
 	JSON.stringify(v, (_, x) =>
 		x && typeof x === 'object' && !Array.isArray(x)
 			? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b)))
 			: x,
 	);
 
-/** 紅線③ 的量法：每個振盪分量的 `振幅 × 2π頻率` 相加，再取各軸的向量和。 */
-function motifPeakSpeed(m) {
+/**
+ * 紅線③ 的量法：每個振盪分量的 `振幅 × 2π頻率` 相加，再取各軸的向量和。
+ *
+ * **`travel` 是行程（峰對峰），不是振幅**，所以呼吸那一項要除以 2 才是振幅——
+ * 少了那個 2 會算成 54.7 px/s，把一組合格的值判成超線。
+ * 呼吸只發生在垂直方向，漂移兩軸都有，故最壞是 hypot(呼吸+漂移, 漂移)。
+ */
+function motifSpeeds(m) {
 	const periods = [m.breathPeriod, m.breathPeriod / m.breathRatio, m.breathPeriod * m.breathRatio];
-	const breathRate = m.breathWeights.reduce((s, w, i) => s + (w * 2 * Math.PI) / periods[i], 0) / 2;
-	const breath = m.travel.normal * breathRate; // 呼吸只在垂直方向
+	const breathRate = m.breathWeights.reduce((s, w, i) => s + (w * 2 * Math.PI) / periods[i], 0);
+	const breath = (m.travel.normal / 2) * breathRate;
 	const drift = m.driftAmplitude.reduce((s, a, i) => s + a * 2 * Math.PI * m.driftFrequency[i], 0);
-	return Math.hypot(breath + drift, drift);
+	return { breath, drift, peak: Math.hypot(breath + drift, drift) };
 }
 
 function checkMotif(htmlFiles) {
 	const limit = CFG.STANDING_MOTION_PEAK_SPEED;
-	const peak = motifPeakSpeed(CFG.MOTIF);
+	const { breath, drift, peak } = motifSpeeds(CFG.MOTIF);
 	if (peak > limit) {
 		fail('motif', '判準檔本身', `MOTIF 算出的峰值速度 ${peak.toFixed(1)} px/s 超過紅線③ 的 ${limit} px/s`);
 	}
-	note(`母題峰值速度 ${peak.toFixed(1)} px/s（紅線③ ${limit}）`);
+	// 配額分配是技法，但它不能只是一句話：值一漂就對不上，這裡把它變成會報錯的線
+	const budget = CFG.MOTIF_CRAFT.speedBudget;
+	if (breath > budget.breath) fail('motif', '呼吸配額', `呼吸 ${breath.toFixed(1)} px/s 超過配額 ${budget.breath}`);
+	if (drift > budget.drift) fail('motif', '漂移配額', `漂移 ${drift.toFixed(1)} px/s 超過每軸配額 ${budget.drift}`);
+	note(`母題峰值速度 ${peak.toFixed(1)} px/s（呼吸 ${breath.toFixed(1)}／漂移 ${drift.toFixed(1)}，紅線③ ${limit}）`);
 
 	const found = [];
 	for (const f of htmlFiles) {
@@ -941,11 +970,21 @@ function checkMotif(htmlFiles) {
 		}
 	}
 	if (!found.length) {
-		note('母題尚未上線（產物裡沒有 data-motif），本項只驗了判準檔');
+		// fail-open 的防線：有常駐迴圈就代表母題已經在跑，那產物裡就必須找得到它的參數。
+		// 沒有這一條，把 canvas 改成由 JS 建立就能讓整個第七類靜靜地不作用。
+		if (standingLoopFiles.length) {
+			fail(
+				'motif',
+				standingLoopFiles.join('、'),
+				'產物裡有常駐逐幀動態，卻找不到任何 data-motif——母題參數必須由伺服器端渲染進 HTML，才驗得到它落在檔位上',
+			);
+			return;
+		}
+		note('母題尚未上線（沒有常駐迴圈也沒有 data-motif），本項只驗了判準檔');
 		return;
 	}
 
-	const expect = stable(CFG.MOTIF);
+	const expect = canonicalJson(CFG.MOTIF);
 	for (const { rel, raw } of found) {
 		let parsed;
 		try {
@@ -954,11 +993,11 @@ function checkMotif(htmlFiles) {
 			fail('motif', rel, 'data-motif 不是合法的 JSON');
 			continue;
 		}
-		if (stable(parsed) === expect) continue;
+		if (canonicalJson(parsed) === expect) continue;
 		const keys = new Set([...Object.keys(CFG.MOTIF), ...Object.keys(parsed)]);
 		for (const k of keys) {
-			const a = stable(parsed[k]);
-			const b = stable(CFG.MOTIF[k]);
+			const a = canonicalJson(parsed[k]);
+			const b = canonicalJson(CFG.MOTIF[k]);
 			if (a !== b) fail('motif', `${rel} :: ${k}`, `產物是 ${a}，判準檔是 ${b}——母題參數漂離檔位`);
 		}
 	}

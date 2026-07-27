@@ -131,7 +131,7 @@ const cases = [
 		expectPass: false,
 		mutate: (_f, dir) =>
 			writeFileSync(join(dir, '_astro', 'fake-motif.js'), "const ACCENT='#c97a48';export default ACCENT;\n"),
-		expect: /#c97a48[\s\S]*fake-motif\.js|fake-motif\.js/,
+		expect: /fake-motif\.js/,
 	},
 	{
 		// 檢查 6 看的是 CSS 的動態宣告。JS 驅動的逐幀動態沒有 CSS animation 可以被它掃到。
@@ -143,6 +143,30 @@ const cases = [
 				'function loop(now){draw(now);requestAnimationFrame(loop);}requestAnimationFrame(loop);\n',
 			),
 		expect: /fake-loop\.js[\s\S]*loop/,
+	},
+	{
+		// **產物是壓縮過的。**手寫的 `function loop(){}` 抓得到不代表 Vite 吐出來的
+		// `let a=0,loop=n=>{…}` 也抓得到——第一版實測就是漏這一種。
+		name: '常駐迴圈寫成壓縮後的逗號串宣告，一樣要抓到',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			writeFileSync(
+				join(dir, '_astro', 'fake-min.js'),
+				'let t=0,l=n=>{t=n;requestAnimationFrame(l)};requestAnimationFrame(l);\n',
+			),
+		expect: /fake-min\.js/,
+	},
+	{
+		// 第七類的 fail-open 防線：母題在跑（有常駐迴圈）就必須找得到它的參數。
+		// 沒有這一條，把 canvas 改成由 JS 建立，整個第七類會靜靜地不作用。
+		name: '母題在跑卻沒有把參數渲染進 HTML',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			writeFileSync(
+				join(dir, '_astro', 'fake-motif-loop.js'),
+				"const still=matchMedia('(prefers-reduced-motion: reduce)');function loop(n){draw(n);requestAnimationFrame(loop);}if(!still.matches)requestAnimationFrame(loop);\n",
+			),
+		expect: /找不到任何 data-motif/,
 	},
 	{
 		name: '把母題參數改成檔位以外的值',
