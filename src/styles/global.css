@@ -103,7 +103,8 @@
 	--sp-2: 4.275rem;
 	--sp-3: 6.413rem;
 	--sp-4: 8.55rem;
-	--sp-6: 12.825rem; /* 首頁下緣的大留白（原 14rem ≈ 6.55×，取 6×） */
+	/* 6× 曾經存在，是首頁下緣那格大留白。第 9 版把它收到 4×（那格承載的內容是零），
+	   token 隨之沒有任何使用者——階梯上有 6× 這一階，但站上沒有東西該用到它。 */
 
 	/* 元件內間距（按鈕內距、圖示間隙、標籤 padding）**不受節奏約束**——它們不落在
 	   文字基線上，硬套會讓元件膨脹（最小的節奏階是 17.1px，按鈕會腫）。 */
@@ -185,7 +186,8 @@ body,
 /* 樣式：註記（階 −1）。全站唯一的小字級——現況八個 0.75–0.88rem 的值全部收斂到這裡。 */
 .site-nav a,
 .nav-progress,
-.entry-links a,
+.home-cta a,
+.home-links,
 .card p,
 .back-link,
 .category-label,
@@ -288,16 +290,26 @@ main > h1 {
 	font-weight: 400;
 }
 
-/* 樣式：首頁副標（階 2） */
-.hero p {
-	font-size: var(--fs-2);
-	line-height: var(--lh-2);
+/* 樣式：首頁副標（階 3）。原本全頁只有階 6 與階 2 兩個字級在講話，中間三階全空，
+   讀起來像兩張投影片疊在一起。副標拆兩級補上中間階——純字級改動，零新文案。 */
+.home-tagline {
+	font-size: var(--fs-3);
+	line-height: var(--lh-3);
 	letter-spacing: var(--ls-body);
 	font-weight: 400;
 }
 
-/* 樣式：首頁大字（階 7 ／襯線）。桌機約內文 5 倍、手機 3.2 倍。 */
-.hero h1 {
+/* 樣式：首頁說明（階 1）。與段落標題同階但不同樣式：那組是襯線 600 ＋ 大字距的
+   標題，這裡是內文語氣的一句話。 */
+.home-note {
+	font-size: var(--fs-1);
+	line-height: var(--lh-1);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：首頁大字（階 6 ／襯線）。桌機約內文 5 倍、手機 3.2 倍。 */
+.home h1 {
 	font-size: var(--fs-6);
 	line-height: var(--lh-6);
 	letter-spacing: var(--ls-display);
@@ -326,12 +338,18 @@ main {
 	padding: var(--sp-1-5) var(--sp-0-75) var(--sp-2);
 }
 
-/* 破框：全站唯一的寬版開關（--max-width token 不動，導覽列與頁尾仍吃它） */
-main.wide {
-	max-width: 1200px;
-	/* 左右留白流動：375px 時 0.75×、900px 以上 1.5×。原本這是 560px 斷點上的一條
-	   padding 微調——純尺寸變化不配得上一個斷點。 */
-	padding: var(--sp-4) clamp(var(--sp-0-75), 7.33px + 4.886vw, var(--sp-1-5)) var(--sp-6);
+/* 首頁：只改上下留白，容器沿用 --max-width。原本這裡有一個 1200px 的破框開關，
+   它讓首頁的左邊界與導覽列／頁尾差了 190px（1440×900 實測：品牌 361.6、主標題
+   171.3），三者各走各的網格。破框拿掉之後三條左邊界落在同一條線上，而右半邊仍然
+   是空的——留白從此是網格內的空欄，不是容器沒填滿。 */
+main:has(> .home) {
+	padding-top: var(--sp-3); /* nav 底 → 標題：3× */
+	/* 內容 → 頁尾：4×（原 6×）。這是**宣告值**，也是內容夠高時的實際值；首頁內容不
+	   滿一屏，剩下的由 main 的 flex:1 吃掉（頁尾貼底），所以 1440×900 實測的空白是
+	   352px 而不是 136.8px。試過讓首頁不撐開、頁尾就跟在內容後面 4× 的版本：頁尾下方
+	   會空出一整條，讀起來是頁面沒填滿，而且母題會被頁尾攔腰切斷。那格空白本來就是
+	   母題的位置（票 02），不是版面的破口。 */
+	padding-bottom: var(--sp-4);
 }
 
 /* Scroll reveal — quiet, functional, once. Opt-in via .js so content
@@ -480,34 +498,37 @@ html {
 	background: var(--color-accent);
 }
 
-/* 首頁：左對齊寬版雙欄（左 h1＋副標／右 入口連結），兩欄底部對齊 */
-.home {
-	display: grid;
-	grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-	gap: var(--sp-2);
-	align-items: end;
-}
-
-.hero h1 {
+/* 首頁：單欄左對齊，一塊完整的內容；右半邊整片留給背景母題。
+   原本是「左 h1＋副標／右 入口連結」的雙欄，兩欄底部對齊——但那讓按鈕頂端與姓名
+   頂端切齊（實測差 0）而兩者相差七階，量級與位置互相打架。連結改為內容流的一部分。 */
+.home h1 {
 	font-family: var(--font-display);
 	margin: 0;
 }
 
-.hero p {
+/* 進場：姓名先，其餘同時跟上（沿用既有的 380ms；0.38＋0.35＝0.73s，在紅線②內）。
+   原本是四個元素各帶一條 inline style，值散在 HTML 裡。 */
+.js .home > :not(h1)[data-reveal] {
+	transition-delay: 380ms;
+}
+
+.home-tagline {
+	margin: var(--sp-0-75) 0 0; /* 標題 → 副標：0.75× */
+}
+
+.home-note {
 	color: var(--color-text-muted);
-	/* 17em ≈ 現況 30ch 的實測寬度（459px）。改用 em 的理由同內文行長：
-	   ch 是數字 0 的寬度，中文字體裡不到 1em，算出來會歪。 */
-	max-width: 17em;
-	margin: var(--sp-1) 0 0;
+	margin: var(--sp-0-5) 0 0; /* 副標 → 說明：0.5× */
 }
 
-.entry-links {
-	display: grid;
-	justify-items: start;
-	gap: var(--sp-md);
+/* 主要行動（履歷）：唯一的有框按鈕，量級與次要連結拉開。
+   來源不存在時整塊不渲染——連停用狀態的按鈕都不放，見 index.astro。 */
+.home-cta {
+	margin: var(--sp-1) 0 0; /* 說明 → 主要按鈕：1× */
 }
 
-.entry-links a {
+.home-cta a {
+	display: inline-block;
 	text-decoration: none;
 	color: var(--color-text);
 	border: 1px solid var(--color-border-strong);
@@ -519,15 +540,39 @@ html {
 		color var(--dur-sm) var(--ease);
 }
 
-.entry-links a:hover {
+.home-cta a:hover {
 	border-color: var(--color-accent);
 	color: var(--color-accent);
 }
 
-.entry-links a:active {
+.home-cta a:active {
 	background: var(--color-accent);
 	color: var(--color-bg);
 	border-color: var(--color-accent);
+}
+
+/* 次要連結：底線文字，以間隔點分開。水平排、可換行——版面現在就照五個的容量做，
+   先只放兩個，日後長到五個不需要重新設計。 */
+.home-links {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--sp-md);
+	color: var(--color-text-muted); /* 間隔點吃這個色，連結自己覆蓋回內文色 */
+	margin: var(--sp-0-75) 0 0; /* 按鈕 → 連結列：0.75× */
+}
+
+.home-links a {
+	color: var(--color-text);
+	/* 底線用瀏覽器原生的，不另外做一條 border——線的顏色壓到框色，才不會跟主要
+	   按鈕搶。offset 沿用內文連結的 4px。 */
+	text-decoration-color: var(--color-border-strong);
+	text-underline-offset: 4px;
+	transition: color var(--dur-sm) var(--ease);
+}
+
+.home-links a:hover {
+	color: var(--color-accent);
 }
 
 /* Projects list */
@@ -1309,14 +1354,8 @@ footer {
 	gap: var(--sp-sm) var(--sp-lg);
 }
 
-/* 首頁：塌成單欄，DOM 順序即視覺順序 */
-@media (max-width: 900px) {
-	.home {
-		grid-template-columns: 1fr;
-	}
-}
-
 /* 1440／1920 兩個斷點整塊砍除：斷點只用於版面結構必須改變時（欄數變化、元素換排列
    方式），純尺寸變化一律 clamp() 流動處理——讀者的螢幕不會在 1441px 突然變成另一種
    裝置。原本那兩塊各做兩件事：html 的 font-size（改由九階 clamp 承擔）與 --max-width
-   （改成下方的 clamp）。全站自此只剩 560px 與 900px 兩個斷點，各對應一個結構改變。 */
+   （改成下方的 clamp）。900px 那個斷點也在第 9 版隨首頁雙欄一起消失（單欄不需要塌）。
+   全站自此只剩 560px 一個斷點，對應表格的橫向捲動。 */

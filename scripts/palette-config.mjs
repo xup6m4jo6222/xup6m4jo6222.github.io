@@ -206,7 +206,7 @@ export const CONTRAST_PAIRS = [
 		where: '選取文字／按鈕 active（深字反白）',
 		// 這個顏色只有疊在元素主色上才合法——不列 fgOn 的話，誰在別處寫
 		// color: var(--color-bg) 都會被這一組放行，而那是 1.00 的隱形字。
-		fgOn: ['::selection', '.entry-links a:active', '.links a:active'],
+		fgOn: ['::selection', '.home-cta a:active', '.links a:active'],
 	},
 
 	/**

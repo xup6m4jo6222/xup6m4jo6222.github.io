@@ -6,11 +6,9 @@ import '../styles/global.css';
 interface Props {
 	title: string;
 	backLink?: { href: string; label: string };
-	/** 破框：主容器改寬版（全站唯一機制，目前僅首頁使用） */
-	wide?: boolean;
 }
 
-const { title, backLink, wide } = Astro.props;
+const { title, backLink } = Astro.props;
 const buildDate = new Date().toLocaleDateString('sv-SE');
 ---
 
@@ -54,7 +52,7 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		    block——放在裡面的話 `bottom: .9rem` 貼的是導覽列底邊而不是視窗底邊，角標會
 		    跑到導覽列上把選項蓋掉（375px 實測蓋住「Projects」50×30px）。 */}
 		<span class="nav-progress"></span>
-		<main class={wide ? 'wide' : undefined}>
+		<main>
 			<slot />
 		</main>
 		<footer>

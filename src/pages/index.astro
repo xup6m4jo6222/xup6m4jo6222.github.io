@@ -1,20 +1,39 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const entryLinks = [
+/* 主要行動：履歷 PDF。檔案還不存在——依 CLAUDE.md「沒有就不放，不放佔位」，
+   空字串時整塊不渲染，也不渲染停用狀態的按鈕。有了把路徑填進來即可，版面已備好。 */
+const resumeHref = '';
+
+/* 次要連結：底線文字，以間隔點分開。版面按五個的容量做，現在只放兩個。
+   LinkedIn 帳號就緒後加在這個陣列裡——同樣是有才放。 */
+const secondaryLinks = [
 	{ label: 'GitHub', href: 'https://github.com/xup6m4jo6222' },
 	{ label: 'Email', href: 'mailto:xup6m4jo6222@gmail.com' },
 ];
 ---
 
-<BaseLayout title="林郁為" wide>
-	<div class="home">
-		<section class="hero">
-			<h1 data-reveal>林郁為</h1>
-			<p data-reveal style="transition-delay: 380ms">個人作品頁<br />統計背景，正朝資料科學邁進</p>
-		</section>
-		<section class="entry-links" data-reveal style="transition-delay: 380ms">
-			{entryLinks.map((link) => <a href={link.href}>{link.label}</a>)}
-		</section>
-	</div>
+<BaseLayout title="林郁為">
+	<section class="home">
+		<h1 data-reveal>林郁為</h1>
+		<p class="home-tagline" data-reveal>個人作品頁</p>
+		<p class="home-note" data-reveal>統計背景，正朝資料科學邁進</p>
+		{
+			resumeHref && (
+				<p class="home-cta" data-reveal>
+					<a href={resumeHref}>履歷</a>
+				</p>
+			)
+		}
+		<p class="home-links" data-reveal>
+			{
+				secondaryLinks.map((link, i) => (
+					<Fragment>
+						{i > 0 && <span aria-hidden="true">·</span>}
+						<a href={link.href}>{link.label}</a>
+					</Fragment>
+				))
+			}
+		</p>
+	</section>
 </BaseLayout>
