@@ -12,14 +12,8 @@ links:
 date: 2026-07-24
 ---
 
-<div data-focus-group>
-
 <p class="cs-lead">初步想研究願意來台的旅客究竟有哪些特徵。而結論很有趣：<b>會想再回訪台灣的人，取決於行程是否是自己決定的</b>。</p>
 <p class="cs-stats"><span>原始問卷<b>63,176</b>筆</span><i>·</i><span>橫跨<b>10</b>年</span><i>·</i><span>研究主題<b>4</b>類</span></p>
-
-</div>
-
-<div data-focus-group>
 
 ## 具體來說研究了哪些方向
 
@@ -37,10 +31,6 @@ date: 2026-07-24
   </tbody>
 </table>
 
-</div>
-
-<div data-focus-group>
-
 ## 先認識這六萬個人
 
 <p>連對象是誰都不清楚，後面算出來的數字也讀不懂，故在動任何統計之前，我想先知道這群人長什麼樣子。</p>
@@ -55,17 +45,9 @@ date: 2026-07-24
 
 <p>典型的旅客是這樣：出發前一個月開始計畫，第一次來，待五個晚上，住旅館，去了夜市也去購物。</p>
 
-</div>
-
-<div data-focus-group>
-
 <p>有一件事會決定後面所有方法的選擇，在這裡先講。<b>這群人的花費差距大到不能用平均數來看。</b>絕大多數人花一千美元上下，可是有人一趟花掉五十萬。只要把這種人算進平均，平均數就會被拉到一個沒有人真正花那麼多的位置。</p>
 
 <p>所以整份分析我都不用平均，改成看「排名」。誰花得比誰多，這個順序不會被少數幾個大戶弄亂。完整的分布圖在<a href="/process/tourism-univariate.html">單變數分析</a>，資料怎麼整理、極端值為什麼留著不刪，寫在<a href="/process/tourism-data-background.html">資料背景與前處理決策</a>。</p>
-
-</div>
-
-<div data-focus-group>
 
 <h2 id="spend">消費｜總額由停留天數決定，日均由來台目的決定</h2>
 
@@ -79,17 +61,9 @@ date: 2026-07-24
   <tr><th>方法</th><td>Spearman 等級相關（數值）＋Kruskal–Wallis 與 ε² 效果量（類別），另以 log-log 迴歸估計總消費對停留天數的彈性</td></tr>
 </table>
 
-</div>
-
-<div data-focus-group>
-
 <p>算出來最強的是停留天數，0.507。待越久花越多這件事不意外，不過強度高到可以說，想知道一個旅客花多少錢，先問他待幾天就好。其他因素都遠遠落後，出發前多早開始計畫只有 0.127，來過幾次幾乎是零。</p>
 
 <a href="/images/taiwan-tourism/q1-total-usd.png"><img src="/images/taiwan-tourism/q1-total-usd.png" alt="總消費金額的相關性與效果量" width="860" loading="lazy" /></a>
-
-</div>
-
-<div data-focus-group>
 
 <p>不過總花費多，可能只是因為待得久。所以我換一個問法：<b>改看每天花多少。</b></p>
 
@@ -99,17 +73,9 @@ date: 2026-07-24
 
 <p>那節省到底是真的還是假的？換個角度驗證：直接拿總花費對天數。結果是天數翻一倍，總花費只多了四成。所以省是真的省，但沒有 −0.471 看起來那麼誇張。</p>
 
-</div>
-
-<div data-focus-group>
-
 <p>撇開這個陷阱，每天花多少的真正答案是<b>來台目的</b>。來洽公的、來玩的、來探親的，每天的開銷結構完全不同。</p>
 
 <a href="/images/taiwan-tourism/q2-daily-usd.png"><img src="/images/taiwan-tourism/q2-daily-usd.png" alt="日均消費金額的相關性與效果量" width="860" loading="lazy" /></a>
-
-</div>
-
-<div data-focus-group>
 
 <details>
 <summary>為什麼用這些方法</summary>
@@ -123,10 +89,6 @@ date: 2026-07-24
 </ul>
 </details>
 
-</div>
-
-<div data-focus-group>
-
 <h2 id="stay">停留天數｜國籍主導，旅遊方式顯著但無關緊要</h2>
 
 <p>停留天數既然是花費的最大因素，那它自己又被什麼決定？</p>
@@ -139,10 +101,6 @@ date: 2026-07-24
   <tr><th>方法</th><td>Kruskal–Wallis＋ε²，排除所有消費金額欄位</td></tr>
 </table>
 
-</div>
-
-<div data-focus-group>
-
 <p>答案是國籍，而且遙遙領先。光憑國籍就能解釋停留長短將近四分之一的差異，第二名的來台目的只有它的一半。</p>
 
 <p>這一節我還想特別講一個容易誤導人的地方。這六個因素跑統計檢定，全部都「顯著」，如果照慣例標星號，六個都是三顆星。看起來一樣重要。</p>
@@ -153,10 +111,6 @@ date: 2026-07-24
 
 <a href="/images/taiwan-tourism/q3-stay.png"><img src="/images/taiwan-tourism/q3-stay.png" alt="影響停留夜數的類別因子效果量" width="860" loading="lazy" /></a>
 
-</div>
-
-<div data-focus-group>
-
 <details>
 <summary>為什麼用這些方法</summary>
 <ul>
@@ -165,10 +119,6 @@ date: 2026-07-24
 </ul>
 </details>
 
-</div>
-
-<div data-focus-group>
-
 <h2 id="who">活動與玩法｜購物夜市全民化，水上活動集中在特定客群</h2>
 
 <table class="dmr">
@@ -176,10 +126,6 @@ date: 2026-07-24
   <tr><th>決策</th><td>兩者都是列聯結構，用同一套方法讓活動與玩法能放上同一把尺。判讀以參與率的實際差距與效果量為主，不看星號</td></tr>
   <tr><th>方法</th><td>卡方獨立性檢定＋偏誤校正 Cramér's V，Cochran 期望次數逐格檢查，各組 p 值統一 FDR 校正</td></tr>
 </table>
-
-</div>
-
-<div data-focus-group>
 
 <p>知道他們待多久、花多少之後，接著問：這些人到台灣，實際上都在做什麼？</p>
 
@@ -193,19 +139,11 @@ date: 2026-07-24
 
 <p><b>這一列後面分析重遊意願時還會用到。</b></p>
 
-</div>
-
-<div data-focus-group>
-
 <p>再看另一個角度：什麼決定了一個人選擇跟團還是自己玩？</p>
 
 <a href="/images/taiwan-tourism/q5-travel-type.png"><img src="/images/taiwan-tourism/q5-travel-type.png" alt="各旅遊方式的國籍組成熱圖" width="860" loading="lazy" /></a>
 
 <p>答案又是國籍，關聯強度 0.190，是六個因素裡最高的。想猜一個旅客會怎麼安排行程，知道他從哪裡來最有幫助。最沒用的是性別，只有 0.061，男生女生選擇跟團或自助的比例幾乎一樣。</p>
-
-</div>
-
-<div data-focus-group>
 
 <details>
 <summary>為什麼用這些方法</summary>
@@ -217,10 +155,6 @@ date: 2026-07-24
 </ul>
 </details>
 
-</div>
-
-<div data-focus-group>
-
 <h2 id="revisit">重遊意願｜分開兩群的是行程自主性</h2>
 
 <table class="dmr">
@@ -229,19 +163,11 @@ date: 2026-07-24
   <tr><th>方法</th><td>類別 one-hot 後算 phi 相關、連續變數算 point-biserial；雙比例 z 檢定，零格改 Fisher 精確檢定（觸發 2/52），52 個 p 值一起 FDR 校正</td></tr>
 </table>
 
-</div>
-
-<div data-focus-group>
-
 <p>最後一個問題，也是我最想知道的：誰會再來？</p>
 
 <p>一問才發現，這題比想像中難，因為六萬多人裡有 <b>98.7% 都說會再來</b>。說不會的只有 811 個。</p>
 
 <p>這種一面倒的資料很難分析。打個比方，如果全班五十個人有四十九個及格，你要找出「什麼特質會導致不及格」，手上就只有一個人可以觀察。資料再多也沒用，關鍵是少數的那一邊太少。</p>
-
-</div>
-
-<div data-focus-group>
 
 <p>先照標準做法算相關係數看看。</p>
 
@@ -249,19 +175,11 @@ date: 2026-07-24
 
 <p>結果所有數字都很小，最高的才 0.068。關聯是有的，只是一面倒的資料會把這種係數壓在很低的天花板下。<b>所以這張圖只能看排名，不能看數值大小。</b></p>
 
-</div>
-
-<div data-focus-group>
-
 <p>反過來看不願意再來的那一邊，我沒有重算一次。因為答案只有「會」跟「不會」兩種，沒有第三個選項，所以「跟不願意的關聯」在數學上就是上面那張圖的數字前面加個負號。確認過確實只有兩類之後，直接翻面就好，重算不會多出任何資訊。</p>
 
 <a href="/images/taiwan-tourism/q7-revisit-no.png"><img src="/images/taiwan-tourism/q7-revisit-no.png" alt="不願意重遊的正相關特徵" width="860" loading="lazy" /></a>
 
 <p>跟團排第一，退休族第二。</p>
-
-</div>
-
-<div data-focus-group>
 
 <p>但相關係數被天花板壓著，看不出真正的差距有多大。所以我換了一個完全不同的問法：<b>直接把兩群人擺在一起，比較他們的組成差多少。</b></p>
 
@@ -274,10 +192,6 @@ date: 2026-07-24
 <p>講得更白一點。不想再來的人裡，將近一半是跟團客、四成下過水；想再來的人裡，這兩種都不到兩成。</p>
 
 <p>兩邊差最多的地方在誰決定這趟行程。</p>
-
-</div>
-
-<div data-focus-group>
 
 <details>
 <summary>為什麼用這些方法</summary>
@@ -292,10 +206,6 @@ date: 2026-07-24
 </ul>
 </details>
 
-</div>
-
-<div data-focus-group>
-
 ## 所以，他們還會再來嗎
 
 <p>回到開頭那個問題。</p>
@@ -303,10 +213,6 @@ date: 2026-07-24
 <p>會不會再來，主要看行程是誰安排的，花多少錢的影響很小。自助的人自己決定要去哪，跟團的人拿到的是排好的行程。至於為什麼這會影響願不願意再來，資料沒有回答，以下是本人的主觀想法：我只自助旅行過，排行程時會先挑有興趣的地點，住哪、吃什麼再跟著那些地點調整，不用去遷就團費和大眾路線。我猜差距是從這裡來的，但這只是猜測，統計能講的只有兩群人的組成差了 24 和 29 個百分點。</p>
 
 <p>還有一件事沒解決。水上活動在不願意再來的那群人裡多了 23 個百分點，看起來也是元兇之一。但我把客群控制住重跑之後，這個落差掉了一大半。到底是活動本身的問題，還是它剛好都被排進跟團行程裡，我另外寫了一篇追這件事。</p>
-
-</div>
-
-<div data-focus-group>
 
 ## 延伸專案
 
@@ -319,10 +225,6 @@ date: 2026-07-24
   </tbody>
 </table>
 
-</div>
-
-<div data-focus-group>
-
 ## 全篇的方法紀律
 
 <table class="st-table">
@@ -334,5 +236,3 @@ date: 2026-07-24
     <tr><td><b>相關不當因果</b></td><td>負向訊號先查混淆結構，不能排除的寫進限制、不寫進結論</td></tr>
   </tbody>
 </table>
-
-</div>

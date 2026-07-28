@@ -1341,11 +1341,13 @@ main > h1 {
 	max-width: none;
 }
 
-/* 第二條選擇器是聚焦組的代價：標記把內容多包了一層 div，文字元素從此是孫子不是兒子。
-   刻意不改寫成後代選擇器——行寬只該套在「內容流裡的那一層」，寫死兩層才不會哪天
-   連表格儲存格裡的段落都被限成 40em。 */
-.content--stats > :is(p, ul, ol, h2, h3, details, blockquote),
-.content--stats > [data-focus-group] > :is(p, ul, ol, h2, h3, details, blockquote) {
+.content--stats > p,
+.content--stats > ul,
+.content--stats > ol,
+.content--stats > h2,
+.content--stats > h3,
+.content--stats > details,
+.content--stats > blockquote {
 	max-width: 40em;
 }
 
