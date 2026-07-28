@@ -189,9 +189,10 @@ export const CONTRAST_PAIRS = [
 	 * 所以進不了這份清單（列進來會因為「文字色必須是 fg」那道斷言直接紅）。
 	 * 九處改動逐條核對過，一處不多一處不少。
 	 *
-	 * 退場的九條見 SPEC-accent-text-semantics。`public/process/`（實測九個檔、39 處主色文字）
-	 * 明文豁免——理由與可枚舉的 grep 在 `CLAUDE.md`「元素主色當文字色」那節，
-	 * 閘門的 `siteRules` 本來就不含那幾頁。
+	 * 退場的九條見 SPEC-accent-text-semantics（**那份在 .gitignore 裡，只在本機**；
+	 * 進得了版控的敘述在 `CLAUDE.md`「元素主色當文字色」那節）。
+	 * `public/process/`（實測九個檔、39 處主色文字）明文豁免——理由與可枚舉的 grep
+	 * 同樣在 `CLAUDE.md` 那節，閘門的 `siteRules` 本來就不含那幾頁。
 	 *
 	 * **列進來是雙向的**：`fgOn` 同時啟用「這條規則的文字色必須是 fg」那道斷言，
 	 * 所以清單只能列真的在用主色的選擇器，多列一條會直接讓閘門紅。
