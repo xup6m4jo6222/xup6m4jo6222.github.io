@@ -190,6 +190,12 @@ async function shots(dir) {
 	// 閱讀頁的線強度也要看一次（正文欄兩側是他讀字時眼角會掃到的地方）
 	await shot(read, 'q1-read-ink-040.png');
 	await shot(`${read}?ink=0.07`, 'q1-read-ink-070.png');
+	/* 第三題：裂縫比例。現行 0.09 在 1280×720 上只斷 0.9%、餘燼 0 顆。
+	   線強度一律拉到 0.07 才看得出斷口在哪——這幾張問的是**斷口的密度**，
+	   不是線的強度，兩件事混在一張圖裡他分不出自己在答哪一題。 */
+	for (const c of ['0.09', '0.20', '0.30']) {
+		await shot(`/?ink=0.07&crack=${c}`, `q3-home-crack-${c.replace('.', '')}.png`);
+	}
 	console.log(`截圖產在 ${dir}`);
 }
 

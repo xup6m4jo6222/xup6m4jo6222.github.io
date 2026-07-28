@@ -52,12 +52,12 @@
 	   `?nodim=1` 關掉減光（票 01 的 fail-then-pass 對照組）；
 	   `?ink=` `?dim=` 直接換值（票 02 的比對截圖）。改屬性就等於改參數，
 	   不必為了看另一組值而重新建置——這是產物端契約付出來的紅利。 */
+	const KNOBS = { ink: 'ink', dim: 'textDim', crack: 'crack', ember: 'ember' };
 	const cv0 = document.querySelector('canvas.field');
-	if (cv0 && (nodim || q.has('ink') || q.has('dim'))) {
+	if (cv0 && (nodim || Object.keys(KNOBS).some((k) => q.has(k)))) {
 		const p = JSON.parse(cv0.dataset.field);
 		if (nodim) p.textDim = 0;
-		if (q.has('ink')) p.ink = +q.get('ink');
-		if (q.has('dim')) p.textDim = +q.get('dim');
+		for (const [k, key] of Object.entries(KNOBS)) if (q.has(k)) p[key] = +q.get(k);
 		cv0.dataset.field = JSON.stringify(p);
 	}
 
