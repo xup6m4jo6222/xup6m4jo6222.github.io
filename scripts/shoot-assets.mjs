@@ -59,11 +59,16 @@ function chrome(args) {
 
 mkdirSync(PROFILE, { recursive: true });
 
-// 首頁：整頁剛好一屏，device scale factor 0.5 直接輸出 760×470，不用再縮
+/* 首頁：整頁剛好一屏，device scale factor 0.5 直接輸出 760×470，不用再縮。
+   **必須加 --force-prefers-reduced-motion**（第 9 版母題上線後補）：母題是常駐 rAF 迴圈，
+   而 --virtual-time-budget 遇到常駐迴圈幾乎不前進，[data-reveal] 的 0.35s 淡入永遠跑不完，
+   拍出來的首頁會只剩一個 h1。加了這個旗標之後淡入直接到位，母題也畫在 breath(0)——
+   那恰好是呼吸中點，是這張比對圖最有代表性的一幀，不是隨機取樣。 */
 chrome([
 	'--virtual-time-budget=8000',
 	`--window-size=${SHOT_W},${SHOT_H}`,
 	'--force-device-scale-factor=0.5',
+	'--force-prefers-reduced-motion',
 	`--user-data-dir=${PROFILE}`,
 	`--screenshot=${join(OUT, `current-${version}.png`)}`,
 	`http://localhost:${port}/`,

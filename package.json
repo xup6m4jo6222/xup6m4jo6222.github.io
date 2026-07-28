@@ -12,7 +12,8 @@
     "astro": "astro",
     "verify:palette": "astro build && node scripts/verify-palette.mjs",
     "verify:palette:selftest": "astro build && node scripts/verify-selftest.mjs",
-    "shoot": "node scripts/shoot-assets.mjs"
+    "shoot": "node scripts/shoot-assets.mjs",
+    "shoot:og": "node scripts/shoot-og-card.mjs"
   },
   "dependencies": {
     "astro": "^7.0.6"
