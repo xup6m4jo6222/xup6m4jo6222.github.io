@@ -15,6 +15,21 @@ Architecture notes:
 - i18n is pre-wired for a future English version: `locales: ['zh']`, `defaultLocale: 'zh'`, `routing.prefixDefaultLocale: false` in `astro.config.mjs`. Adding `'en'` later won't change existing `zh` URLs.
 - Deploy: GitHub Pages via GitHub Actions (`.github/workflows/deploy.yml`, `withastro/action`), auto-deploys on push to `main`. Repo is `xup6m4jo6222.github.io` (GitHub user site, root domain).
 
+## 設計決策的前提（每一次挑選都要過，換對話也不重來）
+
+任何視覺／互動的選擇，依序過這四關。原始出處與逐條原話在 `DECISIONS.md`，這裡是每個對話都讀得到的正本摘要。
+
+1. **五大理念為主**（2026-07-19 本人終版）：易讀永遠最優先／保持低調但不失高級感／具個人特色／不過度的互動設計／文字完全由本人主導。
+2. **UIUX 理論為輔**：用理論**窮舉候選集**並回頭檢驗，**不用來決定方向**。方向永遠由理念決定。
+3. **每個元素都要能敘述一個故事才定案**（2026-07-27 增修）。講不出來就不要硬編——**編出來的故事比沒有故事更糟**，選項是降格登記為「技法」或直接不做。
+4. **成本要付得起，而且要用對的貨幣講**（2026-07-28 增修）。提案時一律把成本攤開，四種貨幣分開講，不要混為一談：
+   - **位元組**（下載多少）
+   - **每幀 CPU**（常駐的東西每秒要做多少事——這是唯一量得到常駐動態的貨幣）
+   - **載入時間**
+   - **讀者的注意力**（畫面上多一個會動的東西，就少一分注意力給文字）
+
+   **明文否決「檔案越小＝設計越好」這條分界。**本站 2026-07-28 實測：首頁 HTML＋CSS＋JS 共約 46KB（背景母題的腳本只佔 6.5KB），真正的重量在兩套 CJK 字體與 `dist/images` 的 3.7MB。所以在這個站上「省 KB」的邊際效益很低，**該守的是每幀 CPU 與注意力**。省錯貨幣等於沒省。
+
 ## 換色協議（全站色彩遷移的唯一標準程序）
 
 `public/process/` 七頁的 token 與 `src/styles/global.css` **刻意雙源**——那七頁是標了日期的歷史重演存檔，隔離是特性；勿抽共用 CSS、勿只改一邊（2026-07-19 結構診斷＋抗辯定案）。
