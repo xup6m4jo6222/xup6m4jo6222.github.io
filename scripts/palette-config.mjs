@@ -172,7 +172,42 @@ const onPage = (fg, what, min) => ({ fg, bgs: PAGE_SURFACES, where: `${what} on 
 export const CONTRAST_PAIRS = [
 	onPage('var(--color-text)', '內文'),
 	onPage('var(--color-text-muted)', 'muted'),
-	onPage('var(--color-accent)', '連結'),
+	/**
+	 * 元素主色當文字色的**允許清單**。疊在頁底九種狀態都 ≥4.5 只證明「看得見」，
+	 * 不證明「該用在這裡」——所以這一組帶 `fgOn`，認領的是清單上的選擇器，
+	 * 不是「主色可以當文字色」這張通行證（見 verify-palette.mjs 的認領邏輯）。
+	 *
+	 * 現況 `src/` 的主色文字共 **16 條**：這裡 14 條，另外 2 條（`.tl-solo em`、
+	 * `.cs-track .cs-side--me em`）疊在面板底上，由下面「面板上的元素主色小標」那組管。
+	 * （`/process/` 七頁的 41 處由 SPEC 明文豁免，閘門的 `siteRules` 本來就不含那幾頁。）
+	 *
+	 * 這 14 條是**現況原封不動搬進來的**，不是定案——定案是「只剩內文連結靜止態，
+	 * 以及靜止態已在中性階頂端的互動元素其 hover 態」，收斂到八條是下一張票的事。
+	 *
+	 * **列進來是雙向的**：`fgOn` 同時啟用「這條規則的文字色必須是 fg」那道斷言，
+	 * 所以清單只能列真的在用主色的選擇器，多列一條會直接讓閘門紅。
+	 */
+	{
+		...onPage('var(--color-accent)', '連結'),
+		fgOn: [
+			'a',
+			'.site-nav .nav-brand:hover',
+			'.home-cta a:hover',
+			'.home-links a:hover',
+			'.back-link:hover',
+			'.links a:hover',
+			'.cs-stats b',
+			// 單冒號不是筆誤：閘門讀的是壓縮後的產物，壓縮器把 `::after` 正規化成 `:after`。
+			// 照原始碼寫 `::after` 會對不上、閘門立刻紅（fail-closed，不會靜靜放行）。
+			'.cs-wipe-handle:after',
+			'.cs-wipe-tag--new',
+			'.cs-pair-me em',
+			'.content details summary:hover',
+			'.st-table td b',
+			'.st-table a:hover',
+			'.dmr th',
+		],
+	},
 
 	/**
 	 * 以下這幾組的合格與否**取決於它疊在哪個表面上**，所以兩端都要釘到真的選擇器：

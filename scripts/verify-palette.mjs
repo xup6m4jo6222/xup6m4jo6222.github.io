@@ -507,13 +507,18 @@ function checkContrast(vars, siteRules) {
 		/**
 		 * 認領有兩種強度，混在一起就是漏洞：
 		 *   **無條件**——配對的背景是頁面表面，代表這個顏色疊在頁上到處都安全。
-		 *   **限定選擇器**——配對的背景是某個元件的底，那它只在那幾條規則上安全。
+		 *   **限定選擇器**——配對帶了 `fgOn`，那它只認領清單上的那幾條規則。
 		 * 早期版本把兩者混為一談，於是「深字反白」那組把頁底色登記成合法文字色，
 		 * 誰在別處寫 `color: var(--color-bg)` 都會過——實際對比 1.00，隱形字。
+		 *
+		 * **`fgOn` 優先於頁面表面。**元素主色疊在頁底九種狀態都 ≥4.5 是真的，但那只
+		 * 證明「看得見」，不證明「該用在這裡」；早期版本讓這一組無條件認領，主色因此
+		 * 對任何選擇器都是通行證——注入一條純虛構的 `.rogue{color:#7998c3}` 到真實產物，
+		 * 八類全過、退出碼 0（實測）。對比驗證不變，變的是它不再發通行證。
 		 */
 		if (min === CFG.CONTRAST_MIN) {
-			if (pair.bgs === CFG.PAGE_SURFACES) declaredFg.add(opaque(fg));
-			else for (const s of pair.fgOn ?? []) claimedSelectors.add(s);
+			if (pair.fgOn) for (const s of pair.fgOn) claimedSelectors.add(s);
+			else if (pair.bgs === CFG.PAGE_SURFACES) declaredFg.add(opaque(fg));
 		}
 
 		// 一組配對可以有多個背景狀態（漸層 × 顆粒）。全部量，只回報最壞的那個——
@@ -589,11 +594,15 @@ function checkContrast(vars, siteRules) {
 				continue;
 			}
 			if (declaredFg.has(hex)) continue;
-			if (rule.selectors.some((s) => claimedSelectors.has(s))) continue;
+			// **逐選擇器判定，不是整條規則。**用 `some()` 的話，`.rogue,a{color:主色}`
+			// 會被同群組的 `a` 順帶認領——實測八類全過、退出碼 0。允許清單一旦成為
+			// 唯一守門人，「群組裡有一個合法就全放行」就等於清單可以被繞過。
+			const orphans = rule.selectors.filter((s) => !claimedSelectors.has(s));
+			if (!orphans.length) continue;
 			fail(
 				'contrast',
 				`未認領的文字色 ${hex}`,
-				`${rule.selectors.join(', ')} 用 ${d.value} 當文字色，但 CONTRAST_PAIRS 裡沒有任何一組在管它`,
+				`${orphans.join(', ')} 用 ${d.value} 當文字色，但 CONTRAST_PAIRS 裡沒有任何一組在管它`,
 			);
 		}
 	}

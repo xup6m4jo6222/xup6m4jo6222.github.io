@@ -243,6 +243,28 @@ const cases = [
 		expect: /focus-orphan[\s\S]*聚焦組/,
 	},
 
+	// ── 元素主色票 01：主色當文字色不再無條件放行 ──────────────────────────
+	{
+		// 元素主色那組配對的背景是頁面表面，早期版本因此把它**無條件**登記為合法文字色，
+		// 於是主色對任何選擇器都成了通行證：這條純虛構的規則實測八類全過、退出碼 0。
+		// 補洞後配對只認領 fgOn 上的選擇器，清單外的主色文字就會被第二類抓住。
+		name: '拿元素主色當文字色，但選擇器不在允許清單上',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(f, `${readFileSync(f, 'utf8')}\n.rogue-not-in-any-whitelist{color:#7998c3}\n`),
+		expect: /未認領的文字色 #7998c3[\s\S]*rogue-not-in-any-whitelist/,
+	},
+	{
+		// 上一條擋得住單獨一條規則，擋不住**搭便車**：認領原本是整條規則放行，
+		// 所以 `.rogue,a{…}` 會被同群組的 `a` 順帶帶過（實測退出碼 0）。
+		// 允許清單是主色唯一的守門人，這個形狀不擋等於清單有一道側門。
+		name: '主色文字搭清單上的選擇器便車（同一條規則裡分組）',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(f, `${readFileSync(f, 'utf8')}\n.rogue-piggyback,a{color:#7998c3}\n`),
+		expect: /未認領的文字色 #7998c3[\s\S]*rogue-piggyback/,
+	},
+
 	{
 		name: '把母題參數改成檔位以外的值',
 		expectPass: false,
