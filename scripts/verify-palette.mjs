@@ -5,9 +5,10 @@
  * 讀的是 `astro build` 的產物 `dist/` 與 21 張圖表 PNG，不讀原始碼：
  * 重構 CSS、換 token 分層都不該讓這支腳本失敗。
  *
- * 七類檢查見 SPEC-design-system.md「Testing Decisions」、
- * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」與
- * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）。
+ * 八類檢查見 SPEC-design-system.md「Testing Decisions」、
+ * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」、
+ * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）與
+ * SPEC-focus-groups.md「T3 孤兒檢查」（票 03 補上第八類）。
  *
  * ── 這道閘門守得到什麼、守不到什麼（請不要過度信任它）────────────────────
  *
@@ -1049,6 +1050,85 @@ function checkMotif(htmlFiles) {
 	}
 }
 
+/**
+ * 檢查 8（票 03）：聚焦組標記的孤兒。
+ *
+ * 手動標記是 D4 明選的做法，代價是「沒有人標就沒有效果」。防線有兩道：AI 的長期記憶，
+ * 以及這一道。**設計上假設第一道會失效**，所以這一道不能靠任何人記得。
+ *
+ * 認的是**時間軸卡**不是「內容容器的直接子元素」。規格原文寫的是後者，那是照統計頁的
+ * 形狀寫的——`.content--ai` 的直接子元素沒有一個帶標記，8 組全部是 `ul.tl` 裡的
+ * `li.tl-item`。照原文實作，唯一真的在用這個機制的那一頁會滿江紅。
+ *
+ * `li.tl-era`（起點／開始實作／上線後三張章節卡）刻意不入組：它們是分隔標記不是內容，
+ * 糊掉章節標題等於讀者找不到自己在哪。它們也沒有 `.tl-item` 那條位移規則，所以不會錯位。
+ *
+ * **忘了標記的後果是實測出來的，不是從 CSS 推的**：那張卡永遠清晰（糊化掛在屬性上，
+ * 沒屬性就沒糊化），而且永遠停在 `translateX(-36px)`——位移歸零靠觀察器加 `is-centered`，
+ * 觀察器只認標記過的元素。所以它是一張比別人左偏 36px、永遠不滑進來的卡，
+ * 不是「永遠糊掉的卡」。第一版的失敗訊息寫反了，靠無頭瀏覽器實測才發現。
+ *
+ * 統計四頁不驗——2026-07-28 郁為推翻了那一半（「統計分析幾乎不適合做模糊」），
+ * 那四頁 0 組是決定不是遺漏。
+ */
+const FOCUS_ATTR_RE = /<[a-z][a-z0-9-]*\b[^>]*?\sdata-focus-group(?=[\s=>])/gi;
+const TL_ITEM_RE = /<li\b[^>]*\bclass=("[^"]*"|'[^']*')[^>]*>/gi;
+
+function checkFocusOrphans(htmlFiles) {
+	// 內聯的觀察器腳本裡有 '[data-focus-group]' 這個字串，掃屬性之前要先拿掉，
+	// 否則腳本本身會讓「這頁有標記」永遠成立——那是 fail-open。
+	const stripScripts = (h) => h.replace(/<script[\s\S]*?<\/script>/gi, '');
+
+	const aiPages = htmlFiles.filter((f) => {
+		const parts = relative(DIST, f).split(sep);
+		return parts[0] === 'projects' && parts[1] === 'ai';
+	});
+
+	if (!aiPages.length) {
+		fail('focus-orphan', '產物', '找不到任何 AI 專案內頁——這條檢查失去對象，先確認路由沒被改掉');
+		return;
+	}
+
+	let cards = 0;
+	let groups = 0;
+
+	for (const f of aiPages) {
+		const rel = relative(DIST, f);
+		const html = stripScripts(readFileSync(f, 'utf8'));
+
+		const n = (html.match(FOCUS_ATTR_RE) || []).length;
+		groups += n;
+
+		let i = 0;
+		for (const m of html.matchAll(TL_ITEM_RE)) {
+			if (!/\btl-item\b/.test(m[1])) continue;
+			i++;
+			cards++;
+			if (!/\sdata-focus-group(?=[\s=>])/.test(m[0])) {
+				// 不吃例外清單：這不是「可以有理由保留」的那種違規，是純粹的遺漏。
+				failures.push({
+					check: 'focus-orphan',
+					key: `${rel} :: 第 ${i} 張 li.tl-item`,
+					detail:
+						'時間軸卡沒有 data-focus-group。實測後果（無頭瀏覽器量的，不是推論）：那張卡永遠清晰、' +
+						'而且永遠停在 translateX(-36px)——位移歸零靠的是觀察器加上 is-centered，而觀察器只認標記過的元素。' +
+						'結果是一張比其他卡左偏 36px、永遠不滑進來的卡',
+				});
+			}
+		}
+
+		if (n === 0) {
+			failures.push({
+				check: 'focus-orphan',
+				key: rel,
+				detail: 'AI 專案內頁的聚焦組數為 0——這一條擋的是「新增一個不是時間軸形狀的 AI 頁」，上面那條認 li.tl-item，遇到那種頁會整條空過',
+			});
+		}
+	}
+
+	note(`聚焦組：${aiPages.length} 個 AI 專案內頁、${cards} 張時間軸卡、${groups} 組（統計頁不在範圍內）`);
+}
+
 // ===========================================================================
 // 主流程
 // ===========================================================================
@@ -1104,32 +1184,35 @@ function main() {
 		.map((f) => ({ rel: relative(ROOT, f), text: readFileSync(f, 'utf8') }));
 	const siteHtmlFiles = allFiles.filter((f) => /\.html$/i.test(f) && !isProcessPage(f));
 
-	console.log('— 1／7 色碼白名單');
+	console.log('— 1／8 色碼白名單');
 	checkColorWhitelist(textFiles, allowedCss);
 	checkSiteColorsOnRamp();
 	checkChartPixels();
 
-	console.log('— 2／7 對比度');
+	console.log('— 2／8 對比度');
 	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
-	console.log('— 3／7 色盲安全');
+	console.log('— 3／8 色盲安全');
 	checkColorVision();
 
-	console.log('— 4／7 色階規律');
+	console.log('— 4／8 色階規律');
 	checkRamps(vars);
 
-	console.log('— 5／7 排版與間距規律');
+	console.log('— 5／8 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／7 可及性偏好的逃生口（降低動態／增加對比）');
+	console.log('— 6／8 可及性偏好的逃生口（降低動態／增加對比）');
 	checkReducedMotion(siteParsed);
 	checkStandingMotionReducedMotion(scriptSources);
 	checkContrastEscape(siteParsed);
 
-	console.log('— 7／7 母題參數與常駐動態');
+	console.log('— 7／8 母題參數與常駐動態');
 	checkMotif(siteHtmlFiles);
+
+	console.log('— 8／8 聚焦組標記完整（孤兒檢查）');
+	checkFocusOrphans(siteHtmlFiles);
 
 	// ---- 回報 ----
 	if (process.env.VERIFY_VERBOSE) {
@@ -1170,7 +1253,7 @@ function main() {
 		process.exit(1);
 	}
 
-	console.log(`\n✓ 七類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
+	console.log(`\n✓ 八類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
 }
 
 main();

@@ -24,7 +24,7 @@ jobs:
       # 部署前閘門：跑在 build 之後、deploy 之前。這一步紅掉，deploy job 就不會執行。
       - name: 閘門自我檢查（注入缺陷應該會紅）
         run: npm run verify:palette:selftest
-      - name: 設計系統驗證（六類檢查）
+      - name: 設計系統驗證（八類檢查）
         run: npm run verify:palette
 
   deploy:

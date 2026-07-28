@@ -79,6 +79,15 @@ const stripMotifAttrs = (dir) => {
 	walk(dir);
 };
 
+/** 改 AI 專案內頁的產物。找檔案而不是寫死路徑——日後多一個 AI 頁，這裡不必跟著改。 */
+const editAiPage = (dir, mutate) => {
+	const base = join(dir, 'projects', 'ai');
+	const slug = readdirSync(base, { withFileTypes: true }).find((e) => e.isDirectory());
+	if (!slug) throw new Error('產物裡找不到任何 AI 專案內頁');
+	const p = join(base, slug.name, 'index.html');
+	writeFileSync(p, mutate(readFileSync(p, 'utf8')));
+};
+
 const cases = [
 	{
 		name: '未經注入的產物副本應該綠',
@@ -213,6 +222,27 @@ const cases = [
 		},
 		expect: /找不到任何 data-motif/,
 	},
+
+	// ── 票 03：聚焦組標記的孤兒檢查 ────────────────────────────────────────
+	{
+		// 真正會發生的退步：日後在 AI 頁加一張時間軸卡、忘了帶標記屬性。
+		// 那張卡會永遠停在 opacity 0.18（實測對比 1.66），而且**安靜**——
+		// 頁面看起來是有效果的，只有那一張永遠不亮。
+		name: 'AI 頁有一張時間軸卡忘了標記',
+		expectPass: false,
+		mutate: (_f, dir) => editAiPage(dir, (h) => h.replace(' data-focus-group', '')),
+		expect: /focus-orphan[\s\S]*tl-item/,
+	},
+	{
+		// 上一條認的是 tl-item，所以「新增一個不是時間軸形狀的 AI 頁」會從它底下空過。
+		// 這一條把卡片的 class 一起拿掉，模擬那種頁：沒有 tl-item、也沒有任何一組。
+		name: 'AI 頁整頁一組都沒有（不是時間軸形狀）',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			editAiPage(dir, (h) => h.replace(/ data-focus-group/g, '').replace(/\btl-item\b/g, 'tl-plain')),
+		expect: /focus-orphan[\s\S]*聚焦組/,
+	},
+
 	{
 		name: '把母題參數改成檔位以外的值',
 		expectPass: false,
