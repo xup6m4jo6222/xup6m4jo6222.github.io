@@ -15,7 +15,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const js = readFileSync(new URL('probe-fps.js', import.meta.url), 'utf8');
+const probeName = process.env.PROBE || 'probe-fps.js';
+const js = readFileSync(new URL(probeName, import.meta.url), 'utf8');
 const pages = process.argv.slice(2).length
 	? process.argv.slice(2)
 	: ['index.html', 'projects/stats/taiwan-tourism/index.html'];
@@ -23,8 +24,8 @@ const pages = process.argv.slice(2).length
 for (const p of pages) {
 	const file = join(ROOT, 'dist', p);
 	const html = readFileSync(file, 'utf8');
-	if (html.includes('/* probe-fps */')) continue; // 重跑不要疊第二份
-	writeFileSync(file, html.replace('</body>', `<script>/* probe-fps */\n${js}</script></body>`));
+	if (html.includes('/* probe */')) continue; // 重跑不要疊第二份
+	writeFileSync(file, html.replace('</body>', `<script>/* probe */\n${js}</script></body>`));
 	console.log('已注入', p);
 }
 
