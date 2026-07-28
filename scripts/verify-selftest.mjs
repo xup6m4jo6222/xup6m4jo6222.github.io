@@ -16,11 +16,26 @@ import * as CFG from './palette-config.mjs';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const VERIFIER = join(ROOT, 'scripts', 'verify-palette.mjs');
 
+/**
+ * 跑一次閘門。
+ *
+ * **一定要給逾時**：沒有逾時的話，閘門若在某個案例上卡死，這支就永遠不會回來——
+ * CI 上表現為那個步驟一直轉，而日誌要等整步結束才拿得到，等於什麼線索都沒有。
+ * 2026-07-28 就踩到：同一步驟在 v8 只花 24 秒，第 9 版推上去之後跑了 26 分鐘還沒完，
+ * 只能把整輪取消掉。**會紅的閘門好過會卡住的閘門。**
+ *
+ * maxBuffer 也要放大：預設 1MB，閘門輸出一多就被截斷並設成錯誤，看起來像閘門失敗。
+ */
+const CASE_TIMEOUT_MS = 120_000;
 function run(dist) {
 	const r = spawnSync(process.execPath, [VERIFIER], {
 		env: { ...process.env, VERIFY_DIST: dist },
 		encoding: 'utf8',
+		timeout: CASE_TIMEOUT_MS,
+		maxBuffer: 32 * 1024 * 1024,
 	});
+	if (r.error && r.error.code === 'ETIMEDOUT')
+		return { code: null, out: `閘門逾時：超過 ${CASE_TIMEOUT_MS / 1000} 秒沒有結束`, timedOut: true };
 	return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
 
@@ -208,10 +223,15 @@ const cases = [
 
 let failed = 0;
 for (const c of cases) {
-	const { code, out } = withCopy(c.mutate);
+	// **開跑前就先印**。跑完才印的話，卡住的那一個案例不會留下任何痕跡——
+	// CI 的日誌要等整個步驟結束才拿得到，於是「卡在哪裡」變成無從得知。
+	process.stdout.write(`… ${c.name}\n`);
+	const t0 = Date.now();
+	const { code, out, timedOut } = withCopy(c.mutate);
+	const secs = ((Date.now() - t0) / 1000).toFixed(1);
 	const passed = code === 0;
-	const ok = passed === c.expectPass && (!c.expect || c.expect.test(out));
-	console.log(`${ok ? '✓' : '✗'} ${c.name}　（退出碼 ${code}）`);
+	const ok = !timedOut && passed === c.expectPass && (!c.expect || c.expect.test(out));
+	console.log(`${ok ? '✓' : '✗'} ${c.name}　（退出碼 ${code}，${secs}s）`);
 	if (!ok) {
 		failed++;
 		console.log(out.split('\n').slice(-25).join('\n'));
