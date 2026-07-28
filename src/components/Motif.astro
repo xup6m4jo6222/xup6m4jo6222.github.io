@@ -119,6 +119,8 @@ const { mode } = Astro.props;
 		/** 構圖高度。**不是**即時視窗高——手機的視窗高會隨網址列收合而跳動，
 		    整個構圖（點、趨勢線、漸層、遠景層）一律錨在這個值上，才不會拆成兩半。 */
 		let LH = 0;
+		/** 遠景層要涵蓋到的高度＝構圖高加上容忍幅度，視窗在容忍帶內長高時才不會露邊。 */
+		const farH = () => LH * (1 + L.heightTolerance);
 		let DPR = 1;
 		let col = 0;
 		let tile = 0;
@@ -369,7 +371,6 @@ const { mode } = Astro.props;
 				if (breathing) buildBreathe();
 				else buildReading();
 				farLayer = null;
-				builtH = H;
 			}
 			const boxes = contentBoxes();
 			bandMask = boxes.length ? makeBandMask(boxes) : null;
@@ -380,9 +381,14 @@ const { mode } = Astro.props;
 		function makeFarLayer() {
 			const m = document.createElement('canvas');
 			/* 尺寸綁構圖高而不是當下的畫布高：畫布會隨視窗高跳動，遠景層不會。
-			   兩者脫鉤時 drawImage 會把整張圖拉伸（抗辯第二輪實測到的那條）。 */
+			   兩者脫鉤時 drawImage 會把整張圖拉伸（抗辯第二輪實測到的那條）。
+
+			   高度要多留一個容忍幅度：視窗高在容忍帶內長高時（網址列收合），畫布跟著長，
+			   但構圖不動——遠景層若只畫到 LH，底部就會露出一條沒有遠景的空白帶
+			   （抗辯第三輪拍圖確認，17% 差距時肉眼可辨）。近景點與趨勢線本來就會自然
+			   溢出 LH，只有這張預繪圖有硬邊界，所以補在這裡就夠。 */
 			m.width = Math.round(W * DPR);
-			m.height = Math.round(LH * DPR);
+			m.height = Math.round(farH() * DPR);
 			const g = m.getContext('2d')!;
 			g.setTransform(DPR, 0, 0, DPR, 0, 0);
 			const g0 = breath(0);
@@ -403,7 +409,7 @@ const { mode } = Astro.props;
 			if (breathing) {
 				if (!farLayer) farLayer = makeFarLayer();
 				ctx!.globalAlpha = 1;
-				ctx!.drawImage(farLayer, 0, 0, W, LH);
+				ctx!.drawImage(farLayer, 0, 0, W, farH());
 				const frozen = still.matches;
 				for (const p of pts) {
 					if (p.far) continue;
