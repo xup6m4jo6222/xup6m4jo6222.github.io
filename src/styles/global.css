@@ -172,7 +172,13 @@ a {
 
    字重只有三個合法值：Sans 400／500、Serif 600。宣告了但沒載入的字重會被 CSS
    字體匹配演算法靜默替換成別的字重——站上原本的 Sans 600 實際渲染成 700、
-   Serif 500 實際渲染成 400，兩個方向的 bug 都在本次修掉。 */
+   Serif 500 實際渲染成 400，兩個方向的 bug 都在本次修掉。
+
+   **字體是第五個屬性，但只有「標籤」那一組收進來**（2026-07-28 合併時）：那一組的
+   襯線是判準的一部分——說明「接下來這一塊是什麼」的短詞一律襯線 600，落點有 11 個，
+   分散宣告就等於 11 個要同步的地方。其餘幾組的 `font-family` 仍留在各自的元件規則裡
+   （`.site-nav .nav-brand`、`.home h1`、`.category h2`、`main > h1`、`.tl-era h2`、
+   `.content h2`），要不要一併收攏是另一個決定，不在合併那張票的範圍。 */
 
 /* 樣式：內文（階 0）。body 設一次，其餘元素繼承。 */
 body,
@@ -216,7 +222,16 @@ footer {
 	font-weight: 400;
 }
 
-/* 樣式：短標籤（階 −1 ＋ 字距）。分類名、角標、原件標籤這類單獨成行的短詞。 */
+/* 樣式：標籤（階 −1 ／字距 ／襯線 600）。說明「接下來這一塊是什麼」的短詞——
+   表格的欄名列名與卡片的前導小標是同一種東西，2026-07-28 合併（此前是「短標籤」與
+   「表頭」兩組，字級字距相同、只差字重與字體，職責分不出差別）。
+
+   為什麼是 600 不是 400：本人否決的是**字重 400 的細襯線**（「太普通、失去易讀性與
+   高級設計感」），不是襯線本身。600 是站上已證明撐得住的那一檔（段落標題在用）而且
+   已載入——位元組 0、每幀 CPU 0、不新增字體請求。否決「改走 Sans 500」：那會與內文
+   粗體同字重，段內重點字與小標就分不開了。
+
+   襯線在這裡設一次，元件規則不要再各自宣告一遍——那正是兩組樣式分家時的同步成本。 */
 .cs-wipe-tag,
 .cs-toggle-name,
 .cs-side em,
@@ -225,11 +240,14 @@ footer {
 .cs-pair em,
 .cs-rawchip,
 .tl-solo em,
-.st-sub {
+.st-sub,
+.st-table thead th,
+.dmr th {
 	font-size: var(--fs--1);
 	line-height: var(--lh--1);
 	letter-spacing: var(--ls-label);
-	font-weight: 400;
+	font-family: var(--font-display);
+	font-weight: 600;
 }
 
 /* 樣式：介面強調（階 0 ／半粗）。導覽列當前頁、卡片標題、統計數字、表格粗體。
@@ -263,15 +281,6 @@ footer {
 	font-size: var(--fs-1);
 	line-height: var(--lh-1);
 	letter-spacing: var(--ls-display);
-	font-weight: 600;
-}
-
-/* 樣式：表頭（階 −1 ／襯線 600）。表格裡的欄名與列名，量級跟著表格內文走。 */
-.st-table thead th,
-.dmr th {
-	font-size: var(--fs--1);
-	line-height: var(--lh--1);
-	letter-spacing: var(--ls-label);
 	font-weight: 600;
 }
 
@@ -1221,12 +1230,12 @@ main > h1 {
 	height: 100%;
 }
 
-/* 前導小標換通道：不靠顏色，靠字體。襯線把它與下面那段 Sans 的內文分開，
-   字距 0.04em 本來就有。顏色留給非文字通道（這張卡的角標線就是主色）。 */
+/* 前導小標換通道：不靠顏色，靠字體與字重。襯線 600 把它與下面那段 Sans 的內文分開，
+   字距 0.04em 本來就有——三者都由「標籤」樣式一次給。顏色留給非文字通道（這張卡的
+   角標線就是主色）。 */
 .tl-solo em {
 	display: block;
 	font-style: normal;
-	font-family: var(--font-display);
 	margin-bottom: var(--sp-xs);
 }
 
@@ -1268,7 +1277,6 @@ main > h1 {
 }
 
 .st-table thead th {
-	font-family: var(--font-display);
 	color: var(--color-text);
 	white-space: nowrap;
 }
@@ -1305,9 +1313,9 @@ main > h1 {
 }
 
 /* 行標題對內容的分別由色階承擔：主色對 muted 的對比只有 1.05（色盲模擬下
-   1.01–1.10，等於分不出來），n-900 對 n-600 是 2.27。襯線與字重不動。 */
+   1.01–1.10，等於分不出來），n-900 對 n-600 是 2.27。襯線 600 由「標籤」樣式給，
+   這一輪合併沒有動到它的量級——變的是短標籤那一組向它靠齊。 */
 .dmr th {
-	font-family: var(--font-display);
 	color: var(--color-text);
 	white-space: nowrap;
 	width: 3.6rem;
