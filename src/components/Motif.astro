@@ -314,6 +314,8 @@ const { mode } = Astro.props;
 		}
 
 		let shape = '';
+		/** 上一次真的重擲點時的視窗高。**不是**目前的 H——那正是下面在防的東西。 */
+		let builtH = 0;
 		function resize() {
 			DPR = Math.min(window.devicePixelRatio || 1, K.dprCap);
 			W = window.innerWidth;
@@ -323,9 +325,21 @@ const { mode } = Astro.props;
 			if (!W || !H || !col) return;
 			/* 點只在「畫布真的變了」時重擲。內文變高（圖載完、字體換上來）會讓
 			   ResizeObserver 叫這裡，但那些跟畫布無關——每次都重擲的話，讀者會看到
-			   背景在讀到一半時整片換掉，那就成了自發動態。實測抓到的就是這一個。 */
-			const now = `${W}×${H}@${DPR}／${Math.round(col)}`;
-			const reshape = now !== shape;
+			   背景在讀到一半時整片換掉，那就成了自發動態。實測抓到的就是這一個。
+
+			   **視窗高不能原樣進簽章**（2026-07-28 抗辯第一輪紅隊提出、真 iPhone 實測確認）：
+			   手機捲動時網址列收合會讓 `innerHeight` 真的變動數十 px（本站實測同一台
+			   iPhone 上首頁 684、閱讀頁 744），舊寫法一變就重擲，讀者每次上下滑都看到
+			   背景整片重洗——與上面那一段要防的是同一個症狀，只是來源不是 ResizeObserver
+			   的假警報，而是真的 resize 事件。無頭環境驗不出來（resize 送不進去），
+			   所以它一路活到發佈前才被抓到。
+
+			   閱讀頁的點**完全不吃 H**（位置只有 x 比例與磚內 y，磚高綁欄寬），所以直接不看；
+			   首頁的點吃 H（散開半幅與趨勢線高度都乘 H），但網址列那種幅度（約一成）
+			   不值得重擲。真正需要重擲的是換裝置或轉向，而那必然連 W 也一起變。 */
+			const now = `${W}@${DPR}／${Math.round(col)}`;
+			const heightMoved = breathing && Math.abs(H - builtH) > builtH * 0.2;
+			const reshape = now !== shape || heightMoved;
 			shape = now;
 			tile = col * M.tileHeightColumns; // 磚高＝欄寬 × 2，綁 --max-width
 			cv!.width = Math.round(W * DPR);
@@ -347,6 +361,7 @@ const { mode } = Astro.props;
 				if (breathing) buildBreathe();
 				else buildReading();
 				farLayer = null;
+				builtH = H;
 			}
 			const boxes = contentBoxes();
 			bandMask = boxes.length ? makeBandMask(boxes) : null;
