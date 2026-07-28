@@ -169,6 +169,125 @@ export const PAGE_SURFACES = [
 /** 疊在頁底上的東西：九種背景狀態全部量，回報時只印最壞的那一個。 */
 const onPage = (fg, what, min) => ({ fg, bgs: PAGE_SURFACES, where: `${what} on 頁底（含漸層與顆粒）`, min });
 
+/**
+ * 辨識通道的詞彙表——`ACCENT_TEXT_ALLOWLIST` 的 `channel` 只能取這裡的鍵。
+ *
+ * 判準（本輪定案）：**主色可以當文字色，但只在那個字的「認得出來」不靠顏色的時候。**
+ * 辨識由字重、字體、字級或底線先承擔，顏色只負責份量。
+ *
+ * `props` ＝ 產物 CSS 裡哪些屬性能證明這條通道成立（**列舉，不是前綴比對**），
+ * 空陣列 ＝ **沒有任何宣告證明得了**，那種條目的理由必須寫在 `why` 裡由人審。
+ * 把兩者分開，是為了讓「機器查得到的」與「只能由人負責的」在結構上就分得出來——
+ * 混在一起的話，查不到的那幾條會被當成查過了。
+ *
+ * **底線那一條要列四個屬性，不是一個**（實測 `global.css`，不是推測）：站上兩種底線寫法
+ * 不一樣。`.content a` 是自己宣告的 `text-decoration: underline dotted`；`.home-links a`
+ * 的線來自**瀏覽器對 `<a>` 的預設值**，CSS 只宣告了 `text-decoration-color` 與
+ * `text-underline-offset` 去改它的樣子。所以後者「有沒有線」嚴格說不是任何宣告證明的，
+ * 那兩個屬性只證明**作者正在替一條已經存在的線調整外觀**——查到它們就等於查到線在。
+ * 只認縮寫 `text-decoration` 會漏掉第二種寫法，票 03 接這張表時會踩到。
+ *
+ * **「獨立成行」不是通道，刻意不收進這張表。**本人否決的比對器小標與角標卡小標正是靠
+ * 獨立成行在區分的東西——詞彙表不該有一個鍵可以用來放行剛被否決的畫面。
+ */
+export const ACCENT_CHANNELS = {
+	weight: { name: '字重 ≥500', props: ['font-weight'] },
+	serif: { name: '襯線', props: ['font-family'] },
+	size: { name: '字級', props: ['font-size'] },
+	underline: {
+		name: '底線',
+		props: ['text-decoration', 'text-decoration-line', 'text-decoration-color', 'text-underline-offset'],
+	},
+	/**
+	 * 靜止態已在中性階頂端（n-900），hover 認得出來靠的是「它變了」，不是變成什麼顏色。
+	 * `props` 空的意思是「沒有屬性證明得了狀態改變本身」——但 `on` 指的那條靜止態選擇器
+	 * 的**文字色必須是 n-900**，那件事查得到，票 03 查的是它。
+	 */
+	state: { name: '狀態改變', props: [] },
+	/** 位置與形狀就是辨識——沒有一個屬性宣告得出「它在把手正中央」這件事。 */
+	shape: { name: '形狀與位置', props: [] },
+};
+
+/**
+ * 元素主色當文字色的**允許清單**，每一條都帶著它憑什麼可以用主色。
+ *
+ *   `sel`      這條選擇器把主色當文字色（照產物寫，壓縮後的形式）
+ *   `channel`  辨識通道，取自 `ACCENT_CHANNELS`
+ *   `on`       那條通道**宣告在哪個選擇器上**——可以不是 `sel` 自己；`null` ＝ 沒有宣告證明得了
+ *   `why`      為什麼這條成立。寫給下一個人審的，不是填一個字了事
+ *
+ * **通道為什麼必須能指向別的選擇器**（實測，不是推測）：現有七條沒有一條能被「同一個
+ * 選擇器要同時宣告辨識通道」這種天真的檢查放行——`a` 的規則裡只有 `color`，它的點狀
+ * 底線宣告在 `.content a` 上；五條 `:hover` 的通道是狀態改變，不是任何宣告得出來的
+ * 屬性；`.cs-wipe-handle:after` 靠的是形狀與位置。所以 `on` 是這份結構的重點，
+ * 不是裝飾欄位。
+ */
+export const ACCENT_TEXT_ALLOWLIST = [
+	{
+		sel: 'a',
+		channel: 'underline',
+		on: '.content a',
+		why:
+			'內文連結靜止態。點狀底線（`text-decoration: underline dotted` ＋ offset 4px）宣告在 ' +
+			'`.content a`，不在 `a` 自己身上。**裸 `a` 的主色實際只活在 `.content` 裡**：其餘每一個 ' +
+			'連結情境都把顏色蓋回中性階（`.site-nav a` 與 `.back-link` 是 muted，`.home-cta a`／' +
+			'`.home-links a`／`.links a`／`.st-table a` 是 n-900），所以底線蓋得到的範圍與主色實際 ' +
+			'落地的範圍是同一塊。已知缺口：`.content a:has(> img)` 把底線拿掉了——那是「點開看原圖」' +
+			'的圖片連結，裡面沒有文字要被辨識。',
+	},
+	{
+		sel: '.site-nav .nav-brand:hover',
+		channel: 'state',
+		on: '.site-nav .nav-brand',
+		why:
+			'導覽列品牌的 hover。靜止態已是 n-900（`color: var(--color-text)`），中性階之上沒有更亮的 ' +
+			'字色可以換，所以回饋只能交給主色——認得出來靠的是「它變了」。這一條另有第二通道：' +
+			'品牌本來就是襯線（`font-family: var(--font-display)` 宣告在同一條靜止態規則上）。',
+	},
+	{
+		sel: '.home-cta a:hover',
+		channel: 'state',
+		on: '.home-cta a',
+		why:
+			'首頁主要按鈕的 hover。靜止態 n-900。第二通道是非文字的：同一個 hover 也把 ' +
+			'`border-color` 換成主色，框與字一起變，框不是文字通道、不受落點規則約束。',
+	},
+	{
+		sel: '.home-links a:hover',
+		channel: 'state',
+		on: '.home-links a',
+		why:
+			'首頁次要連結的 hover。靜止態 n-900，而且**靜止態就一直有原生底線**' +
+			'（`text-decoration-color: var(--color-border-strong)`，offset 4px）——' +
+			'所以它同時滿足 `underline`，記成 `state` 是因為主色只在 hover 出現。',
+	},
+	{
+		sel: '.links a:hover',
+		channel: 'state',
+		on: '.links a',
+		why: '專案頁連結按鈕的 hover。與 `.home-cta a:hover` 同型：靜止態 n-900，框色一起變。',
+	},
+	{
+		// 單冒號不是筆誤：閘門讀的是壓縮後的產物，壓縮器把 `::after` 正規化成 `:after`。
+		// 照原始碼寫 `::after` 會對不上、閘門立刻紅（fail-closed，不會靜靜放行）。
+		sel: '.cs-wipe-handle:after',
+		channel: 'shape',
+		on: null,
+		why:
+			'擦除比對器把手上的 `↔` 字符，靜止態就是主色。它不是行文裡的字——沒有旁邊的文字可以 ' +
+			'跟它比對，所以字重字體字級底線四種通道在這裡都無從施力。辨識來自位置與形狀：它被 ' +
+			'`transform: translate(-50%,-50%)` 釘在那條 1px 主色把手的正中央，外面有一個同色 1px ' +
+			'的圓框（`border-radius: 50%`），底是頁底色。**這一條沒有機器查得到的通道，是明文由人 ' +
+			'負責的一條**——要動它，動的人要重寫這段理由。',
+	},
+	{
+		sel: '.st-table a:hover',
+		channel: 'state',
+		on: '.st-table a',
+		why: '統計表格內連結的 hover。靜止態 n-900（表格裡的連結刻意不帶底線，靠 hover 才顯示可點）。',
+	},
+];
+
 export const CONTRAST_PAIRS = [
 	onPage('var(--color-text)', '內文'),
 	onPage('var(--color-text-muted)', 'muted'),
@@ -196,20 +315,13 @@ export const CONTRAST_PAIRS = [
 	 *
 	 * **列進來是雙向的**：`fgOn` 同時啟用「這條規則的文字色必須是 fg」那道斷言，
 	 * 所以清單只能列真的在用主色的選擇器，多列一條會直接讓閘門紅。
+	 *
+	 * 選擇器與「憑什麼」自本輪票 02 起同一份來源：`ACCENT_TEXT_ALLOWLIST`。
+	 * `fgOn` 由它推導，**不要在這裡另外列一份**——兩份就會有一天不一樣。
 	 */
 	{
 		...onPage('var(--color-accent)', '連結'),
-		fgOn: [
-			'a',
-			'.site-nav .nav-brand:hover',
-			'.home-cta a:hover',
-			'.home-links a:hover',
-			'.links a:hover',
-			// 單冒號不是筆誤：閘門讀的是壓縮後的產物，壓縮器把 `::after` 正規化成 `:after`。
-			// 照原始碼寫 `::after` 會對不上、閘門立刻紅（fail-closed，不會靜靜放行）。
-			'.cs-wipe-handle:after',
-			'.st-table a:hover',
-		],
+		fgOn: ACCENT_TEXT_ALLOWLIST.map((e) => e.sel),
 	},
 
 	/**
