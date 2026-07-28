@@ -238,16 +238,30 @@
 			return s;
 		};
 
-		const base = snap();
+		/* **要先量一次「什麼都不做」的底噪**。餘燼在降低動態偏好下照樣呼吸（那是規格
+		   要的），所以同一段時間裡畫面本來就會變一點；不扣掉這一份，就會把餘燼的
+		   不透明度變化讀成「位移沒關掉」。裂縫比例從 0.09 改成 0.30、餘燼真的出現
+		   之後，這支就是這樣假紅的一次。 */
+		const window12 = () => {
+			const b = snap();
+			let m = 0;
+			return (async () => {
+				for (let i = 0; i < 12; i++) {
+					await nextFrames(1);
+					m = Math.max(m, diff(snap(), b));
+				}
+				return m;
+			})();
+		};
+		const noise = await window12(); // 不捲動，只有餘燼在動
+		const p = window12();
 		dispatchEvent(new Event('scroll'));
-		let shift = 0;
-		for (let i = 0; i < 12; i++) {
-			await nextFrames(1);
-			shift = Math.max(shift, diff(snap(), base));
-		}
+		const shift = await p;
+
 		await wait(P.shockMs + 400); // 回位之後才量餘燼，免得把回彈算進去
 		const rest = snap();
 		await wait(4000);
+		report.noise = noise;
 		report.shift = shift;
 		report.ember = diff(snap(), rest);
 		send(report);

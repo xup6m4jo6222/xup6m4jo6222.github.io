@@ -261,8 +261,11 @@ server.listen(PORT, async () => {
 		} else {
 			console.log(`   ✓ 元素主色像素 ${on.accent} 個（次級線＋餘燼，兩者只長在裂縫上）`);
 		}
+		/* 200 這個下限是票 02 定出來的：裂縫比例 0.09 時主色像素只有 58 個（次級線 3 條、
+		   餘燼 0 顆），0.30 時是 1500 上下。低於 200 就代表裂縫又被調回「看不見」的區間。 */
 		if (on.accent < 200) {
-			console.log('   ⚠ 主色像素只有這麼幾個——次級線是個位數。強度由裂縫比例決定，留給票 02');
+			console.log('   ✗ 主色像素少於 200——次級線掉回個位數，裂縫比例被調回看不見的區間');
+			bad++;
 		}
 	}
 
@@ -279,33 +282,38 @@ server.listen(PORT, async () => {
 			bad++;
 			continue;
 		}
-		console.log(`   ${name}　偏好讀到 reduce＝${r.reduced}　捲動後畫面差 ${r.shift}　靜置後畫面差 ${r.ember}`);
+		console.log(
+			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　捲動後 ${r.shift}　靜置四秒後 ${r.ember}`,
+		);
 		const want = flags.length > 0;
 		if (r.reduced !== want) {
 			console.log(`   ✗ ${name}：瀏覽器沒有照旗標回報偏好，這一輪的結論不算數`);
 			bad++;
 			continue;
 		}
+		/* 判的是**捲動有沒有讓畫面多動**，不是「畫面有沒有變」。餘燼在降低動態偏好下
+		   照樣呼吸（規格要的），所以底噪本來就不是 0；拿絕對值判會把餘燼讀成位移。 */
+		const moved = r.shift > Math.max(4 * r.noise, 200);
 		if (want) {
 			// 可及性是硬下限：空間位移必須全關
-			if (r.shift !== 0) {
-				console.log(`   ✗ 降低動態偏好下捲動仍讓畫面位移（差 ${r.shift}），空間位移沒關掉`);
+			if (moved) {
+				console.log(`   ✗ 降低動態偏好下捲動仍讓畫面多動（${r.shift} 對底噪 ${r.noise}），位移沒關掉`);
 				bad++;
 			} else {
-				console.log('   ✓ 降低動態偏好下位移全關');
+				console.log(`   ✓ 降低動態偏好下位移全關（捲動後 ${r.shift} 與底噪 ${r.noise} 同一個量級）`);
 			}
-		} else if (!r.shift) {
-			console.log('   ✗ 捲動沒有讓畫面動——回彈沒接上');
+		} else if (!moved) {
+			console.log(`   ✗ 捲動沒有讓畫面多動（${r.shift} 對底噪 ${r.noise}）——回彈沒接上`);
 			bad++;
 		} else {
-			console.log('   ✓ 捲動回彈會動');
+			console.log(`   ✓ 捲動回彈會動（${r.shift}，底噪只有 ${r.noise}）`);
 		}
-		/* 餘燼**只回報不判定**。它是不是在燒完全由參數決定，而參數要到票 02 才定版：
-		   現行值（裂縫 0.09／餘燼 0.13）在 1280×720 上算出來是 0 顆，所以這裡量到 0
-		   是參數的結果不是機制壞掉。機制本身另有證據——它與位移分開判斷（位移吃
-		   `still.matches`，餘燼不吃），而位移那一條上面已經驗過了。 */
+		// 餘燼只在不透明度上動，兩種偏好下都必須還在燒
 		if (!r.ember) {
-			console.log('   ⚠ 靜置四秒畫面完全沒變：現行參數下餘燼是 0 顆，這一項留給票 02 定版');
+			console.log('   ✗ 靜置四秒畫面完全沒變——餘燼沒在燒');
+			bad++;
+		} else {
+			console.log(`   ✓ 餘燼在燒（靜置四秒畫面差 ${r.ember}）`);
 		}
 	}
 
