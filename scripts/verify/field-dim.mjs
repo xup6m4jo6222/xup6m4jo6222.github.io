@@ -99,14 +99,14 @@ const killTree = (pid) =>
 let runs = 0;
 
 /** 開一次無頭 Chrome，等探針回報，回報到了就把它整棵收掉。 */
-function run(path, extra = []) {
+function run(path, extra = [], ms = 45000) {
 	return new Promise((resolve, reject) => {
 		const finish = async (fn, v) => {
 			clearTimeout(timer);
 			await killTree(child.pid);
 			fn(v);
 		};
-		const timer = setTimeout(() => finish(reject, new Error(`逾時：${path} 沒有回報`)), 45000);
+		const timer = setTimeout(() => finish(reject, new Error(`逾時：${path} 沒有回報`)), ms);
 		inbox = (r) => finish(resolve, r);
 		const child = spawn(CHROME, [
 			'--headless=new',
@@ -127,7 +127,84 @@ const PAGES = [
 	['閱讀頁', '/projects/stats/taiwan-tourism/'],
 ];
 
+/* 票 02 的驗收讀數：不判定合格與否，只把三個數字擺出來讓本人看。
+   判定是他的事——這一輪存在的理由就是「不要 AI 自己說看起來還行」。 */
+async function signoff() {
+	const { FIELD, FIELD_CRAFT } = await import(
+		new URL('../palette-config.mjs', import.meta.url).href
+	);
+	const peak = FIELD.shockAmp * FIELD_CRAFT.shockOmega[0];
+	console.log('\n══ 票 02 驗收讀數 ══');
+	console.log(
+		`回彈峰值速度　${peak.toFixed(0)} px/s ／ 紅線③ 30　` +
+			`（${FIELD.shockAmp}px × ${FIELD_CRAFT.shockOmega[0]} rad/s，參數的解析上界，不是目測）`,
+	);
+	console.log(`回位時間　　　${FIELD.shockMs} ms ／ 動效紅線① 350（上限就是紅線）`);
+	for (const [name, path] of PAGES) {
+		const r = await run(`${path}?signoff=1`, [], 60000);
+		if (!r.ok) {
+			console.log(`\n── ${name}　✗ ${r.why}`);
+			continue;
+		}
+		const c = r.cost;
+		console.log(`\n── ${name}　${r.vw}×${r.vh} DPR ${r.dpr}`);
+		console.log(
+			`   每幀成本　　中位 ${c.med.toFixed(2)} ms　p95 ${c.p95.toFixed(2)} ms　最大 ${c.max.toFixed(2)} ms ／ 預算 11 ms（取樣 ${c.n} 幀）`,
+		);
+		console.log(`   超過 5ms 的幀 ${c.over5} 個——建場是一次性的，貼圖不是，這個數字分得開兩者`);
+		console.log(`   畫面更新率　${r.fps.toFixed(1)} fps　場真的重畫 ${r.redraws.toFixed(1)} 次/秒（上限 ${FIELD_CRAFT.fpsCap}）`);
+		console.log(
+			`   文字帶最壞對比　${r.contrast ? r.contrast.toFixed(2) : '—'} ／ 門檻 4.5　` +
+				`（最亮的一顆 rgb(${r.worstPx}）、場在帶內的峰值不透明度 ${r.peakAlpha.toFixed(4)}）`,
+		);
+		console.log('   　　　　　　　※ 未計入兩道亮光與顆粒，量法與原型一致，所以與當初的 14.17 可比');
+	}
+}
+
+/**
+ * 票 02 的比對截圖。參數靠 `?ink=` `?dim=` 從屬性換掉，不必為了看另一組值重新建置。
+ *   node scripts/verify/field-dim.mjs --shots <輸出目錄>
+ */
+async function shots(dir) {
+	const shot = (path, name, size = '1440,900') =>
+		new Promise((done) => {
+			const c = spawn(CHROME, [
+				'--headless=new',
+				'--disable-gpu',
+				'--hide-scrollbars',
+				`--window-size=${size}`,
+				'--force-device-scale-factor=1',
+				`--user-data-dir=${join(tmpdir(), `field-shot-${process.pid}-${runs++}`)}`,
+				`--screenshot=${join(dir, name)}`,
+				`http://localhost:${PORT}${path}`,
+			]);
+			c.on('close', done);
+		});
+	const read = '/projects/stats/taiwan-tourism/';
+	// 第一題：線的強度。現行 0.040 對上原型上「明顯較有存在感」的 0.070
+	await shot('/', 'q1-home-ink-040.png');
+	await shot('/?ink=0.07', 'q1-home-ink-070.png');
+	// 第二題：文字帶減光。現行 0.75 對上完全不減光——差別就是減光在做的事
+	await shot(read, 'q2-read-dim-075.png');
+	await shot(`${read}?dim=0`, 'q2-read-dim-000.png');
+	// 閱讀頁的線強度也要看一次（正文欄兩側是他讀字時眼角會掃到的地方）
+	await shot(read, 'q1-read-ink-040.png');
+	await shot(`${read}?ink=0.07`, 'q1-read-ink-070.png');
+	console.log(`截圖產在 ${dir}`);
+}
+
 server.listen(PORT, async () => {
+	const shotsAt = process.argv.indexOf('--shots');
+	if (shotsAt >= 0) {
+		await shots(process.argv[shotsAt + 1]);
+		server.close();
+		process.exit(0);
+	}
+	if (process.argv.includes('--signoff')) {
+		await signoff();
+		server.close();
+		process.exit(0);
+	}
 	let bad = 0;
 	const pct = (v) => (v == null ? '—' : v.toFixed(4));
 	for (const [name, path] of PAGES) {
