@@ -1,0 +1,44 @@
+/**
+ * 一次性量測（票 02／03 的驗收證據，不進 npm scripts）：
+ * 把產物副本裡的文字改成透明，用本機 Chrome 無頭模式拍下**純背景**，
+ * 再由 measure-contrast.mjs 對每個文字方框找最亮的像素、算對比。
+ *
+ *   node scripts/verify/shot-background.mjs <頁面路徑> <輸出png> [hide|nomotif] [視窗高]
+ */
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+const CHROME = [
+	'C:/Program Files/Google/Chrome/Application/chrome.exe',
+	'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+	`${process.env.LOCALAPPDATA}/Google/Chrome/Application/chrome.exe`,
+].find((p) => p && existsSync(p));
+
+const [page, out, mode, height = '720'] = process.argv.slice(2);
+const file = join(ROOT, 'dist', page);
+const original = readFileSync(file, 'utf8');
+const hide =
+	'body,body *{color:transparent!important;border-color:transparent!important;text-decoration-color:transparent!important}' +
+	'[data-reveal]{opacity:1!important;transform:none!important}' +
+	(mode === 'nomotif' ? 'canvas.motif{display:none!important}' : '');
+if (mode) writeFileSync(file, original.replace('</head>', `<style>${hide}</style></head>`));
+try {
+	execFileSync(
+		CHROME,
+		[
+			'--headless=new', '--disable-gpu', '--hide-scrollbars',
+			`--window-size=1280,${height}`, '--force-device-scale-factor=1',
+			'--virtual-time-budget=6000',
+			`--user-data-dir=${join(ROOT, 'node_modules', '.cache', 'shoot-chrome')}`,
+			`--screenshot=${out}`,
+			`http://localhost:4399/${page.replace(/index\.html$/, '')}`,
+		],
+		{ stdio: 'ignore' },
+	);
+} finally {
+	writeFileSync(file, original);
+}
+console.log('拍好', out);
