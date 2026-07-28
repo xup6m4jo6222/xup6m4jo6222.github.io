@@ -1,6 +1,7 @@
 ---
 import Nav from '../components/Nav.astro';
 import Motif from '../components/Motif.astro';
+import Field from '../components/Field.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -49,6 +50,10 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		<title>{title}</title>
 	</head>
 	<body>
+		{/* 背景層的疊法由 DOM 順序決定：顆粒（body::before）→ 場 → 母題 → 內容。
+		    場沒有模式參數——首頁與閱讀頁用同一組值（2026-07-28 本人裁定），
+		    兩頁的差別全部來自文字帶的形狀（首頁是中間一塊、閱讀頁是整條正文欄）。 */}
+		{motif && <Field />}
 		{motif && <Motif mode={motif} />}
 		<Nav backLink={backLink} />
 		{/* 捲動進度角標刻意放在 <header> 外面。`.site-nav` 有 `backdrop-filter`，

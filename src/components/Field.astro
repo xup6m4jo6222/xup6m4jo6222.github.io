@@ -1,0 +1,385 @@
+---
+/**
+ * 全站背景等高線場（視覺第 10 版，票 01）。
+ *
+ * 一套語彙承載四條敘事（SPEC-background-field.md）：
+ *   等高線鋪滿整面   — 「我厚⋯⋯做任何事都會往下挖到底層」
+ *   線的斷口＝裂縫   — 「我思考的方式是遞迴的——不斷回頭檢查前一層有沒有裂縫」
+ *   次級線只長在斷口旁 — 深度只在被檢查過的地方顯現
+ *   餘燼只落在斷口上 — 「我是悶燒型的⋯⋯看起來平靜，實際上一直在燒」
+ *   捲動觸發整場回彈 — 「我恢復得很快，快到旁人看不出中間有過中間」
+ *
+ * **值一律由屬性帶進來，這支程式裡不寫值**——與母題同一條路。`data-field` 是產物端
+ * 契約：內容必須等於判準檔的 `FIELD`，閘門看不到畫布像素，只能比對屬性。
+ *
+ * canvas 是**純加法**：移除它之後頁面回到現行的四層背景，版面不受影響。
+ * 沒有 JavaScript 時就是那個狀態，不需要另外寫退路。
+ */
+import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
+---
+
+<canvas
+	class="field"
+	aria-hidden="true"
+	data-field={JSON.stringify(FIELD)}
+	data-field-craft={JSON.stringify(FIELD_CRAFT)}></canvas>
+
+<style>
+	/* z 層級用既有的 −1（白名單三個位置之一）。DOM 順序決定疊法：
+	   顆粒（body::before）→ 場 → 母題 → 內容。 */
+	.field {
+		position: fixed;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -1;
+		pointer-events: none;
+	}
+</style>
+
+<script>
+	const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+	/** 目前這一頁的收工函式（換頁與偏好改變時呼叫），沒有場時是 null。 */
+	let teardown: (() => void) | null = null;
+	/** 已經啟動過的那個 canvas。換頁時 ClientRouter 會換掉整個元素，所以比對元素本身。 */
+	let running: HTMLCanvasElement | null = null;
+
+	function start() {
+		const cv = document.querySelector<HTMLCanvasElement>('canvas.field');
+		const main = document.querySelector('main');
+		// 首次載入這支程式會被叫兩次（模組自己一次、ClientRouter 的 astro:page-load 再一次）
+		if (cv && cv === running) return;
+		teardown?.();
+		teardown = null;
+		running = cv;
+		if (!cv || !main || !cv.dataset.field || !cv.dataset.fieldCraft) return;
+
+		const P = JSON.parse(cv.dataset.field);
+		const K = JSON.parse(cv.dataset.fieldCraft);
+		const ctx = cv.getContext('2d', { alpha: true });
+		if (!ctx) return;
+
+		/** 色只從判準值來；不透明度接在後面，所以這支程式裡沒有任何色碼字面值。 */
+		const withAlpha = (hex: string, a: number) =>
+			hex +
+			Math.round(Math.min(1, Math.max(0, a)) * 255)
+				.toString(16)
+				.padStart(2, '0');
+
+		// ── 地形：256×256 可平舖的值噪聲，三層疊加 ────────────────────────
+		// 種子固定，所以同一個視窗尺寸畫出來的場永遠一樣——重建不會讓畫面換一張。
+		const rng = (seed: number) => {
+			let s = seed >>> 0;
+			return () => {
+				s ^= s << 13;
+				s >>>= 0;
+				s ^= s >> 17;
+				s ^= s << 5;
+				s >>>= 0;
+				return s / 4294967296;
+			};
+		};
+		const mkNoise = (seed: number) => {
+			const r = rng(seed);
+			const G = new Float32Array(65536);
+			for (let i = 0; i < G.length; i++) G[i] = r();
+			const at = (x: number, y: number) => G[((y & 255) << 8) | (x & 255)];
+			const sm = (t: number) => t * t * (3 - 2 * t);
+			return (x: number, y: number) => {
+				const xi = Math.floor(x);
+				const yi = Math.floor(y);
+				const u = sm(x - xi);
+				const v = sm(y - yi);
+				return (
+					(at(xi, yi) * (1 - u) + at(xi + 1, yi) * u) * (1 - v) +
+					(at(xi, yi + 1) * (1 - u) + at(xi + 1, yi + 1) * u) * v
+				);
+			};
+		};
+		const nA = mkNoise(K.seeds[0]);
+		const nB = mkNoise(K.seeds[1]);
+		const fbm = (x: number, y: number) =>
+			K.fbmOctaves.reduce(
+				(s: number, o: number, i: number) => s + nA(x * o, y * o) * K.fbmWeights[i],
+				0,
+			);
+
+		let W = 0;
+		let viewH = 0;
+		let DPR = 1;
+		/** 預先建好的整場。每幀只貼這一張圖——每幀重畫整場實測 12ms，預算只有 11ms。 */
+		let layer: HTMLCanvasElement | null = null;
+		let layerH = 0;
+		/** 餘燼：位置、相位、所在處的減光係數。只有它們逐幀變，其餘全在 layer 上。 */
+		let embers: { x: number; y: number; ph: number; d: number }[] = [];
+		/** 回彈的邊界留白：貼圖位移後不會在邊緣露出一條空白。 */
+		const pad = Math.ceil(P.shockAmp);
+		let raf = 0;
+		let shock = 0;
+		let shockT = -1e9;
+
+		type Box = { top: number; bottom: number; left: number; right: number };
+		const union = (a: Box | null, r: DOMRect): Box =>
+			a
+				? {
+						top: Math.min(a.top, r.top),
+						bottom: Math.max(a.bottom, r.bottom),
+						left: Math.min(a.left, r.left),
+						right: Math.max(a.right, r.right),
+					}
+				: { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+
+		/**
+		 * 文字可能出現的區域（視窗座標）。取法與母題的 `contentBoxes()` 同源：
+		 * main 取子元素的聯集而不是 main 自己的盒子（首頁的 main 撐滿一屏，
+		 * 拿它當文字帶等於把下半整片一起減光），頁尾另算一塊並收成欄寬。
+		 *
+		 * **與母題不同的是這裡不跟著捲動走**：減光是烤進預繪圖裡的，跟著捲動就得每幀
+		 * 重貼一張遮罩，那正是「場只在參數或視窗改變時重建」要省下來的成本。
+		 * 閱讀頁的正文欄本來就貫穿整頁、與捲動無關；首頁只有一屏高，差別看不出來。
+		 */
+		function textBoxes(): Box[] {
+			const boxes: Box[] = [];
+			let inner: Box | null = null;
+			for (const el of Array.from(main!.children)) {
+				const r = el.getBoundingClientRect();
+				if (r.width && r.height) inner = union(inner, r);
+			}
+			if (inner) boxes.push(inner);
+			const foot = document.querySelector('footer');
+			if (foot) {
+				const r = foot.getBoundingClientRect();
+				// 頁尾橫跨整頁寬，但字只在欄裡——取欄寬，否則整條底邊都被減光
+				if (r.width && r.height) {
+					const box = main!.getBoundingClientRect();
+					boxes.push({ top: r.top, bottom: r.bottom, left: box.left, right: box.right });
+				}
+			}
+			return boxes;
+		}
+
+		let boxes: Box[] = [];
+		/** 文字帶減光係數：帶外 1，帶內最低 `1 − textDim`，左右邊緣化開。 */
+		function dimAt(x: number, y: number) {
+			const F = K.textBandFeather;
+			let d = 1;
+			for (const b of boxes) {
+				if (x < b.left - F || x > b.right + F || y < b.top || y > b.bottom) continue;
+				const fx = Math.min(1, Math.min(x - (b.left - F), b.right + F - x) / F);
+				d = Math.min(d, 1 - P.textDim * fx);
+			}
+			return d;
+		}
+
+		/* ── 透明度分桶 ────────────────────────────────────────────────────
+		   `strokeStyle` 在 path 中途改對 `stroke()` 無效——只吃最後一次設的值，
+		   於是整層線都套用最後一段的透明度，文字帶減光形同虛設。原型上真的發生過。
+		   修法是把減光係數量化成 12 檔，同一檔的線段收進同一條 path，各自 stroke()。 */
+		const B: number = K.alphaBuckets;
+		const dMin = 1 - P.textDim;
+		const span = 1 - dMin;
+		const bucketOf = (d: number) =>
+			span <= 0 ? 0 : Math.min(B - 1, Math.max(0, Math.round(((d - dMin) / span) * (B - 1))));
+		const dimOf = (i: number) => (span <= 0 ? 1 : dMin + (i / (B - 1)) * span);
+
+		/**
+		 * 建場：掃出等高線、挑出裂縫、在裂縫旁長次級線，全部畫進一張離屏畫布。
+		 * 只在參數或視窗尺寸改變時跑一次。
+		 */
+		function build() {
+			const S = P.scale;
+			const STEP = K.march;
+			const LEV = K.levels;
+			const M = K.margin + pad;
+			layerH = viewH * (1 + K.heightTolerance);
+
+			const m = document.createElement('canvas');
+			m.width = Math.round((W + 2 * pad) * DPR);
+			m.height = Math.round((layerH + 2 * pad) * DPR);
+			const g = m.getContext('2d')!;
+			g.setTransform(DPR, 0, 0, DPR, pad * DPR, pad * DPR);
+			g.lineWidth = K.lineWidth;
+			g.lineCap = 'butt';
+
+			const lines: number[][] = Array.from({ length: B }, () => []);
+			const branches: number[][] = Array.from({ length: B }, () => []);
+			const cracks: number[][] = [];
+			embers = [];
+
+			for (let x = -M; x <= W + M; x += STEP) {
+				/* 一格的下緣就是下一格的上緣——留著上一次的值，噪聲只算一次。
+				   而且**十二條等高線共用同一組取樣**：原型每一層各掃一遍整面，
+				   同樣的 fbm 被算了十二次。這裡是同一套數學、少了一個數量級的工。 */
+				let a = fbm(x / S, -M / S);
+				for (let y = -M; y <= layerH + M; y += STEP) {
+					const b = fbm(x / S, (y + STEP) / S);
+					for (let l = 1; l < LEV; l++) {
+						const v = l / LEV;
+						if ((a - v) * (b - v) >= 0) continue; // 這一格沒有跨過這一層
+						const yy = y + STEP * ((v - a) / (b - a));
+						if (nB(x / K.crackScale, yy / K.crackScale) < P.crack) {
+							// 斷口＝裂縫：線不畫過去，挑一部分記錄下來當次級線與餘燼的落點
+							if (
+								cracks.length < K.crackCap &&
+								nB(x / K.crackPickScale, yy / K.crackPickScale) > K.crackPickThreshold
+							) {
+								cracks.push([x, yy]);
+							}
+							continue;
+						}
+						lines[bucketOf(dimAt(x, yy))].push(x, yy);
+					}
+					a = b;
+				}
+			}
+
+			// 次級線：只長在裂縫旁——深度只在被檢查過的地方顯現
+			for (const [cx, cy] of cracks) {
+				if (nB(cx / K.branchScale, cy / K.branchScale) < K.branchThreshold) continue;
+				const r = K.branchLen[0] + nB(cx / K.branchLenScale, cy / K.branchLenScale) * K.branchLen[1];
+				branches[bucketOf(dimAt(cx, cy))].push(cx, cy, r);
+			}
+
+			// 餘燼：只落在裂縫上——位置有理由，不是隨機灑
+			for (const [cx, cy] of cracks) {
+				if (nB(cx / K.emberPickScale, cy / K.emberPickScale) > P.ember) continue;
+				embers.push({
+					x: cx,
+					y: cy,
+					ph: nB(cx / K.emberPhaseScale, cy / K.emberPhaseScale) * 2 * Math.PI,
+					d: dimAt(cx, cy),
+				});
+			}
+
+			for (let i = 0; i < B; i++) {
+				if (lines[i].length) {
+					g.strokeStyle = withAlpha(P.line, P.ink * dimOf(i));
+					g.beginPath();
+					for (let j = 0; j < lines[i].length; j += 2) {
+						g.moveTo(lines[i][j], lines[i][j + 1]);
+						g.lineTo(lines[i][j] + STEP, lines[i][j + 1]);
+					}
+					g.stroke();
+				}
+				if (branches[i].length) {
+					g.strokeStyle = withAlpha(P.spark, P.ink * K.branchInk * dimOf(i));
+					g.beginPath();
+					for (let j = 0; j < branches[i].length; j += 3) {
+						const [bx, by, r] = [branches[i][j], branches[i][j + 1], branches[i][j + 2]];
+						g.moveTo(bx - r, by);
+						g.lineTo(bx + r, by);
+					}
+					g.stroke();
+				}
+			}
+			layer = m;
+		}
+
+		/** 每幀只做兩件事：把預繪的場貼上去（帶回彈位移），再畫餘燼。 */
+		function draw(sec: number) {
+			if (!layer) return;
+			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
+			ctx!.clearRect(0, 0, W, viewH);
+			/* 降低動態偏好：**空間位移全關，餘燼的不透明度變化保留**（票 01 明列）。
+			   要關的是「東西在移動」，不是把會呼吸的東西一律凍住。 */
+			const frozen = still.matches;
+			const dx = frozen ? 0 : shock * P.shockAmp * Math.sin(sec * K.shockOmega[0]);
+			const dy = frozen ? 0 : shock * P.shockAmp * K.shockYRatio * Math.cos(sec * K.shockOmega[1]);
+			ctx!.globalAlpha = 1;
+			// 回彈是貼圖時位移，不是重算——目的座標加偏移即可
+			ctx!.drawImage(layer, -pad + dx, -pad + dy, W + 2 * pad, layerH + 2 * pad);
+
+			const w = (2 * Math.PI) / P.period;
+			for (const e of embers) {
+				const k = Math.sin(sec * w + e.ph) * 0.5 + 0.5;
+				const a = (K.emberBaseAlpha + Math.pow(k, K.emberSharpness) * K.emberPeakAlpha) * e.d;
+				ctx!.fillStyle = withAlpha(P.spark, a);
+				ctx!.beginPath();
+				ctx!.arc(e.x + dx, e.y + dy, K.emberRadius, 0, 2 * Math.PI);
+				ctx!.fill();
+			}
+		}
+
+		let shape = '';
+		function resize() {
+			DPR = Math.min(window.devicePixelRatio || 1, K.dprCap);
+			W = window.innerWidth;
+			viewH = window.innerHeight;
+			// 版面還沒算出來就先不畫：ResizeObserver 會在算出來時再叫一次
+			if (!W || !viewH) return;
+			cv!.width = Math.round(W * DPR);
+			cv!.height = Math.round(viewH * DPR);
+			boxes = textBoxes();
+			/* 重建的條件。**視窗高不原樣進簽章**：手機捲動時網址列收合會讓 innerHeight
+			   真的變動數十 px，原樣進去等於每次上下滑都重建一次整場（實測 12ms）。
+			   預繪圖多畫一個容忍幅度的高度，容忍帶內長高時底部才不會露白。
+			   文字帶用**文件座標**進簽章：視窗座標會隨捲動變，那會讓首頁一捲就重建。 */
+			const band = boxes
+				.map((b) => `${Math.round(b.left)},${Math.round(b.right)},${Math.round(b.top + scrollY)},${Math.round(b.bottom + scrollY)}`)
+				.join('｜');
+			const grew = viewH + 2 * pad > layerH;
+			const now = `${W}@${DPR}／${band}`;
+			if (now !== shape || grew || !layer) build();
+			shape = now;
+			draw(0);
+		}
+
+		const t0 = performance.now();
+		let last = 0;
+		function frame(now: number) {
+			raf = requestAnimationFrame(frame);
+			if (document.hidden) return; // 分頁不可見時不繪製
+			if (shock > 0) shock = Math.max(0, 1 - (now - shockT) / P.shockMs);
+			if (now - last < 1000 / K.fpsCap) return; // 幀率上限
+			last = now;
+			draw((now - t0) / 1000);
+		}
+
+		/** 捲動＝一次觸發，整場輕微位移後回位。降低動態偏好時不觸發。 */
+		const kick = () => {
+			if (still.matches) return;
+			shock = 1;
+			shockT = performance.now();
+		};
+
+		/* main 的盒子會在字體換上來之後改變（`display=fallback` 的那一次交換），
+		   文字帶跟著它走，所以觀察的是 main 而不是只聽 window resize。
+		   resize 要節流：重建整場是這支程式最貴的一條路，而拖曳視窗邊框會連續密集送事件。 */
+		let sizing = false;
+		const onResize = () => {
+			if (sizing) return;
+			sizing = true;
+			requestAnimationFrame(() => {
+				sizing = false;
+				resize();
+			});
+		};
+		const observer = new ResizeObserver(onResize);
+		observer.observe(main);
+		window.addEventListener('resize', onResize);
+		window.addEventListener('scroll', kick, { passive: true });
+
+		resize();
+		raf = requestAnimationFrame(frame);
+
+		teardown = () => {
+			cancelAnimationFrame(raf);
+			observer.disconnect();
+			window.removeEventListener('resize', onResize);
+			window.removeEventListener('scroll', kick);
+		};
+	}
+
+	document.addEventListener('astro:page-load', start);
+	// 偏好改了要真的重來一次（回彈的開關在 start 裡讀），所以先把「已啟動」清掉
+	still.addEventListener('change', () => {
+		running = null;
+		start();
+	});
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', start, { once: true });
+	} else {
+		start();
+	}
+</script>
