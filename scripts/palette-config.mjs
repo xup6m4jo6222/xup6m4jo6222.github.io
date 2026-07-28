@@ -177,12 +177,20 @@ export const CONTRAST_PAIRS = [
 	 * 不證明「該用在這裡」——所以這一組帶 `fgOn`，認領的是清單上的選擇器，
 	 * 不是「主色可以當文字色」這張通行證（見 verify-palette.mjs 的認領邏輯）。
 	 *
-	 * 現況 `src/` 的主色文字共 **16 條**：這裡 14 條，另外 2 條（`.tl-solo em`、
-	 * `.cs-track .cs-side--me em`）疊在面板底上，由下面「面板上的元素主色小標」那組管。
-	 * （`/process/` 七頁的 41 處由 SPEC 明文豁免，閘門的 `siteRules` 本來就不含那幾頁。）
+	 * **清單即規則**（票 02 收斂完成）。落點只有兩類：
+	 *   1. 內文連結靜止態——`a`
+	 *   2. 靜止態已在中性階頂端（n-900）的互動元素，其 hover 態——五處
+	 * 外加一處非連結但屬互動控制的把手字符（`.cs-wipe-handle:after`，圓形把手上的 ↔，
+	 * 靜止態就是主色、與它自己的框同色）。共 **7 條**，`src/` 裡不在其上而把主色
+	 * 當文字色的一律紅。
 	 *
-	 * 這 14 條是**現況原封不動搬進來的**，不是定案——定案是「只剩內文連結靜止態，
-	 * 以及靜止態已在中性階頂端的互動元素其 hover 態」，收斂到八條是下一張票的事。
+	 * 票原文寫「收斂到八個」，這裡是七條——差在推導表把內文連結寫成一列兩個選擇器
+	 * （`a` ／ `.content a`），但 `.content a` 只設點狀底線、沒有自己的 `color`，
+	 * 所以進不了這份清單（列進來會因為「文字色必須是 fg」那道斷言直接紅）。
+	 * 九處改動逐條核對過，一處不多一處不少。
+	 *
+	 * 退場的九條見 SPEC-accent-text-semantics。`/process/` 七頁的 41 處由 SPEC 明文豁免，
+	 * 閘門的 `siteRules` 本來就不含那幾頁。
 	 *
 	 * **列進來是雙向的**：`fgOn` 同時啟用「這條規則的文字色必須是 fg」那道斷言，
 	 * 所以清單只能列真的在用主色的選擇器，多列一條會直接讓閘門紅。
@@ -194,18 +202,11 @@ export const CONTRAST_PAIRS = [
 			'.site-nav .nav-brand:hover',
 			'.home-cta a:hover',
 			'.home-links a:hover',
-			'.back-link:hover',
 			'.links a:hover',
-			'.cs-stats b',
 			// 單冒號不是筆誤：閘門讀的是壓縮後的產物，壓縮器把 `::after` 正規化成 `:after`。
 			// 照原始碼寫 `::after` 會對不上、閘門立刻紅（fail-closed，不會靜靜放行）。
 			'.cs-wipe-handle:after',
-			'.cs-wipe-tag--new',
-			'.cs-pair-me em',
-			'.content details summary:hover',
-			'.st-table td b',
 			'.st-table a:hover',
-			'.dmr th',
 		],
 	},
 
@@ -213,26 +214,25 @@ export const CONTRAST_PAIRS = [
 	 * 以下這幾組的合格與否**取決於它疊在哪個表面上**，所以兩端都要釘到真的選擇器：
 	 * `fgOn` 說「這幾條規則的文字色必須是 fg」，`bgOn` 說「這個選擇器的底必須是 bg」。
 	 * 沒有這兩個欄位的話，配對只是一張願望清單——把 `.card p` 改回 muted（在 n-200 上
-	 * 只有 3.79）或把 `.cs-track` 的底換成列表卡的底（元素主色小標掉到 3.61），
+	 * 只有 3.79）或把 `.cs-track` 的底換成列表卡的底（AI 側 muted 從 5.09 掉到 3.79），
 	 * 閘門都照樣綠。這兩個突變都實測過。
 	 */
 	{ fg: 'var(--color-text)', bg: 'var(--color-bg-card)', where: '卡片標題 on 列表卡底', bgOn: '.card' },
 	{ fg: 'var(--n-700)', bg: 'var(--color-bg-card)', where: '卡片摘要 on 列表卡底', fgOn: ['.card p'], bgOn: '.card' },
 
-	// 承載元素主色小標的面板：封頂 n-100 就是被這一條逼出來的
-	{
-		fg: 'var(--color-accent)',
-		bg: 'var(--color-bg-alt)',
-		where: '面板上的元素主色小標',
-		fgOn: ['.tl-solo em', '.cs-track .cs-side--me em'],
-		bgOn: '.cs-track',
-	},
 	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '面板內文', bgOn: '.tl-solo' },
+	/**
+	 * 票 02 前，`.cs-track` 的底色守衛掛在「面板上的元素主色小標」那組配對上。
+	 * 那組的兩條 `fgOn`（`.tl-solo em`、`.cs-track .cs-side--me em`）在票 02 都退了主色，
+	 * 配對隨之消失——**背景守衛必須在同一次改動裡接手到這裡**，否則 `.cs-track` 的底
+	 * 會變成沒有任何檢查在看（把它換成列表卡的底，AI 側 muted 會從 5.09 掉到 3.79）。
+	 */
 	{
 		fg: 'var(--color-text-muted)',
 		bg: 'var(--color-bg-alt)',
 		where: '比對器 AI 側（原本靠 opacity 降權）',
 		fgOn: ['.cs-track .cs-side--ai'],
+		bgOn: '.cs-track',
 	},
 
 	{

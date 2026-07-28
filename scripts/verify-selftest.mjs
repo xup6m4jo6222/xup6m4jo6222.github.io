@@ -159,7 +159,7 @@ const cases = [
 		expect: /\.card p 的文字色/,
 	},
 	{
-		name: '把決策開關的底換成列表卡的底（元素主色小標掉到 3.61）',
+		name: '把決策開關的底換成列表卡的底（AI 側 muted 掉到 3.79）',
 		expectPass: false,
 		mutate: (f) =>
 			writeFileSync(f, readFileSync(f, 'utf8').replace(/(\.cs-track\{[^}]*?)var\(--color-bg-alt\)/, '$1var(--color-bg-card)')),

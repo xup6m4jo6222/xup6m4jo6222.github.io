@@ -23,12 +23,13 @@
 	/* ── 語義名：一律為階的別名，元件 CSS 不再出現任何色碼字面值 ──── */
 	--color-bg: var(--n-50);
 
-	/* 兩種表面。分界不是「叫什麼名字」，是**上面有沒有元素主色的字**。
-	   元素主色是凍結值（L 67.3），疊上去的對比是 n-100 4.84、n-200 只剩 3.61。
-	   所以承載元素主色小標的面板（決策開關、角標卡）封頂在 n-100；沒有這個負擔的
-	   列表卡可以提到 n-200。 */
-	--color-bg-card: var(--n-200); /* .card ——內部一個元素主色的字都沒有 */
-	--color-bg-alt: var(--n-100); /* 有元素主色小標的面板，封頂 */
+	/* 兩種表面。**目前沒有判準在分它們**，只有一段歷史：面板原本封頂在 n-100，
+	   是因為上面有元素主色的小標（主色疊 n-100 只剩 4.84、n-200 會掉到 3.61）。
+	   那些小標在 2026-07-28 全數退場，這兩個面板現在一個主色的字都沒有，**封頂的
+	   理由因此不存在了**。要不要把面板提到 n-200 是還沒做的決定（會動到它與列表卡
+	   的分離度），不是這裡還有東西擋著——別讀成有。 */
+	--color-bg-card: var(--n-200); /* .card ——列表卡 */
+	--color-bg-alt: var(--n-100); /* 決策開關、角標卡 */
 
 	--color-text: var(--n-900);
 	--color-text-muted: var(--n-600);
@@ -718,7 +719,7 @@ html {
 }
 
 .back-link:hover {
-	color: var(--color-accent);
+	color: var(--color-text);
 }
 
 main > h1 {
@@ -832,7 +833,7 @@ main > h1 {
 }
 
 .cs-stats b {
-	color: var(--color-accent);
+	color: var(--color-text);
 	margin: 0 var(--sp-xs);
 }
 
@@ -927,9 +928,13 @@ main > h1 {
 	left: 0.6rem;
 }
 
+/* 框留主色、字回內文色：標籤底是 --color-bg 82% 疊在截圖上，取兩張截圖最亮的像素
+   當最壞情況，主色當字實測 3.71（已違規），內文色 8.87。「這是最終版」的訊號改由框
+   承擔——那是非文字通道，不受落點規則約束。**但閘門看不到這個框**（對比檢查只驗
+   文字色），SPEC-accent-text-semantics 的 Out of Scope 已把它登記為已知殘餘風險。 */
 .cs-wipe-tag--new {
 	right: 0.6rem;
-	color: var(--color-accent);
+	color: var(--color-text);
 	border-color: var(--color-accent);
 }
 
@@ -990,12 +995,13 @@ main > h1 {
 	color: var(--color-text-muted);
 }
 
+/* 兩側的小標都走 .cs-side em 的 muted，不再兼職標身分。身分由小標**寫的字**講
+   （「AI 初版」／「最終決定」），靜止態另有色階輔助（主側 n-900、AI 側 n-600）——
+   注意 :hover 會把兩側一起提到 n-900（刻意的，讀者這時要讀 AI 側），所以色階只在
+   靜止態成立，文字才是那個一直都在的通道。主色對 muted 的可辨識度只有 0.058
+   （門檻 0.185），它本來就傳不出這件事。 */
 .cs-track .cs-side--me {
 	color: var(--color-text);
-}
-
-.cs-track .cs-side--me em {
-	color: var(--color-accent);
 }
 
 .cs-reason {
@@ -1035,10 +1041,6 @@ main > h1 {
 	color: var(--color-text-muted);
 }
 
-.cs-pair-me em {
-	color: var(--color-accent);
-}
-
 /* 頁尾原件附錄 */
 .cs-raw {
 	color: var(--color-text-muted);
@@ -1066,7 +1068,7 @@ main > h1 {
 }
 
 .content details summary:hover {
-	color: var(--color-accent);
+	color: var(--color-text);
 }
 
 .content details[open] summary {
@@ -1206,8 +1208,8 @@ main > h1 {
 	border-bottom-right-radius: 0.55rem;
 }
 
-/* hover：角標長成整框＋墨線下掃。底色與文字色不變——承載元素主色小標的面板
-   封頂在 n-100，沒有更高的階可以換，而 n-900 之上也沒有更亮的字色。 */
+/* hover：角標長成整框＋墨線下掃。底色與文字色不變——這張卡的內文已在 n-900，
+   中性階之上沒有更亮的字色可以換，所以回饋整個交給形狀。 */
 .tl-solo:hover {
 	background-size: 2px 100%, auto;
 }
@@ -1218,10 +1220,12 @@ main > h1 {
 	height: 100%;
 }
 
+/* 前導小標換通道：不靠顏色，靠字體。襯線把它與下面那段 Sans 的內文分開，
+   字距 0.04em 本來就有。顏色留給非文字通道（這張卡的角標線就是主色）。 */
 .tl-solo em {
 	display: block;
 	font-style: normal;
-	color: var(--color-accent);
+	font-family: var(--font-display);
 	margin-bottom: var(--sp-xs);
 }
 
@@ -1273,7 +1277,7 @@ main > h1 {
 }
 
 .st-table td b {
-	color: var(--color-accent);
+	color: var(--color-text);
 }
 
 .st-table a {
@@ -1299,9 +1303,11 @@ main > h1 {
 	margin: var(--sp-sm) 0 var(--sp-md);
 }
 
+/* 行標題對內容的分別由色階承擔：主色對 muted 的對比只有 1.05（色盲模擬下
+   1.01–1.10，等於分不出來），n-900 對 n-600 是 2.27。襯線與字重不動。 */
 .dmr th {
 	font-family: var(--font-display);
-	color: var(--color-accent);
+	color: var(--color-text);
 	white-space: nowrap;
 	width: 3.6rem;
 	border: 0;
