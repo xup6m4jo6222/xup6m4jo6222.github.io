@@ -5,7 +5,7 @@
  * 讀的是 `astro build` 的產物 `dist/` 與 21 張圖表 PNG，不讀原始碼：
  * 重構 CSS、換 token 分層都不該讓這支腳本失敗。
  *
- * 八類檢查見 SPEC-design-system.md「Testing Decisions」、
+ * 十一類檢查見 SPEC-design-system.md「Testing Decisions」、
  * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」、
  * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）與
  * SPEC-focus-groups.md「T3 孤兒檢查」（票 03 補上第八類）。
@@ -1006,6 +1006,59 @@ function motifSpeeds(m) {
 	return { breath, drift, peak: Math.hypot(breath + drift, drift) };
 }
 
+/**
+ * 產物端契約的共用查法。母題（第七類）與場（第九類）是同一個形狀：
+ * canvas 帶一個屬性、內容是判準檔那組參數的 JSON、繪製程式從屬性取值。
+ *
+ * **抽成一支而不是照抄一份**：兩份會分家，而分家的那一天不會有人發現——
+ * 第九類是照第七類「補過的樣子」寫的，包含 fail-open 那條防線，
+ * 抄一份等於把「補洞的理由」也抄成兩份各自維護。
+ *
+ * `onParsed` 讓各自加自己的檢查（場要驗回彈的紅線），其餘完全共用。
+ */
+function checkParamContract({ check, attr, config, label, htmlFiles, onParsed }) {
+	const found = [];
+	// `data-motif=` 不會誤中 `data-motif-craft=`：等號緊接在屬性名後面
+	const re = new RegExp(`${attr}=("([^"]*)"|'([^']*)')`, 'g');
+	for (const f of htmlFiles) {
+		const text = readFileSync(f, 'utf8');
+		for (const m of text.matchAll(re)) found.push({ rel: relative(ROOT, f), raw: m[2] ?? m[3] });
+	}
+	if (!found.length) {
+		// fail-open 的防線：有常駐迴圈就代表它已經在跑，那產物裡就必須找得到它的參數。
+		// 沒有這一條，把 canvas 改成由 JS 建立就能讓整個這一類靜靜地不作用。
+		if (standingLoopFiles.length) {
+			fail(
+				check,
+				standingLoopFiles.join('、'),
+				`產物裡有常駐逐幀動態，卻找不到任何 ${attr}——${label}參數必須由伺服器端渲染進 HTML，才驗得到它落在檔位上`,
+			);
+			return;
+		}
+		note(`${label}尚未上線（沒有常駐迴圈也沒有 ${attr}），本項只驗了判準檔`);
+		return;
+	}
+
+	const expect = canonicalJson(config);
+	for (const { rel, raw } of found) {
+		let parsed;
+		try {
+			parsed = JSON.parse(decodeEntities(raw));
+		} catch {
+			fail(check, rel, `${attr} 不是合法的 JSON`);
+			continue;
+		}
+		onParsed?.(parsed, rel);
+		if (canonicalJson(parsed) === expect) continue;
+		const keys = new Set([...Object.keys(config), ...Object.keys(parsed)]);
+		for (const k of keys) {
+			const a = canonicalJson(parsed[k]);
+			const b = canonicalJson(config[k]);
+			if (a !== b) fail(check, `${rel} :: ${k}`, `產物是 ${a}，判準檔是 ${b}——${label}參數漂離檔位`);
+		}
+	}
+}
+
 function checkMotif(htmlFiles) {
 	const limit = CFG.STANDING_MOTION_PEAK_SPEED;
 	const { breath, drift, peak } = motifSpeeds(CFG.MOTIF);
@@ -1018,45 +1071,123 @@ function checkMotif(htmlFiles) {
 	if (drift > budget.drift) fail('motif', '漂移配額', `漂移 ${drift.toFixed(1)} px/s 超過每軸配額 ${budget.drift}`);
 	note(`母題峰值速度 ${peak.toFixed(1)} px/s（呼吸 ${breath.toFixed(1)}／漂移 ${drift.toFixed(1)}，紅線③ ${limit}）`);
 
-	const found = [];
-	for (const f of htmlFiles) {
-		const text = readFileSync(f, 'utf8');
-		for (const m of text.matchAll(/data-motif=("([^"]*)"|'([^']*)')/g)) {
-			found.push({ rel: relative(ROOT, f), raw: m[2] ?? m[3] });
-		}
-	}
-	if (!found.length) {
-		// fail-open 的防線：有常駐迴圈就代表母題已經在跑，那產物裡就必須找得到它的參數。
-		// 沒有這一條，把 canvas 改成由 JS 建立就能讓整個第七類靜靜地不作用。
-		if (standingLoopFiles.length) {
-			fail(
-				'motif',
-				standingLoopFiles.join('、'),
-				'產物裡有常駐逐幀動態，卻找不到任何 data-motif——母題參數必須由伺服器端渲染進 HTML，才驗得到它落在檔位上',
-			);
-			return;
-		}
-		note('母題尚未上線（沒有常駐迴圈也沒有 data-motif），本項只驗了判準檔');
-		return;
-	}
+	checkParamContract({
+		check: 'motif',
+		attr: 'data-motif',
+		config: CFG.MOTIF,
+		label: '母題',
+		htmlFiles,
+	});
+}
 
-	const expect = canonicalJson(CFG.MOTIF);
-	for (const { rel, raw } of found) {
-		let parsed;
-		try {
-			parsed = JSON.parse(decodeEntities(raw));
-		} catch {
-			fail('motif', rel, 'data-motif 不是合法的 JSON');
-			continue;
-		}
-		if (canonicalJson(parsed) === expect) continue;
-		const keys = new Set([...Object.keys(CFG.MOTIF), ...Object.keys(parsed)]);
-		for (const k of keys) {
-			const a = canonicalJson(parsed[k]);
-			const b = canonicalJson(CFG.MOTIF[k]);
-			if (a !== b) fail('motif', `${rel} :: ${k}`, `產物是 ${a}，判準檔是 ${b}——母題參數漂離檔位`);
+// ===========================================================================
+// 檢查 9（票 03）— 場的參數必須落在票 02 定版的檔位上
+// ===========================================================================
+/**
+ * 與第七類同一個接縫、同一種寫法，理由也相同：閘門看不到畫布像素，只能比對屬性。
+ *
+ * 多守一條**紅線**：回彈幅度 4px 這個值本身看不出有沒有超線，超線的是
+ * 幅度 × 角速度。所以量的是**參數的解析上界**，不是目測、不是實測幀——
+ * 值一漂，算出來的上界就過線。
+ *
+ * **角速度取自判準檔而不是產物**：它在 `data-field-craft` 裡，是技法不是判準，
+ * 這一類不比對它。誠實的邊界是「有人同時改掉角速度與判準檔，這裡看不出來」——
+ * 但那已經不是漂移，是有意識的改動。
+ */
+function checkField(htmlFiles) {
+	const limit = CFG.STANDING_MOTION_PEAK_SPEED;
+	const maxMs = Math.max(...CFG.DURATION_TIERS.map((t) => parseFloat(t) * 1000));
+	const omega = CFG.FIELD_CRAFT.shockOmega[0];
+	note(
+		`場的回彈峰值速度 ${(CFG.FIELD.shockAmp * omega).toFixed(1)} px/s` +
+			`（幅度 ${CFG.FIELD.shockAmp} × 角速度 ${omega}，紅線③ ${limit}）`,
+	);
+
+	checkParamContract({
+		check: 'field',
+		attr: 'data-field',
+		config: CFG.FIELD,
+		label: '場的',
+		htmlFiles,
+		onParsed: (p, rel) => {
+			const peak = p.shockAmp * omega;
+			if (peak > limit) {
+				fail(
+					'field',
+					`${rel} :: shockAmp`,
+					`回彈峰值速度 ${peak.toFixed(1)} px/s（幅度 ${p.shockAmp} × 角速度 ${omega}）超過紅線③ 的 ${limit} px/s`,
+				);
+			}
+			if (p.shockMs > maxMs) {
+				fail('field', `${rel} :: shockMs`, `回位時間 ${p.shockMs}ms 超過動效紅線① 的 ${maxMs}ms`);
+			}
+		},
+	});
+}
+
+// ===========================================================================
+// 檢查 10（票 03）— 全站不用陰影
+// ===========================================================================
+/**
+ * 判準：「**深度用顏色表達，不用光影**」（SPEC-motion-and-shape「陰影」）。
+ *
+ * `/process/` 的凍結存檔除外——那九頁是標了日期的歷史重演，裡面的兩個陰影
+ * （`talks-buttons` 的 inset 與一條 transition）是當時那個元件長的樣子，不是本站的設計。
+ * 豁免不是靠這支函式記得跳過，是靠 `siteRules` 本來就不含 `/process/`。
+ *
+ * `drop-shadow()` 要一起認：同一件事換一個屬性講。只認 `box-shadow`／`text-shadow`
+ * 的話這條路是敞開的，而它就長在既有的 `filter` 旁邊（糊化那一類已經在掃 filter 了）。
+ */
+const SHADOW_PROPS = new Set(['box-shadow', 'text-shadow', '-webkit-box-shadow']);
+
+function checkNoShadow(siteRules) {
+	let found = 0;
+	for (const rule of siteRules) {
+		for (const d of rule.decls) {
+			// `box-shadow: none` 是「明講不要」，不是陰影
+			const shadowProp = SHADOW_PROPS.has(d.prop) && !/^none$/i.test(d.value.trim());
+			const dropShadow = /drop-shadow\s*\(/i.test(d.value);
+			if (!shadowProp && !dropShadow) continue;
+			found++;
+			fail(
+				'shadow',
+				`${rule.selectors.join(', ')} @ ${rule.source}`,
+				`${d.prop}: ${d.value}——全站不用陰影，深度用顏色表達（SPEC-motion-and-shape「陰影」）`,
+			);
 		}
 	}
+	note(`陰影：網站端 ${found} 個（/process/ 的凍結存檔不在觀察範圍內）`);
+}
+
+// ===========================================================================
+// 檢查 11（票 03）— z 層級白名單
+// ===========================================================================
+/**
+ * 判準：產物 CSS 的 `z-index` 必須落在 `Z_LAYERS` 的三個位置上。
+ * 規則是「內容永遠待在 `z-index: auto` 的常規流，只有背景與釘住的導覽可以離開」。
+ *
+ * **要掃 HTML 內聯的 `<style>`，不能只掃 `.css`**：Astro 元件自己的 `<style>` 可能被
+ * 編成獨立檔也可能內聯進 HTML，而那正是新元件加第四個位置的路徑（`Motif.astro`
+ * 的 −1 就是這樣來的）。`siteRules` 兩邊都涵蓋了，所以這裡不必自己再找一次。
+ */
+function checkZIndex(siteRules) {
+	const allowed = new Set([...Object.keys(CFG.Z_LAYERS), ...CFG.Z_KEYWORDS]);
+	const seen = new Set();
+	for (const rule of siteRules) {
+		for (const d of rule.decls) {
+			if (d.prop !== 'z-index') continue;
+			const v = d.value.trim().replace(/\s*!important$/i, '');
+			seen.add(v);
+			if (allowed.has(v.toLowerCase())) continue;
+			fail(
+				'zindex',
+				`${rule.selectors.join(', ')} @ ${rule.source}`,
+				`z-index: ${v} 不在白名單 {${Object.keys(CFG.Z_LAYERS).join(', ')}}——` +
+					'內容永遠待在常規流，要加第四個位置必須先講出它為什麼不能待在常規流',
+			);
+		}
+	}
+	note(`z 層級：產物用到 ${[...seen].sort().join('、') || '（無）'}，白名單 ${Object.keys(CFG.Z_LAYERS).join('、')}`);
 }
 
 /**
@@ -1193,35 +1324,44 @@ function main() {
 		.map((f) => ({ rel: relative(ROOT, f), text: readFileSync(f, 'utf8') }));
 	const siteHtmlFiles = allFiles.filter((f) => /\.html$/i.test(f) && !isProcessPage(f));
 
-	console.log('— 1／8 色碼白名單');
+	console.log('— 1／11 色碼白名單');
 	checkColorWhitelist(textFiles, allowedCss);
 	checkSiteColorsOnRamp();
 	checkChartPixels();
 
-	console.log('— 2／8 對比度');
+	console.log('— 2／11 對比度');
 	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
-	console.log('— 3／8 色盲安全');
+	console.log('— 3／11 色盲安全');
 	checkColorVision();
 
-	console.log('— 4／8 色階規律');
+	console.log('— 4／11 色階規律');
 	checkRamps(vars);
 
-	console.log('— 5／8 排版與間距規律');
+	console.log('— 5／11 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／8 可及性偏好的逃生口（降低動態／增加對比）');
+	console.log('— 6／11 可及性偏好的逃生口（降低動態／增加對比）');
 	checkReducedMotion(siteParsed);
 	checkStandingMotionReducedMotion(scriptSources);
 	checkContrastEscape(siteParsed);
 
-	console.log('— 7／8 母題參數與常駐動態');
+	console.log('— 7／11 母題參數與常駐動態');
 	checkMotif(siteHtmlFiles);
 
-	console.log('— 8／8 聚焦組標記完整（孤兒檢查）');
+	console.log('— 8／11 聚焦組標記完整（孤兒檢查）');
 	checkFocusOrphans(siteHtmlFiles);
+
+	console.log('— 9／11 場的參數與回彈紅線');
+	checkField(siteHtmlFiles);
+
+	console.log('— 10／11 全站不用陰影');
+	checkNoShadow(siteRules);
+
+	console.log('— 11／11 z 層級白名單');
+	checkZIndex(siteRules);
 
 	// ---- 回報 ----
 	if (process.env.VERIFY_VERBOSE) {
@@ -1262,7 +1402,7 @@ function main() {
 		process.exit(1);
 	}
 
-	console.log(`\n✓ 八類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
+	console.log(`\n✓ 十一類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
 }
 
 main();

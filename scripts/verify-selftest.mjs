@@ -63,20 +63,41 @@ const injectMotif = (dir, params) =>
 		),
 	);
 
-/** 把產物裡所有 `data-motif` 屬性拿掉（模擬 canvas 改由 JS 建立、參數沒有進 HTML）。 */
-const stripMotifAttrs = (dir) => {
+/** 在首頁塞一個帶 data-field 的 canvas——場上線後產物就長這樣（票 03）。 */
+const injectField = (dir, params) =>
+	writeFileSync(
+		join(dir, 'index.html'),
+		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+			'</body>',
+			`<canvas aria-hidden="true" data-field='${JSON.stringify(params)}'></canvas></body>`,
+		),
+	);
+
+/**
+ * 把產物裡所有 `data-motif` 或 `data-field` 屬性拿掉
+ * （模擬 canvas 改由 JS 建立、參數沒有進 HTML）。
+ */
+const stripAttrs = (dir, name) => {
+	const re = new RegExp(`\\s${name}(-[\\w-]+)?=("[^"]*"|'[^']*')`, 'g');
 	const walk = (d) => {
 		for (const e of readdirSync(d, { withFileTypes: true })) {
 			const p = join(d, e.name);
 			if (e.isDirectory()) walk(p);
 			else if (p.endsWith('.html')) {
 				const before = readFileSync(p, 'utf8');
-				const after = before.replace(/\sdata-motif(-[\w-]+)?=("[^"]*"|'[^']*')/g, '');
+				const after = before.replace(re, '');
 				if (after !== before) writeFileSync(p, after);
 			}
 		}
 	};
 	walk(dir);
+};
+const stripMotifAttrs = (dir) => stripAttrs(dir, 'data-motif');
+
+/** 改 `/process/` 裡任一頁的產物——用來證明凍結存檔真的被豁免掉。 */
+const editProcessPage = (dir, mutate) => {
+	const p = join(dir, 'process', 'talks-buttons.html');
+	writeFileSync(p, mutate(readFileSync(p, 'utf8')));
 };
 
 /** 改 AI 專案內頁的產物。找檔案而不是寫死路徑——日後多一個 AI 頁，這裡不必跟著改。 */
@@ -278,6 +299,93 @@ const cases = [
 		expectPass: true,
 		mutate: (_f, dir) => injectMotif(dir, CFG.MOTIF),
 		expect: null,
+	},
+
+	// ── 背景場票 03：第九類（場的參數）───────────────────────────────────
+	{
+		// 與第七類同型：值飄出檔位就紅。`#c97a48` 那次事故的機制是「精確數值在對話裡
+		// 被摘要成模糊描述」，這一條是它在場這一層的迴歸測試。
+		name: '把場的參數改成檔位以外的值',
+		expectPass: false,
+		mutate: (_f, dir) => injectField(dir, { ...CFG.FIELD, ink: 0.07 }),
+		expect: /ink[\s\S]*場的參數漂離檔位/,
+	},
+	{
+		// fail-open 防線：場在跑（有常駐迴圈）就必須找得到它的參數。
+		// 沒有這一條，把 canvas 改成由 JS 建立就能讓整個第九類靜靜地不作用。
+		// **只拿掉 data-field，不動 data-motif**——要驗的是第九類自己的防線。
+		name: '場在跑卻沒有把參數渲染進 HTML',
+		expectPass: false,
+		mutate: (_f, dir) => stripAttrs(dir, 'data-field'),
+		expect: /找不到任何 data-field/,
+	},
+	{
+		// 沒有這一條的話，第九類只要「有 data-field 就紅」也會通過上面兩條——
+		// 那是一個永遠紅的檢查，跟永遠綠一樣沒用。
+		name: '場的參數照判準檔寫應該綠',
+		expectPass: true,
+		mutate: (_f, dir) => injectField(dir, CFG.FIELD),
+		expect: null,
+	},
+	{
+		// 回彈幅度是被紅線夾住的值，但「4」本身看不出有沒有超線——超線的是
+		// 幅度 × 角速度。值一漂，算出來的上界就過線，這一條是那條線的迴歸測試。
+		name: '把回彈幅度調大到峰值速度過紅線③',
+		expectPass: false,
+		mutate: (_f, dir) => injectField(dir, { ...CFG.FIELD, shockAmp: 8 }),
+		expect: /回彈峰值速度[\s\S]*超過紅線③/,
+	},
+
+	// ── 背景場票 03：第十類（全站不用陰影）─────────────────────────────
+	{
+		// 「深度用顏色表達，不用光影」。色碼刻意用階上的顏色，這樣紅的只會是陰影那一類。
+		name: '偷加一個 box-shadow',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-shadow{box-shadow:0 2px 8px #20131d}\n`),
+		expect: /shadow[\s\S]*fake-shadow/,
+	},
+	{
+		// `filter: drop-shadow()` 是同一件事換一個屬性講。只認 box-shadow／text-shadow
+		// 的話，這條路是敞開的。
+		name: '偷加一個 filter: drop-shadow',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-drop{filter:drop-shadow(0 2px 8px #20131d)}\n`),
+		expect: /shadow[\s\S]*fake-drop/,
+	},
+	{
+		// **豁免要被證明過**。`/process/` 本來就有兩個陰影（talks-buttons 的 inset 與
+		// 一條 transition），閘門今天是綠的；再往那裡加一個也必須照樣綠，
+		// 否則「凍結存檔除外」只是寫在註解裡的願望。
+		name: '在 /process/ 加陰影不會誤報',
+		expectPass: true,
+		mutate: (_f, dir) =>
+			editProcessPage(dir, (h) => h.replace('</head>', '<style>.demo-x{box-shadow:0 2px 8px #0009}</style></head>')),
+		expect: null,
+	},
+
+	// ── 背景場票 03：第十一類（z 層級白名單）───────────────────────────
+	{
+		// 白名單三個位置：−1 背景層、10 導覽列、20 導覽進度條。任何新元件都能在自己的
+		// `<style>` 裡加第四個——那正是第 9 版原型加出 0／1／5 的路徑。
+		name: '偷加一個白名單外的 z-index',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-z{position:fixed;z-index:5}\n`),
+		expect: /zindex[\s\S]*fake-z/,
+	},
+	{
+		// 元件自己的 `<style>` 會被編進獨立的 CSS 或內聯進 HTML，掃不到 HTML 內聯
+		// `<style>` 的話這條路是敞開的（`Motif.astro` 的 z-index 就是這樣來的）。
+		name: 'z-index 藏在 HTML 內聯的 style 區塊裡',
+		expectPass: false,
+		mutate: (_f, dir) =>
+			writeFileSync(
+				join(dir, 'index.html'),
+				readFileSync(join(dir, 'index.html'), 'utf8').replace(
+					'</head>',
+					'<style>.fake-z-inline{position:fixed;z-index:999}</style></head>',
+				),
+			),
+		expect: /zindex[\s\S]*fake-z-inline/,
 	},
 ];
 
