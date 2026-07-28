@@ -380,6 +380,43 @@ main:has(> .home) {
 	}
 }
 
+/* 聚焦組（focus group）——五個專案內頁共用的閱讀節奏機制。
+   標了 data-focus-group 的元素構成一組；落在焦點帶（視窗中央 30%）內的那一組清晰，
+   其餘常駐在糊化降權的狀態。**這是常駐態不是進場起點**：捲離之後回到 0.18，
+   不會變成隱藏（文字仍在 DOM 裡，Ctrl+F 找得到、螢幕閱讀器照讀）。
+
+   標記屬性是這個機制唯一的接縫——腳本、這組 CSS、閘門三方都只認它，彼此不知道對方存在。 */
+.js [data-focus-group] {
+	opacity: 0.18;
+	filter: blur(2.5px);
+	transition:
+		opacity var(--dur-lg) var(--ease),
+		filter var(--dur-lg) var(--ease);
+}
+
+/* 進帶即清晰；組內連結取得鍵盤焦點時同樣清晰——否則 Tab 會落到一個看不見的地方。 */
+.js [data-focus-group].is-centered,
+.js [data-focus-group]:focus-within {
+	opacity: 1;
+	filter: none;
+}
+
+/* 三個逃生口。前兩個在這裡，兩種偏好要的是同一件事（機制關掉、全部清晰），合成一條：
+   **降低動態**——糊化是空間處理，落在「要關掉的是空間位移」那一邊。
+   **增加對比**——非焦點文字在最壞背景上實測對比 1.66，要補到 4.5 得把 opacity 拉到 0.60，
+   那已經幾乎不糊了。**調數值是死路，缺的是逃生口。**
+   第三個逃生口是無 JS：`.js` 沒掛上去，上面整組規則就不生效，讀者拿到一篇正常長文。
+
+   時間軸卡的 36px 側滑不在這裡關——那是 AI 頁的展示內容，與對比無關；
+   降低動態那一半由它自己那條規則負責（見下方 `.tl-item` 段）。 */
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more) {
+	.js [data-focus-group] {
+		opacity: 1;
+		filter: none;
+		transition: none;
+	}
+}
+
 /* Text selection / keyboard focus / scrollbars — site-wide */
 ::selection {
 	background: var(--color-accent);
@@ -1115,20 +1152,17 @@ main > h1 {
 	border: 1px solid var(--color-accent);
 }
 
+/* 糊化與淡化由聚焦組那一段負責（時間軸卡也標了 data-focus-group）。
+   這裡只剩位移強調檔——全站只有時間軸卡用，那個動效本身就是作品的展示內容。
+   統計頁刻意不帶位移：內文水平移動妨礙閱讀，眼睛跳回下一行開頭靠的是穩定的左邊界。 */
 .js .tl-item {
-	opacity: 0.18;
-	transform: translateX(-36px); /* 位移強調檔——全站只有時間軸卡用，那個動效本身就是作品的展示內容 */
-	filter: blur(2.5px);
-	transition:
-		opacity var(--dur-lg) var(--ease),
-		filter var(--dur-lg) var(--ease),
-		transform var(--dur-lg) var(--ease);
+	transform: translateX(-36px);
+	transition: transform var(--dur-lg) var(--ease);
 }
 
-.js .tl-item.is-centered {
-	opacity: 1;
+.js .tl-item.is-centered,
+.js .tl-item:focus-within {
 	transform: translateX(0);
-	filter: none;
 }
 
 /* 角標卡：無整圈邊框，左上／右下各一 L 形角標；hover 時角標長成整框並有墨線下掃 */
@@ -1193,9 +1227,7 @@ main > h1 {
 
 @media (prefers-reduced-motion: reduce) {
 	.js .tl-item {
-		opacity: 1;
 		transform: none;
-		filter: none;
 		transition: none;
 	}
 

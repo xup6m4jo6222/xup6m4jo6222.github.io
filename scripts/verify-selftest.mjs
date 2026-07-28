@@ -110,6 +110,14 @@ const cases = [
 		expect: /reduced-motion[\s\S]*\.fake-kf/,
 	},
 	{
+		// 聚焦組票 01：糊化把非焦點文字的對比壓到 1.66，調數值救不回來（要 0.60 才達標，
+		// 那已經幾乎不糊了）。所以糊化的規則必須配一個增加對比的逃生口，少了就紅。
+		name: '加一個沒有補增加對比逃生口的糊化',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.fake-blur{filter:blur(2px)}\n`),
+		expect: /contrast-escape[\s\S]*\.fake-blur/,
+	},
+	{
 		// 對比度那一類原本只驗「判準宣告的配對」，驗不到「產物實際把哪個顏色當文字用」。
 		// 這一條就是那個漏洞的迴歸測試：把某條規則的文字色換成沒人管的階，必須紅。
 		name: '把某條規則的文字色換成沒有配對在管的階',

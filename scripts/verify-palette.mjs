@@ -802,7 +802,7 @@ function checkTypographyAndSpacing(siteRules, vars) {
 }
 
 // ===========================================================================
-// 檢查 6 — 降低動態偏好覆蓋（不得有例外：可及性是硬下限）
+// 檢查 6 — 可及性偏好的逃生口：降低動態、增加對比（不得有例外：可及性是硬下限）
 // ===========================================================================
 const REDUCE_RE = /prefers-reduced-motion\s*:\s*reduce/;
 const MOVING_RE = /\b(transform|filter|all)\b/;
@@ -848,6 +848,52 @@ function checkReducedMotion(siteParsed) {
 		}
 	}
 	note(`降低動態偏好：${inScope.size} 個會位移／模糊的選擇器，覆蓋區塊涵蓋 ${covered.size} 個選擇器`);
+}
+
+/**
+ * 增加對比逃生口（聚焦組票 01 的 T2）——與上面那條同型，只是換一個偏好。
+ *
+ * 量的是**產物裡有沒有東西在糊化內容**，不是「有沒有標記屬性」：驗外部行為不驗實作細節，
+ * 日後改標記屬性的命名、重構 CSS 都不該讓它誤紅。糊化的那條規則要嘛不存在，
+ * 要嘛在 `@media (prefers-contrast: more)` 裡有一條把它關掉——沒有第三種寫法。
+ *
+ * 誠實邊界：只認 `filter: blur()`。`backdrop-filter`（導覽列那個）不在內——它糊的是
+ * 元素背後的畫面，不是內容本身；而單靠 `opacity` 降權、不糊化的寫法這裡也看不見。
+ */
+const CONTRAST_RE = /prefers-contrast\s*:\s*more/;
+const BLUR_RE = /\bblur\(\s*(?!0[a-z%]*\s*\))/;
+
+function checkContrastEscape(siteParsed) {
+	const covered = new Set();
+	const inScope = new Map(); // selector → 原因
+
+	for (const { rules } of siteParsed) {
+		for (const rule of rules) {
+			const relaxed = rule.at.some((a) => CONTRAST_RE.test(a));
+			for (const sel of rule.selectors) {
+				const key = sel.replace(/\s+/g, ' ').trim();
+				if (relaxed) {
+					covered.add(key);
+					continue;
+				}
+				for (const d of rule.decls) {
+					if (d.prop === 'filter' && BLUR_RE.test(d.value)) inScope.set(key, `filter: ${d.value}`);
+				}
+			}
+		}
+	}
+
+	for (const [sel, why] of inScope) {
+		if (!covered.has(sel)) {
+			// 與降低動態偏好那一半同樣不吃例外清單：可及性是硬下限，不能掛著等後續票
+			failures.push({
+				check: 'contrast-escape',
+				key: sel,
+				detail: `${why} 糊化了內容，但未出現在 @media (prefers-contrast: more) 區塊內——非焦點文字的實測對比只有 1.66`,
+			});
+		}
+	}
+	note(`增加對比逃生口：${inScope.size} 個糊化內容的選擇器，覆蓋區塊涵蓋 ${covered.size} 個選擇器`);
 }
 
 /**
@@ -1077,9 +1123,10 @@ function main() {
 	console.log('— 5／7 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／7 降低動態偏好覆蓋');
+	console.log('— 6／7 可及性偏好的逃生口（降低動態／增加對比）');
 	checkReducedMotion(siteParsed);
 	checkStandingMotionReducedMotion(scriptSources);
+	checkContrastEscape(siteParsed);
 
 	console.log('— 7／7 母題參數與常駐動態');
 	checkMotif(siteHtmlFiles);
