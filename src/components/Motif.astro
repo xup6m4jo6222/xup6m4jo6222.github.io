@@ -92,9 +92,9 @@ const { mode } = Astro.props;
 
 		/* 母題走向上的座標。**只有這一份**——點的位置與線的位置各寫一份的話，
 		   哪天改了構圖常數就會分家，那正是「共用同一個離散度函式」在防的同一件事。
-		   （W／H 是 let，所以寫成函式而不是在 resize 時算好。） */
+		   （W／viewH 是 let，所以寫成函式而不是在 resize 時算好。） */
 		const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
-		const trendY = (u: number) => LH * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
+		const trendY = (u: number) => layoutH * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
 
 		/** 等距的漸層節點：判準檔給幾個顏色就分幾段，位置不另外寫一組數字。 */
 		const evenStops = (n: number) => Array.from({ length: n }, (_, i) => i / (n - 1));
@@ -115,17 +115,20 @@ const { mode } = Astro.props;
 			2;
 
 		let W = 0;
-		let H = 0;
+		let viewH = 0;
 		/** 構圖高度。**不是**即時視窗高——手機的視窗高會隨網址列收合而跳動，
 		    整個構圖（點、趨勢線、漸層、遠景層）一律錨在這個值上，才不會拆成兩半。 */
-		let LH = 0;
+		let layoutH = 0;
 		/** 遠景層要涵蓋到的高度＝構圖高加上容忍幅度，視窗在容忍帶內長高時才不會露邊。 */
-		const farH = () => LH * (1 + L.heightTolerance);
+		const farH = () => layoutH * (1 + L.heightTolerance);
 		let DPR = 1;
 		let col = 0;
 		let tile = 0;
 		let pts: any[] = [];
-		let farLayer: HTMLCanvasElement | null = null;
+		/** 遠景層連同它建立時用的高度一起存——貼圖時讀這個值，不要再算一次。
+		    兩處各算一次「必須一致」，靠的是 resize() 在構圖高改變時把它清成 null
+		    這條隱性不變量；日後改 reshape 判斷時漏改，遠景層就會被貼歪。 */
+		let farLayer: { c: HTMLCanvasElement; h: number } | null = null;
 		let bandMask: HTMLCanvasElement | null = null;
 		let bandTop = 0;
 		let tint: CanvasGradient | null = null;
@@ -163,7 +166,7 @@ const { mode } = Astro.props;
 		// ── 首頁：散開位置、聚攏位置、各自的漂移 ──────────────────────────
 		function buildBreathe() {
 			pts = [];
-			const n = countFor(W * LH, M.density.home);
+			const n = countFor(W * layoutH, M.density.home);
 			for (let i = 0; i < n; i++) {
 				const u = Math.random();
 				const layer = i % M.depthRadius.length; // 景深各層平分
@@ -173,7 +176,7 @@ const { mode } = Astro.props;
 				const off = outlier
 					? dir * (L.outlierOffset[0] + Math.random() * (L.outlierOffset[1] - L.outlierOffset[0]))
 					: Math.random() * 2 - 1;
-				const scatter = off * spreadAt(u) * LH * L.scatterHeight;
+				const scatter = off * spreadAt(u) * layoutH * L.scatterHeight;
 				// 行程（散開位置→聚攏位置）。離群值收得少，呼吸時不會被收回去。
 				// 走不到整段行程的點就走到趨勢線為止，不會穿過去——實際行程只會更短，
 				// 所以紅線③ 的上界照樣成立。
@@ -300,20 +303,20 @@ const { mode } = Astro.props;
 
 			for (const box of boxes) {
 				s.globalCompositeOperation = 'source-over';
-				s.clearRect(0, 0, W, H);
+				s.clearRect(0, 0, W, viewH);
 				s.fillStyle = ramp(box.left, box.right, false);
-				s.fillRect(0, 0, W, H);
+				s.fillRect(0, 0, W, viewH);
 				// 閱讀頁的正文欄貫穿整頁，垂直方向不收；首頁的文字只佔一塊，要收。
 				if (breathing) {
 					s.globalCompositeOperation = 'destination-in';
 					s.fillStyle = ramp(box.top - scrollY, box.bottom - scrollY, true);
-					s.fillRect(0, 0, W, H);
+					s.fillRect(0, 0, W, viewH);
 				}
-				cover.drawImage(scratch, 0, 0, W, H);
+				cover.drawImage(scratch, 0, 0, W, viewH);
 			}
 			// 覆蓋率 × 減光量：挖掉這麼多，剩下的就是上限 textBandMaxAlpha
 			g.globalAlpha = 1 - M.textBandMaxAlpha;
-			g.drawImage(coverage, 0, 0, W, H);
+			g.drawImage(coverage, 0, 0, W, viewH);
 			bandTop = scrollY;
 			return m;
 		}
@@ -322,10 +325,10 @@ const { mode } = Astro.props;
 		function resize() {
 			DPR = Math.min(window.devicePixelRatio || 1, K.dprCap);
 			W = window.innerWidth;
-			H = window.innerHeight;
+			viewH = window.innerHeight;
 			col = main!.getBoundingClientRect().width;
 			// 版面還沒算出來（或 main 是空的）就先不畫：ResizeObserver 會在算出來時再叫一次。
-			if (!W || !H || !col) return;
+			if (!W || !viewH || !col) return;
 			/* 點只在「畫布真的變了」時重擲。內文變高（圖載完、字體換上來）會讓
 			   ResizeObserver 叫這裡，但那些跟畫布無關——每次都重擲的話，讀者會看到
 			   背景在讀到一半時整片換掉，那就成了自發動態。實測抓到的就是這一個。
@@ -337,32 +340,32 @@ const { mode } = Astro.props;
 			   的假警報，而是真的 resize 事件。無頭環境驗不出來（resize 送不進去），
 			   所以它一路活到發佈前才被抓到。
 
-			   閱讀頁的點**完全不吃 H**（位置只有 x 比例與磚內 y，磚高綁欄寬），所以直接不看；
-			   首頁的點吃 H（散開半幅與趨勢線高度都乘 H），但網址列那種幅度（約一成）
+			   閱讀頁的點**完全不吃 viewH**（位置只有 x 比例與磚內 y，磚高綁欄寬），所以直接不看；
+			   首頁的點吃 viewH（散開半幅與趨勢線高度都乘 viewH），但網址列那種幅度（約一成）
 			   不值得重擲。真正需要重擲的是換裝置或轉向，而那必然連 W 也一起變。 */
 			const now = `${W}@${DPR}／${Math.round(col)}`;
-			/* 構圖高度 LH 只在版面真的變了時才跟上。第一版修法是「點不重擲、但別的照舊」，
-			   抗辯第二輪三個鏡頭一致抓到那樣會把構圖拆成兩半：趨勢線與漸層每次都用即時 H
-			   重算，點卻凍在舊 H，於是「點收斂到趨勢線」這個核心視覺會錯位；遠景層更慘，
+			/* 構圖高度 layoutH 只在版面真的變了時才跟上。第一版修法是「點不重擲、但別的照舊」，
+			   抗辯第二輪三個鏡頭一致抓到那樣會把構圖拆成兩半：趨勢線與漸層每次都用即時 viewH
+			   重算，點卻凍在舊 viewH，於是「點收斂到趨勢線」這個核心視覺會錯位；遠景層更慘，
 			   它是照建立當時的畫布尺寸做的一張圖，畫的時候被拉伸成新高度。
 			   正解是把**整個構圖**錨在同一個高度上，而不是只凍住其中一半。 */
-			const heightMoved = Math.abs(H - LH) > LH * L.heightTolerance;
-			if (heightMoved) LH = H;
+			const heightMoved = Math.abs(viewH - layoutH) > layoutH * L.heightTolerance;
+			if (heightMoved) layoutH = viewH;
 			// 點要不要重擲：閱讀頁的點不吃構圖高（位置只有 x 比例與磚內 y），首頁的吃
 			const reshape = now !== shape || (breathing && heightMoved);
 			shape = now;
 			tile = col * M.tileHeightColumns; // 磚高＝欄寬 × 2，綁 --max-width
 			cv!.width = Math.round(W * DPR);
-			cv!.height = Math.round(H * DPR);
+			cv!.height = Math.round(viewH * DPR);
 			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
 
 			// 漸層跟著確定性走：最散亂的一端最灰、最收斂的一端最亮（亮端封頂中性階 700）
-			tint = ctx!.createLinearGradient(0, LH, W, 0);
+			tint = ctx!.createLinearGradient(0, layoutH, W, 0);
 			evenStops(M.gradient.length).forEach((at, i) => tint!.addColorStop(at, M.gradient[i]));
 
 			const cx = W * L.fadeCenter[0];
-			const cy = LH * L.fadeCenter[1];
-			fade = ctx!.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, LH));
+			const cy = layoutH * L.fadeCenter[1];
+			fade = ctx!.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, layoutH));
 			evenStops(L.fadeStops.length).forEach((at, i) =>
 				fade!.addColorStop(at, withAlpha(M.gradient[0], L.fadeStops[i])),
 			);
@@ -378,15 +381,15 @@ const { mode } = Astro.props;
 		}
 
 		/** 遠景固定，不參與動畫——它只畫一次，之後每幀貼上去。 */
-		function makeFarLayer() {
+		function makeFarLayer(): { c: HTMLCanvasElement; h: number } {
 			const m = document.createElement('canvas');
 			/* 尺寸綁構圖高而不是當下的畫布高：畫布會隨視窗高跳動，遠景層不會。
 			   兩者脫鉤時 drawImage 會把整張圖拉伸（抗辯第二輪實測到的那條）。
 
 			   高度要多留一個容忍幅度：視窗高在容忍帶內長高時（網址列收合），畫布跟著長，
-			   但構圖不動——遠景層若只畫到 LH，底部就會露出一條沒有遠景的空白帶
+			   但構圖不動——遠景層若只畫到 layoutH，底部就會露出一條沒有遠景的空白帶
 			   （抗辯第三輪拍圖確認，17% 差距時肉眼可辨）。近景點與趨勢線本來就會自然
-			   溢出 LH，只有這張預繪圖有硬邊界，所以補在這裡就夠。 */
+			   溢出 layoutH，只有這張預繪圖有硬邊界，所以補在這裡就夠。 */
 			m.width = Math.round(W * DPR);
 			m.height = Math.round(farH() * DPR);
 			const g = m.getContext('2d')!;
@@ -398,18 +401,18 @@ const { mode } = Astro.props;
 				const y = p.base - p.pull * g0;
 				g.drawImage(sprite, p.x - p.r, y - p.r, p.r * 2, p.r * 2);
 			}
-			return m;
+			return { c: m, h: farH() };
 		}
 
 		function draw(sec: number) {
 			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
-			ctx!.clearRect(0, 0, W, H);
+			ctx!.clearRect(0, 0, W, viewH);
 			ctx!.globalCompositeOperation = 'source-over';
 
 			if (breathing) {
 				if (!farLayer) farLayer = makeFarLayer();
 				ctx!.globalAlpha = 1;
-				ctx!.drawImage(farLayer, 0, 0, W, farH());
+				ctx!.drawImage(farLayer.c, 0, 0, W, farLayer.h);
 				const frozen = still.matches;
 				for (const p of pts) {
 					if (p.far) continue;
@@ -430,12 +433,12 @@ const { mode } = Astro.props;
 			} else {
 				const sy = scrollY;
 				const first = Math.floor(sy / tile) - 1;
-				const last = Math.floor((sy + H) / tile) + 1;
+				const last = Math.floor((sy + viewH) / tile) + 1;
 				for (let t = first; t <= last; t++) {
 					const base = t * tile - sy;
 					for (const p of pts) {
 						const y = base + p.y;
-						if (y < -p.r * 2 || y > H + p.r * 2) continue;
+						if (y < -p.r * 2 || y > viewH + p.r * 2) continue;
 						blit(p, p.x * W, y);
 					}
 				}
@@ -445,7 +448,7 @@ const { mode } = Astro.props;
 			ctx!.globalAlpha = 1;
 			ctx!.globalCompositeOperation = 'source-in';
 			ctx!.fillStyle = tint!;
-			ctx!.fillRect(0, 0, W, H);
+			ctx!.fillRect(0, 0, W, viewH);
 			ctx!.globalCompositeOperation = 'source-over';
 
 			// 趨勢線：位置固定、指數成長，實度由點的離散程度決定。
@@ -474,9 +477,9 @@ const { mode } = Astro.props;
 			ctx!.globalAlpha = 1;
 			ctx!.globalCompositeOperation = 'destination-out';
 			ctx!.fillStyle = fade!;
-			ctx!.fillRect(0, 0, W, H);
+			ctx!.fillRect(0, 0, W, viewH);
 			// 文字帶減光。首頁的遮罩隨頁面走（它綁在文字上，不是綁在視窗上）
-			if (bandMask) ctx!.drawImage(bandMask, 0, breathing ? bandTop - scrollY : 0, W, H);
+			if (bandMask) ctx!.drawImage(bandMask, 0, breathing ? bandTop - scrollY : 0, W, viewH);
 			ctx!.globalCompositeOperation = 'source-over';
 		}
 
