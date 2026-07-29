@@ -380,6 +380,21 @@ const cases = [
 		expect: /shockRearmMs[\s\S]*捲多久晃多久/,
 	},
 	{
+		/* 契約的 fail-open 防線是**存在性**不是**全稱性**：只要任一頁有屬性就不進那個分支。
+		   第二輪抗辯實測：只拿掉 `projects/index.html` 的兩個屬性（那一頁的場等於整個
+		   不畫），閘門照樣印「✓ 十二類檢查全部通過」。真實觸發條件是新增版型時漏掉元件。 */
+		name: '只有一頁漏掉場的屬性（其餘頁都在）',
+		expectPass: false,
+		mutate: (_f, dir) => {
+			const p = join(dir, 'projects', 'index.html');
+			writeFileSync(
+				p,
+				readFileSync(p, 'utf8').replace(/\sdata-field(-craft)?=("[^"]*"|'[^']*')/g, ''),
+			);
+		},
+		expect: /缺 data-field/,
+	},
+	{
 		// 防「永遠紅的檢查」：技法照判準檔寫必須綠。
 		name: '場的技法照判準檔寫應該綠',
 		expectPass: true,

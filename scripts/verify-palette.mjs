@@ -1094,7 +1094,7 @@ function checkParamContract({ check, attr, config, label, htmlFiles, onParsed })
 		if (standingLoopFiles.length) {
 			fail(
 				check,
-				standingLoopFiles.join('、'),
+				`${attr} @ ${standingLoopFiles.join('、')}`,
 				`產物裡有常駐逐幀動態，卻找不到任何 ${attr}——${label}參數必須由伺服器端渲染進 HTML，才驗得到它落在檔位上`,
 			);
 			return;
@@ -1158,7 +1158,37 @@ function checkMotif(htmlFiles) {
  * 這一類不比對它。誠實的邊界是「有人同時改掉角速度與判準檔，這裡看不出來」——
  * 但那已經不是漂移，是有意識的改動。
  */
+/**
+ * 契約的 fail-open 防線是**存在性**不是**全稱性**：`found` 跨所有 HTML 檔累積，
+ * 只要任一頁有屬性就不會進那個分支，其餘頁缺屬性完全沒人看。
+ * 第二輪抗辯實測：把 `dist/projects/index.html` 的兩個屬性拿掉（那一頁的場等於整個
+ * 不畫），閘門照樣印「✓ 十二類檢查全部通過」。
+ *
+ * 補法不是「每一頁都必須有場」——`BaseLayout` 的 `motif` prop 沒給就沒有背景層，
+ * 那是明文允許的。要守的是**兩者同進同出**：`Field` 與 `Motif` 在 `BaseLayout` 裡
+ * 由同一個條件渲染，所以有母題的頁面就必須有場。少一個就是元件被漏掉了。
+ */
+function checkFieldCoverage(htmlFiles) {
+	let both = 0;
+	for (const f of htmlFiles) {
+		const text = readFileSync(f, 'utf8');
+		if (!/data-motif=/.test(text)) continue;
+		const rel = relative(ROOT, f);
+		for (const attr of ['data-field', 'data-field-craft']) {
+			if (new RegExp(`${attr}=`).test(text)) continue;
+			fail(
+				'field',
+				`${rel} :: 缺 ${attr}`,
+				`這一頁有 data-motif 卻沒有 ${attr}——兩者在 BaseLayout 由同一個條件渲染，少一個代表場的元件被漏掉了，那一頁的場整個不畫`,
+			);
+		}
+		both++;
+	}
+	note(`場的覆蓋：${both} 個有母題的頁面，兩個屬性都在`);
+}
+
 function checkField(htmlFiles) {
+	checkFieldCoverage(htmlFiles);
 	const limit = CFG.STANDING_MOTION_PEAK_SPEED;
 	const maxMs = Math.max(...CFG.DURATION_TIERS.map((t) => parseFloat(t) * 1000));
 	const omega = CFG.FIELD_CRAFT.shockOmega[0];
@@ -1188,24 +1218,24 @@ function checkField(htmlFiles) {
 			if (!(Number.isInteger(k.alphaBuckets) && k.alphaBuckets >= 2)) {
 				fail(
 					'field',
-					`${rel} :: alphaBuckets`,
+					`${rel} :: alphaBuckets（退化值）`,
 					`分桶數 ${k.alphaBuckets} 不是 ≥2 的整數——1 會讓整場畫成不透明黑線（NaN 色碼被靜靜忽略），0 會直接丟例外`,
 				);
 			}
 			if (!(k.shockYRatio <= 1)) {
-				fail('field', `${rel} :: shockYRatio`, `垂直幅度比 ${k.shockYRatio} 大於 1，垂直位移會超過留白、貼圖時露出白帶`);
+				fail('field', `${rel} :: shockYRatio（退化值）`, `垂直幅度比 ${k.shockYRatio} 大於 1，垂直位移會超過留白、貼圖時露出白帶`);
 			}
 			if (!(Number.isInteger(k.levels) && k.levels >= 2)) {
-				fail('field', `${rel} :: levels`, `等高線層數 ${k.levels} 不是 ≥2 的整數，畫不出任何一條線`);
+				fail('field', `${rel} :: levels（退化值）`, `等高線層數 ${k.levels} 不是 ≥2 的整數，畫不出任何一條線`);
 			}
-			if (!(k.march > 0)) fail('field', `${rel} :: march`, `掃描步長 ${k.march} 不是正數，掃描迴圈不會前進`);
+			if (!(k.march > 0)) fail('field', `${rel} :: march（退化值）`, `掃描步長 ${k.march} 不是正數，掃描迴圈不會前進`);
 			if (k.fbmWeights.length !== k.fbmOctaves.length) {
 				fail('field', `${rel} :: fbm`, `疊加的權重 ${k.fbmWeights.length} 個與頻率 ${k.fbmOctaves.length} 個對不起來`);
 			}
 			if (!(k.shockRearmMs > CFG.FIELD.shockMs)) {
 				fail(
 					'field',
-					`${rel} :: shockRearmMs`,
+					`${rel} :: shockRearmMs（退化值）`,
 					`重新武裝的安靜時間 ${k.shockRearmMs}ms 不大於回位時間 ${CFG.FIELD.shockMs}ms——回彈會在回位前被重新觸發，變回「捲多久晃多久」`,
 				);
 			}
@@ -1223,12 +1253,12 @@ function checkField(htmlFiles) {
 			if (peak > limit) {
 				fail(
 					'field',
-					`${rel} :: shockAmp`,
+					`${rel} :: shockAmp（紅線）`,
 					`回彈峰值速度 ${peak.toFixed(1)} px/s（幅度 ${p.shockAmp} × 角速度 ${omega}）超過紅線③ 的 ${limit} px/s`,
 				);
 			}
 			if (p.shockMs > maxMs) {
-				fail('field', `${rel} :: shockMs`, `回位時間 ${p.shockMs}ms 超過動效紅線① 的 ${maxMs}ms`);
+				fail('field', `${rel} :: shockMs（紅線）`, `回位時間 ${p.shockMs}ms 超過動效紅線① 的 ${maxMs}ms`);
 			}
 		},
 	});

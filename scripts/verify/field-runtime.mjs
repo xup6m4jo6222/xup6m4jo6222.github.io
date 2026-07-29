@@ -51,7 +51,7 @@ const TYPES = {
 	'.txt': 'text/plain',
 };
 
-/** 回報的大小上限。`--lan` 會綁 0.0.0.0，沒有上限的話區網上任何人都能把它灌爆。 */
+/** 回報的大小上限。`--lan` 對整個區網開放，沒有上限的話任何人都能把它灌爆。 */
 const MAX_REPORT = 4 * 1024 * 1024;
 
 let inbox = null;
@@ -86,7 +86,18 @@ const server = createServer((req, res) => {
 	   而 `--lan` 是綁 0.0.0.0 的（手機量測的標準流程），等於同一個 wifi 上任何裝置都能
 	   讀走這台機器上使用者讀得到的任何檔案。**唯一正確的守法是解析完之後檢查它在不在
 	   dist 底下**，不是去黑名單哪些字元——黑名單永遠少一個。 */
-	let file = resolve(DIST, '.' + decodeURIComponent(url.pathname));
+	/* `decodeURIComponent` 對畸形百分號編碼會丟 `URIError`，而這裡是 request handler、
+	   沒有人接——**一個 `GET /%` 就能把量測伺服器打死**（第二輪抗辯用原始 socket 實測，
+	   行程 code=1，連 `killTree()` 都沒跑，無頭 Chrome 變孤兒）。上一輪重寫的就是這一行，
+	   守住了穿越卻沒守住 decode 本身。 */
+	let decoded;
+	try {
+		decoded = decodeURIComponent(url.pathname);
+	} catch {
+		res.writeHead(400).end('bad path');
+		return;
+	}
+	let file = resolve(DIST, '.' + decoded);
 	if (!extname(file)) file = join(file, 'index.html');
 	if (file !== DIST && !file.startsWith(DIST + sep)) {
 		res.writeHead(403).end('nope');
@@ -128,6 +139,13 @@ let runs = 0;
 
 /** 這一輪開過的設定檔目錄，收工時一起刪。 */
 const profiles = [];
+/** 登記一個設定檔目錄並回傳它的完整路徑——組路徑與登記要在同一個地方，
+    分開寫就會像 `shots()` 那樣自己組一個、忘了登記，於是永遠掃不到。 */
+const trackProfile = (name) => {
+	const dir = join(tmpdir(), name);
+	profiles.push(dir);
+	return dir;
+};
 const sweepProfiles = () => {
 	for (const p of profiles.splice(0)) {
 		try {
@@ -135,6 +153,17 @@ const sweepProfiles = () => {
 		} catch {}
 	}
 };
+
+/* 掛在 exit 上，不是逐個出口各呼叫一次——**預設模式（`npm run verify:field`）
+   先前就是漏掉的那一個**，而它是最常跑的一條路。`process.exit()` 會同步跑
+   exit 監聽器，`rmSync` 也是同步的，所以這樣就夠。 */
+process.on('exit', sweepProfiles);
+/* `exit` 在 Ctrl-C 底下不會跑，而 `--lan` 的收工方式**寫在畫面上的就是 Ctrl-C**——
+   不接這個訊號的話那條路每次都留下目錄。 */
+process.on('SIGINT', () => {
+	sweepProfiles();
+	process.exit(130);
+});
 
 /** 開一次無頭 Chrome，等探針回報，回報到了就把它整棵收掉。 */
 function run(path, extra = [], ms = 45000) {
@@ -154,8 +183,7 @@ function run(path, extra = [], ms = 45000) {
 		};
 		const timer = setTimeout(() => finish(reject, new Error(`逾時：${path} 沒有回報`)), ms);
 		inbox = (r) => finish(resolve, r);
-		const profile = join(tmpdir(), `field-chrome-${process.pid}-${runs++}`);
-		profiles.push(profile);
+		const profile = trackProfile(`field-chrome-${process.pid}-${runs++}`);
 		const child = spawn(CHROME, [
 			'--headless=new',
 			'--disable-gpu',
@@ -332,7 +360,122 @@ async function runtime() {
 	return bad;
 }
 
-server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, async () => {
+/**
+ * 票 05 抗辯：回彈的逐格對比。
+ *
+ *   node scripts/verify/field-runtime.mjs --shockfilm <輸出目錄> [標籤]
+ *
+ * 拍的是**畫面與靜止態的差**（放大 20 倍），不是畫面本身——4px 的位移在
+ * 0.040 強度的線上，靜態截圖裡看不見。亮起來的地方就是場移動過的地方。
+ */
+async function shockfilm(dir, label = 'now') {
+	const r = await run('/?shockfilm=1', ['--window-size=1280,720'], 120000);
+	if (!r.ok || !r.frames) {
+		console.log(`✗ ${r.why || '沒有拿到逐格'}`);
+		return 1;
+	}
+	for (const [i, f] of r.frames.entries()) {
+		const name = `shock-${label}-${String(i + 1).padStart(2, '0')}-${f.phase === '捲動中' ? 'during' : 'after'}-${f.at}ms.png`;
+		writeFileSync(join(dir, name), Buffer.from(f.png.split(',')[1], 'base64'));
+		console.log(`   ${f.phase} ${String(f.at).padStart(4)}ms → ${name}`);
+	}
+	return 0;
+}
+
+/**
+ * 票 04：手機那一組。開在 0.0.0.0，印出區網網址，收到回報就印出來。
+ *
+ * 為什麼手機不能用無頭代跑（RUNBOOK 的坑之三）：Windows 無頭視窗寬有約 500px 下限，
+ * 指定 375 會被鉗成 500，而且無頭是軟體算圖、沒有真裝置的 GPU 與散熱限制。
+ * **手機端一律以瀏覽器內量測為準。**
+ */
+function lan() {
+	const ips = Object.values(networkInterfaces())
+		.flat()
+		.filter((i) => i && i.family === 'IPv4' && !i.internal)
+		.map((i) => i.address);
+	console.log('手機連同一個 wifi，開下面任一個網址（開著別動，約 20 秒後會自己回報）：\n');
+	for (const ip of ips) {
+		console.log(`  首頁    http://${ip}:${PORT}/?runtime=1`);
+		console.log(`  閱讀頁  http://${ip}:${PORT}/projects/stats/taiwan-tourism/?runtime=1`);
+	}
+	console.log('\n收工按 Ctrl-C。等回報中……\n');
+	const ms = (v) => (v == null ? '—' : `${v.toFixed(2)} ms`);
+	inbox = (r) => {
+		if (!r.ok) {
+			console.log(`✗ ${r.why}`);
+			return;
+		}
+		console.log(`── ${r.page}　${r.vw}×${r.vh} DPR ${r.dpr}　畫面更新率 ${r.fps?.toFixed(1)} fps`);
+		if (r.cost) {
+			console.log(
+				`   每幀成本 中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)} ／ 預算 11 ms（有量到的 ${r.cost.n} 幀）`,
+			);
+			/* iOS Safari 把 performance.now() 量化到 1ms，所以每一筆不是 0 就是 1。
+			   「中位 1.00ms」只講得出「有量到的那些幀」——**量不到的比例才是真實量級**。 */
+			if (r.silentFrames != null) {
+				console.log(
+					`   　其中 ${(r.silentFrames * 100).toFixed(0)}% 的幀量到 0（計時器解析度以下）→ 真實每幀成本遠低於中位那個數`,
+				);
+			}
+		}
+		/* **沒重建就不印建場成本。**手機第一次跑就是這樣騙到我的：五個強迫寬度
+		   全都比 402px 的視窗還寬，`main` 一動也不動、根本沒重建，而「那段時間的
+		   最大成本」照樣給出一個看起來很合理的 1.00ms。 */
+		if (r.build?.rebuilt) {
+			console.log(`   建場成本 中位 ${ms(r.build.med)}　最大 ${ms(r.build.max)}（五次改版面裡 ${r.build.rebuilt} 次真的重建）`);
+		} else if (r.build) {
+			console.log('   建場成本 —（強迫改版面沒有觸發重建，這一輪量不到，不編一個數字給你）');
+		}
+		if (r.contrast != null) {
+			console.log(`   文字帶最壞對比 ${r.contrast.toFixed(2)} ／ 門檻 4.5　${r.contrast >= 4.5 ? '✓' : '✗'}`);
+		}
+		console.log(`   畫布非零像素 ${r.painted}　未捕捉例外 ${r.errors.length || '無'}\n`);
+	};
+}
+
+/**
+ * 票 02 的比對截圖。參數靠 `?ink=` `?dim=` 從屬性換掉，不必為了看另一組值重新建置。
+ *   node scripts/verify/field-dim.mjs --shots <輸出目錄>
+ */
+async function shots(dir) {
+	const shot = (path, name, size = '1440,900') =>
+		new Promise((done) => {
+			const c = spawn(CHROME, [
+				'--headless=new',
+				'--disable-gpu',
+				'--hide-scrollbars',
+				`--window-size=${size}`,
+				'--force-device-scale-factor=1',
+				`--user-data-dir=${trackProfile(`field-shot-${process.pid}-${runs++}`)}`,
+				`--screenshot=${join(dir, name)}`,
+				`http://localhost:${PORT}${path}`,
+			]);
+			c.on('close', done);
+		});
+	const read = '/projects/stats/taiwan-tourism/';
+	// 第一題：線的強度。現行 0.040 對上原型上「明顯較有存在感」的 0.070
+	await shot('/', 'q1-home-ink-040.png');
+	await shot('/?ink=0.07', 'q1-home-ink-070.png');
+	// 第二題：文字帶減光。現行 0.75 對上完全不減光——差別就是減光在做的事
+	await shot(read, 'q2-read-dim-075.png');
+	await shot(`${read}?dim=0`, 'q2-read-dim-000.png');
+	// 閱讀頁的線強度也要看一次（正文欄兩側是他讀字時眼角會掃到的地方）
+	await shot(read, 'q1-read-ink-040.png');
+	await shot(`${read}?ink=0.07`, 'q1-read-ink-070.png');
+	/* 第三題：裂縫比例。現行 0.09 在 1280×720 上只斷 0.9%、餘燼 0 顆。
+	   線強度一律拉到 0.07 才看得出斷口在哪——這幾張問的是**斷口的密度**，
+	   不是線的強度，兩件事混在一張圖裡他分不出自己在答哪一題。 */
+	for (const c of ['0.09', '0.20', '0.30']) {
+		await shot(`/?ink=0.07&crack=${c}`, `q3-home-crack-${c.replace('.', '')}.png`);
+	}
+	console.log(`截圖產在 ${dir}`);
+}
+
+/* listen 的回呼裡丟例外的話，server 會留在綁定狀態、行程掛住，而下一次跑會變成
+   EADDRINUSE——**這次真的踩到了**（刪 --signoff 時連帶砍掉三個函式，ReferenceError
+   之後 4477 一直被佔著）。包起來，讓它印得出原因並且真的收掉。 */
+const dispatch = async () => {
 	const filmAt = process.argv.indexOf('--shockfilm');
 	if (filmAt >= 0) {
 		const dir = process.argv[filmAt + 1];
@@ -342,7 +485,6 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 			process.exit(2);
 		}
 		const bad = await shockfilm(dir, process.argv[filmAt + 2]);
-		sweepProfiles();
 		server.close();
 		process.exit(bad);
 	}
@@ -361,13 +503,11 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 			process.exit(2);
 		}
 		await shots(dir);
-		sweepProfiles();
 		server.close();
 		process.exit(0);
 	}
 	if (process.argv.includes('--runtime')) {
 		const bad = await runtime();
-		sweepProfiles();
 		server.close();
 		process.exit(bad ? 1 : 0);
 	}
@@ -499,4 +639,16 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 			: '\n✓ 場有畫出來、減光真的有作用、回彈會動且在降低動態偏好下全關（⚠ 的兩項是參數強度，票 02 定版）',
 	);
 	process.exit(bad ? 1 : 0);
+};
+
+/* **預設一定要綁 localhost。**`host` 傳 `undefined` 時 Node 綁的是 `::`（雙堆疊全介面），
+   所以先前「只有 --lan 才對區網開放」是錯的——每一次 `npm run verify:field` 都對區網開著。
+   第二輪抗辯實測 `listen(0, undefined)` 回 `{"address":"::"}`。 */
+server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : '127.0.0.1', () => {
+	dispatch().catch((e) => {
+		console.error(`
+✗ ${e.message}`);
+		server.close();
+		process.exit(1);
+	});
 });

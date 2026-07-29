@@ -323,7 +323,7 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 				.join('｜');
 			const grew = viewH + 2 * pad > layerH;
 			const now = `${W}@${DPR}／${band}`;
-			if (now !== shape || grew || !layer) build();
+			if (now !== shape || grew) build();
 			shape = now;
 			draw(0);
 		}

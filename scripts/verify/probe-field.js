@@ -137,7 +137,7 @@
 			const px1 = Math.min(cv.width, Math.round(x1 * dpr));
 			const py0 = Math.max(0, Math.round(y0 * dpr));
 			const py1 = Math.min(cv.height, Math.round(y1 * dpr));
-			if (px1 <= px0 || py1 <= py0) return { mean: 0, hit: 0, accent: 0, n: 0 };
+			if (px1 <= px0 || py1 <= py0) return { mean: 0, hit: 0, accent: 0 };
 			const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
 			let sum = 0;
 			let hit = 0;
@@ -150,7 +150,7 @@
 				// 等高線是中性階（R≈G≈B），次級線與餘燼是元素主色（B 明顯高於 R）
 				if (d[i + 2] > d[i] + 20) accent++;
 			}
-			return { mean: sum / (d.length / 4) / 255, hit, accent, n: d.length / 4 };
+			return { mean: sum / (d.length / 4) / 255, hit, accent };
 		};
 
 		const y0 = Math.max(0, box.top);
@@ -162,7 +162,6 @@
 		const report = {
 			ok: true,
 			nodim,
-			motion,
 			reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
 			page: location.pathname,
 			textDim: P.textDim,
@@ -208,11 +207,9 @@
 			const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
 			let best = -1;
 			let worstPx = null;
-			let peakA = 0;
 			for (let i = 0; i < d.length; i += 4) {
 				const a = d[i + 3] / 255;
 				if (!a) continue;
-				if (a > peakA) peakA = a;
 				const c = [0, 1, 2].map((k) => Math.round(d[i + k] * a + base[k] * (1 - a)));
 				const L = lum(c);
 				if (L > best) {
@@ -223,7 +220,7 @@
 			if (!worstPx) return {};
 			const l1 = Math.max(lum(text), best);
 			const l2 = Math.min(lum(text), best);
-			return { contrast: (l1 + 0.05) / (l2 + 0.05), worstPx, peakAlpha: peakA };
+			return { contrast: (l1 + 0.05) / (l2 + 0.05), worstPx };
 		};
 
 		if (q.has('shockfilm')) {
