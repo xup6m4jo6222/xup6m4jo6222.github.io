@@ -28,6 +28,27 @@
 	const nodim = q.has('nodim');
 	const motion = q.has('motion');
 	const signoff = q.has('signoff');
+	const runtime = q.has('runtime');
+	/**
+	 * `?kill=1` — **讓場整個不畫**，用來證明這支探針自己會紅（票 04）。
+	 * 拿掉 `data-field`，元件讀不到參數就直接 return，畫布會是全空的。
+	 * 這是「驗證工具自己會假綠」那條教訓的執行版：v9 抓到過一個動畫死透仍報
+	 * 「有在動」的探針，所以每一次跑都要順手證明一次自己不是那種。
+	 */
+	const killed = q.has('kill');
+	/**
+	 * `?nomotif=1` — 把母題殺掉，只留場。
+	 *
+	 * 建場成本原本量不出來：改版面那條路上母題也在重建（三張整面離屏遮罩＋遠景層），
+	 * 實測 72–178ms，而場的份額落在雜訊裡（量到 −1.0 到 +4.5ms 都有）。
+	 * **兩個量級差太多的東西相減，得到的是雜訊不是差額**——要拿到場自己的數字，
+	 * 就得讓它單獨走一次那條路。
+	 */
+	if (q.has('nomotif')) document.querySelector('canvas.motif')?.removeAttribute('data-motif');
+	/* 參數要在拿掉屬性**之前**先留一份：探針自己還要用它（回位時間、餘燼週期），
+	   不留的話這支會在被殺掉的那一輪自己丟例外，那就變成「探針壞了」而不是「場沒畫」。 */
+	let savedField = document.querySelector('canvas.field')?.dataset.field;
+	if (killed) document.querySelector('canvas.field')?.removeAttribute('data-field');
 
 	/* 票 02 的每幀成本：在元件的模組執行**之前**換掉 requestAnimationFrame，替每一次
 	   回呼計時。這支是 classic script、解析當下就執行，元件是 module、延後執行，
@@ -35,7 +56,7 @@
 	   （票 05 的教訓：門檻設 0.5ms 會把便宜的真幀一起砍掉，中位數因此被高估）。 */
 	const costs = [];
 	const ticks = [];
-	if (signoff) {
+	if (signoff || runtime) {
 		const raf0 = window.requestAnimationFrame.bind(window);
 		window.requestAnimationFrame = (cb) =>
 			raf0((t) => {
@@ -54,11 +75,12 @@
 	   不必為了看另一組值而重新建置——這是產物端契約付出來的紅利。 */
 	const KNOBS = { ink: 'ink', dim: 'textDim', crack: 'crack', ember: 'ember' };
 	const cv0 = document.querySelector('canvas.field');
-	if (cv0 && (nodim || Object.keys(KNOBS).some((k) => q.has(k)))) {
+	if (cv0 && !killed && (nodim || Object.keys(KNOBS).some((k) => q.has(k)))) {
 		const p = JSON.parse(cv0.dataset.field);
 		if (nodim) p.textDim = 0;
 		for (const [k, key] of Object.entries(KNOBS)) if (q.has(k)) p[key] = +q.get(k);
 		cv0.dataset.field = JSON.stringify(p);
+		savedField = cv0.dataset.field;
 	}
 
 	const send = (r) =>
@@ -81,7 +103,8 @@
 			send({ ok: false, why: '這一頁沒有場', errors });
 			return;
 		}
-		const P = JSON.parse(cv.dataset.field);
+		// 被 `?kill=1` 拿掉屬性的那一輪，讀的是先前留下來的那一份
+		const P = JSON.parse(cv.dataset.field || savedField);
 		const K = JSON.parse(cv.dataset.fieldCraft);
 		const F = K.textBandFeather;
 		const dpr = cv.width / innerWidth;
@@ -152,6 +175,78 @@
 			accent: whole.accent,
 			errors,
 		};
+
+		if (runtime) {
+			/* ── 票 04：把「每幀」與「一次性」分開量 ────────────────────────
+			   每幀成本量的是貼圖＋餘燼；**建場**是另一件事，只在視窗寬或文字帶
+			   變動時付一次。兩者混在一個 max 裡看起來像「有時候會爆 68ms」，
+			   拆開之後才講得清楚「常態 0.4ms，換一次版面付一次 X ms」。
+
+			   建場的觸發用的是**外部可觀察的路徑**：改 main 的寬度 → 文字帶變了 →
+			   簽章變了 → 元件重建。這正是字體換上來時真的會走的那條路，
+			   不是為了量測另開的後門。 */
+			/* **首次建場也是一幀**，而它就落在載入後的頭幾秒裡。不把它丟掉的話，
+			   它會混進「每幀成本」的樣本：閱讀頁 1902 寬那一輪的 p95 因此變成 18ms，
+			   而常態其實是 0.2ms——一個一次性的成本被讀成「二十分之一的幀會爆」。
+			   丟掉前兩秒，再開始取樣；建場另外量。 */
+			await wait(2000);
+			costs.length = 0;
+			ticks.length = 0;
+			await wait(6000);
+			const steady = costs.length;
+			const steadyTicks = ticks.slice();
+
+			/* 每一次都要確認「場**真的重建了**」，不能只看有沒有一幀變貴。
+			   若簽章其實沒變、元件根本沒進 build()，量到的就是同一條路上別人的成本，
+			   而那個數字看起來一樣合理——這是「驗證工具自己會假綠」的另一個入口。
+			   判法：文字帶跟著 main 的寬度走，重建過畫面就一定不一樣。 */
+			/* 取**整張畫布**，不是左上角一塊。第一版只取 600×400，而 1902 寬的視窗裡
+			   正文欄從 x≈600 才開始——文字帶動了，那一塊卻沒變，於是五次裡有兩次被
+			   判成「沒重建」。那是取樣窗的錯，不是元件的錯。 */
+			const fp = () => {
+				const d = g.getImageData(0, 0, cv.width, cv.height).data;
+				let s = 0;
+				for (let i = 3; i < d.length; i += 4) s += d[i];
+				return s;
+			};
+			const builds = [];
+			let rebuilt = 0;
+			const original = main.style.maxWidth;
+			for (let i = 0; i < 5; i++) {
+				const mark = costs.length;
+				const before = fp();
+				main.style.maxWidth = `${560 + i * 60}px`;
+				await nextFrames(6); // ResizeObserver → rAF → resize() → build()
+				if (fp() !== before) rebuilt++;
+				const window_ = costs.slice(mark);
+				if (window_.length) builds.push(Math.max(...window_));
+			}
+			main.style.maxWidth = original;
+			await nextFrames(6);
+
+			const pctl = (arr, p) => {
+				if (!arr.length) return null;
+				const s = [...arr].sort((a, b) => a - b);
+				return s[Math.min(s.length - 1, Math.floor(s.length * p))];
+			};
+			const perFrame = costs.slice(0, steady);
+			report.cost = {
+				med: pctl(perFrame, 0.5),
+				p95: pctl(perFrame, 0.95),
+				max: perFrame.length ? Math.max(...perFrame) : null,
+				n: perFrame.length,
+			};
+			report.build = {
+				med: pctl(builds, 0.5),
+				max: builds.length ? Math.max(...builds) : null,
+				n: builds.length,
+				rebuilt, // 五次強迫改版面裡，畫面真的變了幾次
+			};
+			// 幀率也只看常態那一段：五次強迫重建每次 100ms 以上，混進去會把平均拉垮
+			report.fps = steadyTicks.length / ((steadyTicks[steadyTicks.length - 1] - steadyTicks[0]) / 1000);
+			send(report);
+			return;
+		}
 
 		if (signoff) {
 			/* ── 票 02 的三個數字 ────────────────────────────────────────

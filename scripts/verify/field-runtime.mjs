@@ -1,15 +1,21 @@
 /**
- * 票 01：跑真瀏覽器，證明「文字帶減光真的有作用」。
+ * 背景等高線場的執行期量測與檢查（票 01／02／04）。跑的是真瀏覽器，
+ * 因為**靜態閘門看不到執行期的東西**——這一整支就是那條教訓的執行版。
  *
- *   npm run build && node scripts/verify/field-dim.mjs
+ *   npm run verify:field                        票 01：減光真的有作用、回彈會動、
+ *                                               降低動態偏好下位移全關（會判定合格與否）
+ *   node scripts/verify/field-runtime.mjs --runtime   票 04：每幀成本／建場成本／
+ *                                               文字帶對比，外加探針的自我證偽
+ *   node …/field-runtime.mjs --signoff          票 02：擺數字給本人看，不判定
+ *   node …/field-runtime.mjs --shots <目錄>     票 02：換參數的比對截圖
+ *   node …/field-runtime.mjs --lan              票 04：手機連區網回報
  *
- * 為什麼要這一支：閘門比對的是 `data-field` 屬性，看不到畫布像素。減光寫在參數裡、
+ * 為什麼需要它：閘門比對的是 `data-field` 屬性，看不到畫布像素。減光寫在參數裡、
  * 屬性也對，但 `strokeStyle` 的坑會讓它整個不生效，而畫面看起來完全正常——
  * 本人定案的那組參數就是在那個狀態下調的（`DECISIONS.md` #226／#228）。
  *
- * 做法：同一頁跑兩次，對照組用 `?nodim=1` 把 `data-field` 的 `textDim` 改成 0。
- * 兩次的「文字帶核心／帶外」不透明度比必須明顯不同——**這就是票 01 那一條
- * 「拿掉減光與加上減光的畫面必須不同」**。
+ * 所有對照組都靠改 `data-field` 屬性產生（`?nodim` `?ink=` `?ember=` `?kill=1`），
+ * 不必為了換一個值重新建置——**這是產物端契約付出來的紅利**。
  *
  * 產物直接從記憶體服務並在回應時注入探針，所以不動 `dist/`，不必寫還原邏輯。
  * **不加 --virtual-time-budget**（RUNBOOK 的坑之二）。
@@ -17,7 +23,7 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { networkInterfaces, tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -127,6 +133,146 @@ const PAGES = [
 	['閱讀頁', '/projects/stats/taiwan-tourism/'],
 ];
 
+/**
+ * 票 04：執行期量測。**這一支會判定合格與否**（與票 02 的 `--signoff` 不同，
+ * 那一支是擺數字給人看）。
+ *
+ *   node scripts/verify/field-runtime.mjs --runtime
+ *
+ * 量三件事，而且每一件都拆到「講得清楚」為止：
+ *   每幀成本 — 拆成**固定開銷**（清空＋整面貼圖，隨畫布像素數變動）與
+ *              **邊際成本**（餘燼）。對照組用 `?ember=0`，靠產物端契約換值，
+ *              不必為了量一個數字重新建置。
+ *   建場成本 — **一次性**，只在視窗寬或文字帶變動時付。混在每幀成本的 max 裡
+ *              看起來像「有時候會爆」，拆開才講得清楚。
+ *   文字帶最壞對比 — 對 4.5。
+ *
+ * 外加一件這張票明文要求的事：**探針要能證明自己會紅**。每一次跑都用 `?kill=1`
+ * 把場殺掉一次，探針必須回報「沒畫出來」——v9 抓到過一個動畫死透仍報「有在動」
+ * 的探針，所以自我證偽不是選配。
+ */
+async function runtime() {
+	const { FIELD, FIELD_CRAFT } = await import(
+		new URL('../palette-config.mjs', import.meta.url).href
+	);
+	const BUDGET = 11;
+	let bad = 0;
+	const ms = (v) => (v == null ? '—' : `${v.toFixed(2)} ms`);
+
+	// ── 先證明這支探針會紅 ───────────────────────────────────────────────
+	console.log('══ 探針的自我證偽 ══');
+	const dead = await run('/?runtime=1&kill=1', [], 90000);
+	if (dead.ok && dead.painted === 0) {
+		console.log('   ✓ 故意讓場不畫（拿掉 data-field）時，探針回報畫布 0 個非零像素');
+	} else {
+		console.log(`   ✗ 故意讓場不畫，探針卻回報 painted=${dead.painted}——這支探針證明不了任何事`);
+		bad++;
+	}
+
+	console.log('\n══ 票 04 執行期讀數 ══');
+	for (const [name, path] of PAGES) {
+		// 1280×720 與 1920×1080 兩個尺寸：固定開銷是整面貼圖，它隨畫布像素數變動，
+		// 只量一個尺寸看不出那件事是不是真的
+		for (const size of ['1280,720', '1920,1080']) {
+			const flags = [`--window-size=${size}`];
+			const full = await run(`${path}?runtime=1`, flags, 150000);
+			const bare = await run(`${path}?runtime=1&ember=0`, flags, 150000);
+			/* 現行只有 6 顆餘燼，成本落在計時器解析度（0.1ms）以下——量到的差是雜訊，
+			   有時候還是負的。要看得到斜率就得把餘燼開到滿載：`?ember=0.9` 讓幾乎每個
+			   裂縫都長餘燼（約 236 顆）。**這才是「還擺得下多少東西」問得到答案的量法**，
+			   只量現行值只會得到「量不到」。 */
+			const loaded = await run(`${path}?runtime=1&ember=0.9`, flags, 150000);
+			/* 建場成本要**單獨量**，不能用「有場」減「沒場」：改版面那條路上母題也在
+			   重建（三張整面離屏遮罩＋遠景層，實測 72–178ms），兩個量級差太多的東西
+			   相減得到的是雜訊——第一版量到 −1.0 到 +4.5ms 都有。`?nomotif=1` 把母題
+			   拿掉，讓場單獨走一次那條路。 */
+			const alone = await run(`${path}?runtime=1&nomotif=1`, flags, 150000);
+			const without = await run(`${path}?runtime=1&kill=1`, flags, 150000);
+			if (!full.ok || !bare.ok) {
+				console.log(`\n── ${name}　${size}　✗ ${full.why || bare.why}`);
+				bad++;
+				continue;
+			}
+			const fixed = bare.cost.med;
+			const marginal = full.cost.med - fixed;
+			console.log(`\n── ${name}　${full.vw}×${full.vh} DPR ${full.dpr}　畫面更新率 ${full.fps.toFixed(1)} fps`);
+			console.log(
+				`   每幀成本　　中位 ${ms(full.cost.med)}　p95 ${ms(full.cost.p95)}　最大 ${ms(full.cost.max)} ／ 預算 ${BUDGET} ms（取樣 ${full.cost.n} 幀）`,
+			);
+			/* 差額小於計時器解析度時**只給上界，不給數字**。0.1ms 的量化下，
+			   兩個 0.4ms 相減可以是 −0.1 也可以是 +0.1——把那個當成「每顆 −0.85µs」
+			   印出來，是在假裝量到了沒量到的東西。 */
+			const RES = 0.15;
+			/* 負的差額一律當「量不到」。多畫東西不可能變便宜——印出「每顆 −0.85µs」
+			   是在假裝量到了沒量到的東西，而那正是這張票要防的那種數字。 */
+			const tiny = (v) => v < RES;
+			const delta = (v, what) => (tiny(v) ? `≲ ${RES} ms（${what}）` : ms(v));
+			console.log(`   ├ 固定開銷（清空＋整面貼圖）　中位 ${ms(fixed)}　＝ 餘燼 0 顆時的成本`);
+			console.log(`   └ 邊際成本（餘燼）　　　　　　現行 6 顆 ${delta(marginal, '在 0.1ms 計時解析度以下')}`);
+			if (loaded.ok) {
+				const d = loaded.cost.med - fixed;
+				console.log(
+					`   　　　　　　　　　　　　　　滿載約 236 顆 ${delta(d, '連滿載都量不到')}` +
+						(tiny(d) ? `　→ 每顆 ≲ ${((RES / 236) * 1000).toFixed(2)} µs` : `　→ 每顆約 ${((d / 236) * 1000).toFixed(2)} µs`),
+				);
+			}
+			console.log(
+				`   建場成本（一次性，改版面時付）　場單獨跑 中位 ${ms(alone.ok ? alone.build.med : null)}　最大 ${ms(alone.ok ? alone.build.max : null)}`,
+			);
+			if (without.ok && without.build.med != null) {
+				console.log(
+					`   　　同一條路上母題佔 ${ms(without.build.med)}（三張整面離屏遮罩＋遠景層）——場不是這條路的瓶頸`,
+				);
+			}
+			for (const [tag, r] of [['場單獨', alone], ['完整', full]]) {
+				if (r.ok && r.build.rebuilt !== r.build.n) {
+					console.log(`   ✗ ${tag}那一輪五次改版面裡只有 ${r.build.rebuilt} 次畫面真的變了——量到的不是建場成本`);
+					bad++;
+				}
+			}
+			console.log(`   繪製真的發生　畫布非零像素 ${full.painted} 個`);
+
+			if (!(full.cost.med <= BUDGET)) {
+				console.log(`   ✗ 每幀成本中位 ${ms(full.cost.med)} 超過 ${BUDGET} ms 預算`);
+				bad++;
+			}
+			if (!(full.cost.p95 <= BUDGET)) {
+				console.log(`   ✗ 每幀成本 p95 ${ms(full.cost.p95)} 超過 ${BUDGET} ms 預算`);
+				bad++;
+			}
+			if (!full.painted) {
+				console.log('   ✗ 畫布上沒有任何非零像素——場根本沒畫出來');
+				bad++;
+			}
+			if (full.errors.length) {
+				console.log(`   ✗ 未捕捉的例外：${full.errors.join(' ／ ')}`);
+				bad++;
+			}
+		}
+
+		// 文字帶最壞對比走 signoff 那條路（量法與原型一致，數字可比）
+		const c = await run(`${path}?signoff=1`, ['--window-size=1280,720'], 90000);
+		if (c.ok && c.contrast != null) {
+			const ok = c.contrast >= 4.5;
+			console.log(`   文字帶最壞對比　${c.contrast.toFixed(2)} ／ 門檻 4.5　${ok ? '✓' : '✗'}`);
+			if (!ok) bad++;
+		} else {
+			console.log('   ✗ 文字帶最壞對比量不到');
+			bad++;
+		}
+	}
+
+	console.log(
+		`\n回彈峰值速度 ${(FIELD.shockAmp * FIELD_CRAFT.shockOmega[0]).toFixed(0)} px/s ／ 紅線③ 30　` +
+			`回位時間 ${FIELD.shockMs} ms ／ 動效紅線① 350`,
+	);
+	console.log(
+		bad ? `\n✗ ${bad} 項不合格` : '\n✓ 每幀成本在預算內、繪製真的發生、文字帶對比守住，且探針證明過自己會紅',
+	);
+	console.log('※ 手機那一組要另外跑：node scripts/verify/field-runtime.mjs --lan');
+	return bad;
+}
+
 /* 票 02 的驗收讀數：不判定合格與否，只把三個數字擺出來讓本人看。
    判定是他的事——這一輪存在的理由就是「不要 AI 自己說看起來還行」。 */
 async function signoff() {
@@ -199,12 +345,56 @@ async function shots(dir) {
 	console.log(`截圖產在 ${dir}`);
 }
 
-server.listen(PORT, async () => {
+/**
+ * 票 04：手機那一組。開在 0.0.0.0，印出區網網址，收到回報就印出來。
+ *
+ * 為什麼手機不能用無頭代跑（RUNBOOK 的坑之三）：Windows 無頭視窗寬有約 500px 下限，
+ * 指定 375 會被鉗成 500，而且無頭是軟體算圖、沒有真裝置的 GPU 與散熱限制。
+ * **手機端一律以瀏覽器內量測為準。**
+ */
+function lan() {
+	const ips = Object.values(networkInterfaces())
+		.flat()
+		.filter((i) => i && i.family === 'IPv4' && !i.internal)
+		.map((i) => i.address);
+	console.log('手機連同一個 wifi，開下面任一個網址（開著別動，約 20 秒後會自己回報）：\n');
+	for (const ip of ips) {
+		console.log(`  首頁    http://${ip}:${PORT}/?runtime=1`);
+		console.log(`  閱讀頁  http://${ip}:${PORT}/projects/stats/taiwan-tourism/?runtime=1`);
+	}
+	console.log('\n收工按 Ctrl-C。等回報中……\n');
+	const ms = (v) => (v == null ? '—' : `${v.toFixed(2)} ms`);
+	inbox = (r) => {
+		if (!r.ok) {
+			console.log(`✗ ${r.why}`);
+			return;
+		}
+		console.log(`── ${r.page}　${r.vw}×${r.vh} DPR ${r.dpr}　畫面更新率 ${r.fps?.toFixed(1)} fps`);
+		if (r.cost) {
+			console.log(
+				`   每幀成本 中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)} ／ 預算 11 ms（取樣 ${r.cost.n} 幀）`,
+			);
+		}
+		if (r.build) console.log(`   建場成本 中位 ${ms(r.build.med)}　最大 ${ms(r.build.max)}`);
+		console.log(`   畫布非零像素 ${r.painted}　未捕捉例外 ${r.errors.length || '無'}\n`);
+	};
+}
+
+server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, async () => {
+	if (process.argv.includes('--lan')) {
+		lan();
+		return; // 不結束，等手機回報
+	}
 	const shotsAt = process.argv.indexOf('--shots');
 	if (shotsAt >= 0) {
 		await shots(process.argv[shotsAt + 1]);
 		server.close();
 		process.exit(0);
+	}
+	if (process.argv.includes('--runtime')) {
+		const bad = await runtime();
+		server.close();
+		process.exit(bad ? 1 : 0);
 	}
 	if (process.argv.includes('--signoff')) {
 		await signoff();
