@@ -6,7 +6,6 @@
  *                                               降低動態偏好下位移全關（會判定合格與否）
  *   node scripts/verify/field-runtime.mjs --runtime   票 04：每幀成本／建場成本／
  *                                               文字帶對比，外加探針的自我證偽
- *   node …/field-runtime.mjs --signoff          票 02：擺數字給本人看，不判定
  *   node …/field-runtime.mjs --shots <目錄>     票 02：換參數的比對截圖
  *   node …/field-runtime.mjs --lan              票 04：手機連區網回報
  *
@@ -177,8 +176,7 @@ const PAGES = [
 ];
 
 /**
- * 票 04：執行期量測。**這一支會判定合格與否**（與票 02 的 `--signoff` 不同，
- * 那一支是擺數字給人看）。
+ * 票 04：執行期量測。**這一支會判定合格與否**。
  *
  *   node scripts/verify/field-runtime.mjs --runtime
  *
@@ -214,6 +212,7 @@ async function runtime() {
 
 	console.log('\n══ 票 04 執行期讀數 ══');
 	for (const [name, path] of PAGES) {
+		let lastContrast = null;
 		// 1280×720 與 1920×1080 兩個尺寸：固定開銷是整面貼圖，它隨畫布像素數變動，
 		// 只量一個尺寸看不出那件事是不是真的
 		for (const size of ['1280,720', '1920,1080']) {
@@ -238,13 +237,20 @@ async function runtime() {
 			}
 			const fixed = bare.cost.med;
 			const marginal = full.cost.med - fixed;
-			console.log(`\n── ${name}　${full.vw}×${full.vh} DPR ${full.dpr}　畫面更新率 ${full.fps.toFixed(1)} fps`);
-			console.log(
-				`   每幀成本　　中位 ${ms(full.cost.med)}　p95 ${ms(full.cost.p95)}　最大 ${ms(full.cost.max)} ／ 預算 ${BUDGET} ms（有量到的 ${full.cost.n} 幀）`,
-			);
-			if (full.silentFrames != null) {
-				console.log(`   　其中 ${(full.silentFrames * 100).toFixed(0)}% 的幀量到 0（計時器解析度以下）`);
-			}
+			console.log(`\n── ${name}　${full.vw}×${full.vh} DPR ${full.dpr}`);
+			/* **要分兩行報。**探針換掉的是**全域** requestAnimationFrame，所以任何消費者的
+			   回呼都會進樣本——首頁的母題也有一條常駐迴圈，於是「每幀成本」量到的是
+			   場＋母題。2026-07-29 抗辯實測：首頁完整 0.40ms／71.3fps，`?nomotif=1` 只有
+			   0.20ms／51.1fps。**那個 71.3 本身就是破綻**——它高過這台無頭畫得出來的上限，
+			   因為它根本不是幀率，是兩條迴圈的回呼數相加。閱讀頁乾淨（那一頁母題沒有迴圈）。
+			   兩個數字都有意義：場自己的成本是這一層的帳，首頁實際是讀者真的付的。 */
+			const line = (tag, r) =>
+				console.log(
+					`   每幀成本${tag}　中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)}` +
+						` ／ 預算 ${BUDGET} ms（有量到的 ${r.cost.n} 幀，${((r.silentFrames ?? 0) * 100).toFixed(0)}% 量到 0）　更新率 ${r.fps.toFixed(1)}/s`,
+				);
+			if (alone.ok) line('（場自己）　', alone);
+			line('（場＋母題）', full);
 			/* 差額小於計時器解析度時**只給上界，不給數字**。0.1ms 的量化下，
 			   兩個 0.4ms 相減可以是 −0.1 也可以是 +0.1——把那個當成「每顆 −0.85µs」
 			   印出來，是在假裝量到了沒量到的東西。 */
@@ -281,6 +287,7 @@ async function runtime() {
 				}
 			}
 			console.log(`   繪製真的發生　畫布非零像素 ${full.painted} 個`);
+			if (full.contrast != null) lastContrast = full.contrast;
 
 			if (!(full.cost.med <= BUDGET)) {
 				console.log(`   ✗ 每幀成本中位 ${ms(full.cost.med)} 超過 ${BUDGET} ms 預算`);
@@ -300,11 +307,13 @@ async function runtime() {
 			}
 		}
 
-		// 文字帶最壞對比走 signoff 那條路（量法與原型一致，數字可比）
-		const c = await run(`${path}?signoff=1`, ['--window-size=1280,720'], 90000);
-		if (c.ok && c.contrast != null) {
-			const ok = c.contrast >= 4.5;
-			console.log(`   文字帶最壞對比　${c.contrast.toFixed(2)} ／ 門檻 4.5　${ok ? '✓' : '✗'}`);
+		/* 對比直接讀 runtime 那一輪的回報。先前為了拿這一個數字又多開一次無頭 Chrome
+		   跑 `?signoff=1`，而那條路的對比計算是 `worstContrast()` 被**抄了第二份**——
+		   抽出共用函式時舊的那份沒刪，註解卻寫著「抄兩份的話哪天量法改了只會改到一邊」。
+		   簡潔性鏡頭抓到的，整條 signoff 已刪（約 96 行，且沒有任何呼叫者）。 */
+		if (lastContrast != null) {
+			const ok = lastContrast >= 4.5;
+			console.log(`   文字帶最壞對比　${lastContrast.toFixed(2)} ／ 門檻 4.5　${ok ? '✓' : '✗'}`);
 			if (!ok) bad++;
 		} else {
 			console.log('   ✗ 文字帶最壞對比量不到');
@@ -321,152 +330,6 @@ async function runtime() {
 	);
 	console.log('※ 手機那一組要另外跑：node scripts/verify/field-runtime.mjs --lan');
 	return bad;
-}
-
-/* 票 02 的驗收讀數：不判定合格與否，只把三個數字擺出來讓本人看。
-   判定是他的事——這一輪存在的理由就是「不要 AI 自己說看起來還行」。 */
-async function signoff() {
-	const { FIELD, FIELD_CRAFT } = await import(
-		new URL('../palette-config.mjs', import.meta.url).href
-	);
-	const peak = FIELD.shockAmp * FIELD_CRAFT.shockOmega[0];
-	console.log('\n══ 票 02 驗收讀數 ══');
-	console.log(
-		`回彈峰值速度　${peak.toFixed(0)} px/s ／ 紅線③ 30　` +
-			`（${FIELD.shockAmp}px × ${FIELD_CRAFT.shockOmega[0]} rad/s，參數的解析上界，不是目測）`,
-	);
-	console.log(`回位時間　　　${FIELD.shockMs} ms ／ 動效紅線① 350（上限就是紅線）`);
-	for (const [name, path] of PAGES) {
-		const r = await run(`${path}?signoff=1`, [], 60000);
-		if (!r.ok) {
-			console.log(`\n── ${name}　✗ ${r.why}`);
-			continue;
-		}
-		const c = r.cost;
-		console.log(`\n── ${name}　${r.vw}×${r.vh} DPR ${r.dpr}`);
-		console.log(
-			`   每幀成本　　中位 ${c.med.toFixed(2)} ms　p95 ${c.p95.toFixed(2)} ms　最大 ${c.max.toFixed(2)} ms ／ 預算 11 ms（取樣 ${c.n} 幀）`,
-		);
-		console.log(`   超過 5ms 的幀 ${c.over5} 個——建場是一次性的，貼圖不是，這個數字分得開兩者`);
-		console.log(`   畫面更新率　${r.fps.toFixed(1)} fps　場真的重畫 ${r.redraws.toFixed(1)} 次/秒（上限 ${FIELD_CRAFT.fpsCap}）`);
-		console.log(
-			`   文字帶最壞對比　${r.contrast ? r.contrast.toFixed(2) : '—'} ／ 門檻 4.5　` +
-				`（最亮的一顆 rgb(${r.worstPx}）、場在帶內的峰值不透明度 ${r.peakAlpha.toFixed(4)}）`,
-		);
-		console.log('   　　　　　　　※ 未計入兩道亮光與顆粒，量法與原型一致，所以與當初的 14.17 可比');
-	}
-}
-
-/**
- * 票 02 的比對截圖。參數靠 `?ink=` `?dim=` 從屬性換掉，不必為了看另一組值重新建置。
- *   node scripts/verify/field-dim.mjs --shots <輸出目錄>
- */
-async function shots(dir) {
-	const shot = (path, name, size = '1440,900') =>
-		new Promise((done) => {
-			const c = spawn(CHROME, [
-				'--headless=new',
-				'--disable-gpu',
-				'--hide-scrollbars',
-				`--window-size=${size}`,
-				'--force-device-scale-factor=1',
-				`--user-data-dir=${join(tmpdir(), `field-shot-${process.pid}-${runs++}`)}`,
-				`--screenshot=${join(dir, name)}`,
-				`http://localhost:${PORT}${path}`,
-			]);
-			c.on('close', done);
-		});
-	const read = '/projects/stats/taiwan-tourism/';
-	// 第一題：線的強度。現行 0.040 對上原型上「明顯較有存在感」的 0.070
-	await shot('/', 'q1-home-ink-040.png');
-	await shot('/?ink=0.07', 'q1-home-ink-070.png');
-	// 第二題：文字帶減光。現行 0.75 對上完全不減光——差別就是減光在做的事
-	await shot(read, 'q2-read-dim-075.png');
-	await shot(`${read}?dim=0`, 'q2-read-dim-000.png');
-	// 閱讀頁的線強度也要看一次（正文欄兩側是他讀字時眼角會掃到的地方）
-	await shot(read, 'q1-read-ink-040.png');
-	await shot(`${read}?ink=0.07`, 'q1-read-ink-070.png');
-	/* 第三題：裂縫比例。現行 0.09 在 1280×720 上只斷 0.9%、餘燼 0 顆。
-	   線強度一律拉到 0.07 才看得出斷口在哪——這幾張問的是**斷口的密度**，
-	   不是線的強度，兩件事混在一張圖裡他分不出自己在答哪一題。 */
-	for (const c of ['0.09', '0.20', '0.30']) {
-		await shot(`/?ink=0.07&crack=${c}`, `q3-home-crack-${c.replace('.', '')}.png`);
-	}
-	console.log(`截圖產在 ${dir}`);
-}
-
-/**
- * 票 04：手機那一組。開在 0.0.0.0，印出區網網址，收到回報就印出來。
- *
- * 為什麼手機不能用無頭代跑（RUNBOOK 的坑之三）：Windows 無頭視窗寬有約 500px 下限，
- * 指定 375 會被鉗成 500，而且無頭是軟體算圖、沒有真裝置的 GPU 與散熱限制。
- * **手機端一律以瀏覽器內量測為準。**
- */
-function lan() {
-	const ips = Object.values(networkInterfaces())
-		.flat()
-		.filter((i) => i && i.family === 'IPv4' && !i.internal)
-		.map((i) => i.address);
-	console.log('手機連同一個 wifi，開下面任一個網址（開著別動，約 20 秒後會自己回報）：\n');
-	for (const ip of ips) {
-		console.log(`  首頁    http://${ip}:${PORT}/?runtime=1`);
-		console.log(`  閱讀頁  http://${ip}:${PORT}/projects/stats/taiwan-tourism/?runtime=1`);
-	}
-	console.log('\n收工按 Ctrl-C。等回報中……\n');
-	const ms = (v) => (v == null ? '—' : `${v.toFixed(2)} ms`);
-	inbox = (r) => {
-		if (!r.ok) {
-			console.log(`✗ ${r.why}`);
-			return;
-		}
-		console.log(`── ${r.page}　${r.vw}×${r.vh} DPR ${r.dpr}　畫面更新率 ${r.fps?.toFixed(1)} fps`);
-		if (r.cost) {
-			console.log(
-				`   每幀成本 中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)} ／ 預算 11 ms（有量到的 ${r.cost.n} 幀）`,
-			);
-			/* iOS Safari 把 performance.now() 量化到 1ms，所以每一筆不是 0 就是 1。
-			   「中位 1.00ms」只講得出「有量到的那些幀」——**量不到的比例才是真實量級**。 */
-			if (r.silentFrames != null) {
-				console.log(
-					`   　其中 ${(r.silentFrames * 100).toFixed(0)}% 的幀量到 0（計時器解析度以下）→ 真實每幀成本遠低於中位那個數`,
-				);
-			}
-		}
-		/* **沒重建就不印建場成本。**手機第一次跑就是這樣騙到我的：五個強迫寬度
-		   全都比 402px 的視窗還寬，`main` 一動也不動、根本沒重建，而「那段時間的
-		   最大成本」照樣給出一個看起來很合理的 1.00ms。 */
-		if (r.build?.rebuilt) {
-			console.log(`   建場成本 中位 ${ms(r.build.med)}　最大 ${ms(r.build.max)}（五次改版面裡 ${r.build.rebuilt} 次真的重建）`);
-		} else if (r.build) {
-			console.log('   建場成本 —（強迫改版面沒有觸發重建，這一輪量不到，不編一個數字給你）');
-		}
-		if (r.contrast != null) {
-			console.log(`   文字帶最壞對比 ${r.contrast.toFixed(2)} ／ 門檻 4.5　${r.contrast >= 4.5 ? '✓' : '✗'}`);
-		}
-		console.log(`   畫布非零像素 ${r.painted}　未捕捉例外 ${r.errors.length || '無'}\n`);
-	};
-}
-
-/**
- * 票 05 抗辯：回彈的逐格對比。
- *
- *   node scripts/verify/field-runtime.mjs --shockfilm <輸出目錄> [標籤]
- *
- * 拍的是**畫面與靜止態的差**（放大 20 倍），不是畫面本身——4px 的位移在
- * 0.040 強度的線上，靜態截圖裡看不見。亮起來的地方就是場移動過的地方。
- */
-async function shockfilm(dir, label = 'now') {
-	const r = await run('/?shockfilm=1', ['--window-size=1280,720'], 120000);
-	if (!r.ok || !r.frames) {
-		console.log(`✗ ${r.why || '沒有拿到逐格'}`);
-		return 1;
-	}
-	for (const [i, f] of r.frames.entries()) {
-		const name = `shock-${label}-${String(i + 1).padStart(2, '0')}-${f.phase === '捲動中' ? 'during' : 'after'}-${f.at}ms.png`;
-		writeFileSync(join(dir, name), Buffer.from(f.png.split(',')[1], 'base64'));
-		console.log(`   ${f.phase} ${String(f.at).padStart(4)}ms → ${name}`);
-	}
-	return 0;
 }
 
 server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, async () => {
@@ -507,12 +370,6 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 		sweepProfiles();
 		server.close();
 		process.exit(bad ? 1 : 0);
-	}
-	if (process.argv.includes('--signoff')) {
-		await signoff();
-		sweepProfiles();
-		server.close();
-		process.exit(0);
 	}
 	let bad = 0;
 	const pct = (v) => (v == null ? '—' : v.toFixed(4));

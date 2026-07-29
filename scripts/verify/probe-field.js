@@ -16,7 +16,7 @@
  * 對照組由 `?nodim=1` 產生：把 `data-field` 的 `textDim` 改成 0 再讓元件讀。
  * 屬性是產物端契約，改屬性就等於改參數——**這正是契約付出來的紅利**。
  *
- * `?motion=1` 另外跑一段動態序列（見下）。**不要加 --virtual-time-budget**
+ * `?motion=1` 另外跑一段動態序列，`?runtime=1` 量成本與建場（見下）。**不要加 --virtual-time-budget**
  * （遇到常駐 rAF 迴圈幾乎不前進，會量到空畫面）。
  */
 (() => {
@@ -27,7 +27,6 @@
 	const q = new URLSearchParams(location.search);
 	const nodim = q.has('nodim');
 	const motion = q.has('motion');
-	const signoff = q.has('signoff');
 	const runtime = q.has('runtime');
 	/**
 	 * `?kill=1` — **讓場整個不畫**，用來證明這支探針自己會紅（票 04）。
@@ -56,7 +55,7 @@
 	   （票 05 的教訓：門檻設 0.5ms 會把便宜的真幀一起砍掉，中位數因此被高估）。 */
 	const costs = [];
 	const ticks = [];
-	if (signoff || runtime) {
+	if (runtime) {
 		const raf0 = window.requestAnimationFrame.bind(window);
 		window.requestAnimationFrame = (cb) =>
 			raf0((t) => {
@@ -362,69 +361,6 @@
 			   講的是「有量到的那些幀」，不是全部的幀。量不到的比例才講得出真實量級。 */
 			report.silentFrames = steadyTicks.length ? 1 - steady / steadyTicks.length : null;
 			Object.assign(report, worstContrast());
-			send(report);
-			return;
-		}
-
-		if (signoff) {
-			/* ── 票 02 的三個數字 ────────────────────────────────────────
-			   每幀成本：讓它跑滿一段時間再取中位與 p95。
-			   文字帶最壞對比：把場的每一個像素壓到背景主色上，取合成後**最亮**的那一顆，
-			   對內文色算對比。**沒有計入兩道亮光與顆粒**——與原型的量法一致，
-			   所以這個數字跟本人當初看到的 14.17 是可比的。 */
-			await wait(8000);
-			const pctl = (arr, p) => {
-				if (!arr.length) return NaN;
-				const s = [...arr].sort((a, b) => a - b);
-				return s[Math.min(s.length - 1, Math.floor(s.length * p))];
-			};
-			const cs = getComputedStyle(document.body);
-			const parse = (v) => {
-				const m = v.trim().match(/^#([0-9a-f]{6})$/i);
-				if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
-				const n = v.match(/\d+/g);
-				return n ? n.slice(0, 3).map(Number) : null;
-			};
-			const base = parse(cs.getPropertyValue('--color-bg')) || parse(cs.backgroundColor);
-			const text = parse(cs.getPropertyValue('--color-text')) || parse(cs.color);
-			const lum = (c) => {
-				const f = (v) => (v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-				return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
-			};
-			const px0 = Math.max(0, Math.round(box.left * dpr));
-			const px1 = Math.min(cv.width, Math.round(box.right * dpr));
-			const py0 = Math.max(0, Math.round(y0 * dpr));
-			const py1 = Math.min(cv.height, Math.round(y1 * dpr));
-			const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
-			let best = -1;
-			let worstPx = null;
-			let peakA = 0;
-			for (let i = 0; i < d.length; i += 4) {
-				const a = d[i + 3] / 255;
-				if (!a) continue;
-				if (a > peakA) peakA = a;
-				const c = [0, 1, 2].map((k) => Math.round(d[i + k] * a + base[k] * (1 - a)));
-				const L = lum(c);
-				if (L > best) {
-					best = L;
-					worstPx = c;
-				}
-			}
-			const l1 = Math.max(lum(text), best);
-			const l2 = Math.min(lum(text), best);
-			report.cost = {
-				med: pctl(costs, 0.5),
-				p95: pctl(costs, 0.95),
-				max: Math.max(...costs),
-				n: costs.length,
-				// 超過 5ms 的幀有幾個。建場是一次性的，貼圖不是——分得開「一次性」與「每幀」
-				over5: costs.filter((c) => c > 5).length,
-			};
-			report.fps = ticks.length / ((ticks[ticks.length - 1] - ticks[0]) / 1000);
-			report.redraws = costs.length / ((ticks[ticks.length - 1] - ticks[0]) / 1000);
-			report.peakAlpha = peakA;
-			report.worstPx = worstPx;
-			report.contrast = worstPx ? (l1 + 0.05) / (l2 + 0.05) : null;
 			send(report);
 			return;
 		}

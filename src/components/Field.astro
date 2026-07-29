@@ -206,6 +206,9 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 			const branches: number[][] = Array.from({ length: B }, () => []);
 			const cracks: number[][] = [];
 			embers = [];
+			/* 上限隨掃描面積走，不是寫死一個數。寫死的話大螢幕會在掃到一半時觸頂，
+			   而掃描是 x 由左而右——右半邊就整片收不到裂縫，沒有次級線也沒有餘燼。 */
+			const crackCap = Math.round((K.crackCapPerMpx * (W * layerH)) / 1e6);
 
 			for (let x = -M; x <= W + M; x += STEP) {
 				/* 一格的下緣就是下一格的上緣——留著上一次的值，噪聲只算一次。
@@ -221,7 +224,7 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 						if (nB(x / K.crackScale, yy / K.crackScale) < P.crack) {
 							// 斷口＝裂縫：線不畫過去，挑一部分記錄下來當次級線與餘燼的落點
 							if (
-								cracks.length < K.crackCap &&
+								cracks.length < crackCap &&
 								nB(x / K.crackPickScale, yy / K.crackPickScale) > K.crackPickThreshold
 							) {
 								cracks.push([x, yy]);

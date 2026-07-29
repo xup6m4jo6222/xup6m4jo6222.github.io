@@ -81,6 +81,16 @@ const injectMotif = (dir, params) =>
 		),
 	);
 
+/** 在首頁塞一個帶 data-field-craft 的 canvas（票 05 抗辯後補：技法也要驗）。 */
+const injectCraft = (dir, craft) =>
+	writeFileSync(
+		join(dir, 'index.html'),
+		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+			'</body>',
+			`<canvas aria-hidden="true" data-field-craft='${JSON.stringify(craft)}'></canvas></body>`,
+		),
+	);
+
 /** 在首頁塞一個帶 data-field 的 canvas——場上線後產物就長這樣（票 03）。 */
 const injectField = (dir, params) =>
 	writeFileSync(
@@ -343,6 +353,37 @@ const cases = [
 		name: '場的參數照判準檔寫應該綠',
 		expectPass: true,
 		mutate: (_f, dir) => injectField(dir, CFG.FIELD),
+		expect: null,
+	},
+	{
+		// 抗辯查出的缺口：`data-field-craft` 先前只出現在註解裡，從沒跟判準檔比對過。
+		name: '把場的技法常數改成判準檔以外的值',
+		expectPass: false,
+		mutate: (_f, dir) => injectCraft(dir, { ...CFG.FIELD_CRAFT, crackCapPerMpx: 999 }),
+		expect: /crackCap[\s\S]*場的技法參數漂離檔位/,
+	},
+	{
+		// `alphaBuckets` 自己的註解寫著「這不是效能參數，是**正確性參數**」，卻沒人在看。
+		// 設成 1 時 dimOf 除以 B−1 得 NaN → strokeStyle 是非法色碼 → canvas 靜靜忽略、
+		// 沿用預設的不透明純黑 → **整場等高線畫成黑線，而部署前閘門全綠**。
+		name: '把分桶數設成 1（整場會畫成不透明黑線）',
+		expectPass: false,
+		mutate: (_f, dir) => injectCraft(dir, { ...CFG.FIELD_CRAFT, alphaBuckets: 1 }),
+		expect: /alphaBuckets[\s\S]*不透明黑線/,
+	},
+	{
+		// 重新武裝的安靜時間若不大於回位時間，回彈會在回位前被重新觸發——
+		// 那正是 2026-07-29 抗辯抓到的「捲多久晃多久」，改完之後要有東西守著它。
+		name: '把重新武裝時間調到不大於回位時間',
+		expectPass: false,
+		mutate: (_f, dir) => injectCraft(dir, { ...CFG.FIELD_CRAFT, shockRearmMs: 200 }),
+		expect: /shockRearmMs[\s\S]*捲多久晃多久/,
+	},
+	{
+		// 防「永遠紅的檢查」：技法照判準檔寫必須綠。
+		name: '場的技法照判準檔寫應該綠',
+		expectPass: true,
+		mutate: (_f, dir) => injectCraft(dir, CFG.FIELD_CRAFT),
 		expect: null,
 	},
 	{

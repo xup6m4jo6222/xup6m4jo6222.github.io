@@ -1167,6 +1167,51 @@ function checkField(htmlFiles) {
 			`（幅度 ${CFG.FIELD.shockAmp} × 角速度 ${omega}，紅線③ ${limit}）`,
 	);
 
+	/* **技法也要驗。**紅隊 2026-07-29 指出的缺口：`data-field-craft` 先前只出現在註解裡，
+	   從來沒跟判準檔比對過，於是 `alphaBuckets`／`crackCapPerMpx`／`emberPeakAlpha` 這些
+	   全數零覆蓋——而 `alphaBuckets` 自己的註解寫著「這不是效能參數，是正確性參數」。
+	   契約同型，所以直接沿用同一支。 */
+	checkParamContract({
+		check: 'field',
+		attr: 'data-field-craft',
+		config: CFG.FIELD_CRAFT,
+		label: '場的技法',
+		htmlFiles,
+		onParsed: (k, rel) => {
+			/* 退化值要單獨守：它們不是「漂離檔位」，是**產物照著判準檔跑但畫面壞掉**。
+			   實測（照抄元件公式算）：
+			     alphaBuckets = 1 → dimOf 除以 B−1 得 NaN → strokeStyle 變成非法色碼 →
+			                        canvas 靜靜忽略、沿用預設的不透明純黑 →
+			                        **整場等高線畫成黑線**，而部署前閘門全綠
+			     alphaBuckets = 0 → bucketOf 回 −1 → lines[−1].push → TypeError，場整個不畫
+			     shockYRatio > 1 → 垂直位移超過 pad（pad 只綁 shockAmp）→ 貼圖時上下露白帶 */
+			if (!(Number.isInteger(k.alphaBuckets) && k.alphaBuckets >= 2)) {
+				fail(
+					'field',
+					`${rel} :: alphaBuckets`,
+					`分桶數 ${k.alphaBuckets} 不是 ≥2 的整數——1 會讓整場畫成不透明黑線（NaN 色碼被靜靜忽略），0 會直接丟例外`,
+				);
+			}
+			if (!(k.shockYRatio <= 1)) {
+				fail('field', `${rel} :: shockYRatio`, `垂直幅度比 ${k.shockYRatio} 大於 1，垂直位移會超過留白、貼圖時露出白帶`);
+			}
+			if (!(Number.isInteger(k.levels) && k.levels >= 2)) {
+				fail('field', `${rel} :: levels`, `等高線層數 ${k.levels} 不是 ≥2 的整數，畫不出任何一條線`);
+			}
+			if (!(k.march > 0)) fail('field', `${rel} :: march`, `掃描步長 ${k.march} 不是正數，掃描迴圈不會前進`);
+			if (k.fbmWeights.length !== k.fbmOctaves.length) {
+				fail('field', `${rel} :: fbm`, `疊加的權重 ${k.fbmWeights.length} 個與頻率 ${k.fbmOctaves.length} 個對不起來`);
+			}
+			if (!(k.shockRearmMs > CFG.FIELD.shockMs)) {
+				fail(
+					'field',
+					`${rel} :: shockRearmMs`,
+					`重新武裝的安靜時間 ${k.shockRearmMs}ms 不大於回位時間 ${CFG.FIELD.shockMs}ms——回彈會在回位前被重新觸發，變回「捲多久晃多久」`,
+				);
+			}
+		},
+	});
+
 	checkParamContract({
 		check: 'field',
 		attr: 'data-field',
