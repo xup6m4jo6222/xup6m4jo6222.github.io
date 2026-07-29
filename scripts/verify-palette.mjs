@@ -5,7 +5,7 @@
  * 讀的是 `astro build` 的產物 `dist/` 與 21 張圖表 PNG，不讀原始碼：
  * 重構 CSS、換 token 分層都不該讓這支腳本失敗。
  *
- * 十一類檢查見 SPEC-design-system.md「Testing Decisions」、
+ * 十二類檢查見 SPEC-design-system.md「Testing Decisions」、
  * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」、
  * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）與
  * SPEC-focus-groups.md「T3 孤兒檢查」（票 03 補上第八類）。
@@ -35,6 +35,15 @@
  *   · **切函式身體用的是 CSS 那支括號配對**。它認得字串與區塊註解，但不認得
  *     樣板字面與正則字面裡的大括號；那種寫法會讓身體的範圍抓錯
  *
+ * 元素主色份量票 03 的第十二類（辨識通道）再加兩條：
+ *   · **`shape`（形狀與位置）這種通道機器查不到**，只登記不查——`.cs-wipe-handle:after`
+ *     的辨識來自「它釘在把手正中央、外面有個同色圓框」，沒有一個屬性宣告得出這件事。
+ *     那一條由清單的 `why` 交給人審，收工的 note 會講明「N 條裡有幾條查不到」
+ *   · **有一個測試用的環境變數 `VERIFY_CHANNEL_EXTRA`**（自我檢查用它注入假的清單條目）。
+ *     它**只可能讓閘門更紅**：注入的條目只進第十二類的輸入，不進 `claimedSelectors`、
+ *     不進 `fgOn`，所以放行不了任何一個主色文字，最壞情況是讓建置失敗。
+ *     這一點與 `VERIFY_DIST` 不同（那個換掉的是被讀的產物），拿它繞路沒有意義
+ *
  * 要蓋掉這些得跑真的瀏覽器去取樣渲染結果，那是另一個量級的工具。
  * 在那之前，這一段就是這道閘門的誠實邊界——**綠燈的意思是「沒有漂移」，
  * 不是「不可能有問題」。**
@@ -49,6 +58,16 @@ import * as CFG from './palette-config.mjs';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 // VERIFY_DIST 讓 verify-selftest.mjs 拿注入缺陷的產物副本來跑，不動真的 dist/
 const DIST = process.env.VERIFY_DIST || join(ROOT, 'dist');
+
+/**
+ * VERIFY_CHANNEL_EXTRA 讓自我檢查注入**允許清單的假條目**（第十二類要驗的缺陷有兩種
+ * 在判準檔那一側，光改產物造不出來）。
+ *
+ * **它只可能讓閘門更紅**：注入的條目只進第十二類的輸入，不進 `claimedSelectors`、
+ * 不進 `fgOn`，所以它放行不了任何一個主色文字，最壞情況是讓建置失敗。
+ * 這一點與 `VERIFY_DIST` 不同（那個換掉的是被讀的產物），拿它繞路沒有意義。
+ */
+const EXTRA_CHANNEL_ENTRIES = process.env.VERIFY_CHANNEL_EXTRA ? JSON.parse(process.env.VERIFY_CHANNEL_EXTRA) : [];
 const CHART_DIR = join(ROOT, 'public', 'images', 'taiwan-tourism');
 
 // ---------------------------------------------------------------------------
@@ -1190,6 +1209,134 @@ function checkZIndex(siteRules) {
 	note(`z 層級：產物用到 ${[...seen].sort().join('、') || '（無）'}，白名單 ${Object.keys(CFG.Z_LAYERS).join('、')}`);
 }
 
+// ===========================================================================
+// 檢查 12（元素主色份量票 03）— 允許清單宣稱的辨識通道必須真的成立
+// ===========================================================================
+/**
+ * 判準：**主色可以當文字色，但只在那個字的「認得出來」不靠顏色的時候。**
+ * 辨識由字重、字體、字級或底線先承擔，顏色只負責份量。
+ *
+ * 第二類守的是「誰可以用主色」（清單即規則），這一類守的是「清單說的理由是不是真的」。
+ * 兩件事本來就是兩件事：**「這個位置可以用主色」是人的決定，該留在清單；「辨識真的另有
+ * 通道」是事實，該由機器查。**合成任一邊都會丟掉另一邊——只有清單的話，把一個只有顏色、
+ * 沒有字重也沒有襯線的選擇器加進去就過了，而那正是上一輪之前比對器小標的狀態。
+ *
+ * **「獨立成行」不算通道**，所以詞彙表裡沒有這個鍵——本人否決的比對器小標與角標卡小標
+ * 正是靠獨立成行在區分的東西，規則不該放行剛被否決的畫面。
+ *
+ * 誠實邊界：`shape`（形狀與位置）沒有任何宣告證明得了，這一類**查不到它**，只把它列出來
+ * 交給人審。收工的 note 會講清楚「N 條裡有幾條是機器查不到的」——綠燈不等於全部查過。
+ */
+const STATE_SELECTOR_RE = /:(hover|focus|focus-visible|focus-within|active|target)\b/;
+
+/**
+ * 某個選擇器實際宣告的某一組屬性（取最後一條，即層疊後勝出的那個）。
+ *
+ * **刻意不與 `declaredValue` 合併**，雖然外層迴圈長得一樣：那一支「最後一條」的定義是
+ * 「最後一條解析得出顏色的」——後面若再來一條 `background: none`，它會保留前一條的色。
+ * 這一支要的是「最後一條宣告」本身（可能就是 `none`，第十二類正要靠它認出
+ * `text-decoration: none` 是明講不要底線）。把兩者併起來會悄悄改掉對比檢查的語義，
+ * 換到的只是省下四行——不划算。
+ */
+function declaredProp(siteRules, selector, props) {
+	let found = null;
+	for (const rule of siteRules) {
+		if (rule.at.length) continue; // 媒體查詢內的覆蓋不算基準態
+		if (!rule.selectors.includes(selector)) continue;
+		for (const d of rule.decls) if (props.includes(d.prop)) found = d;
+	}
+	return found;
+}
+
+/** `font-weight` 的關鍵字折算成數字；認不得的回 NaN（fail-closed） */
+const weightNumber = (v) => ({ bold: 700, normal: 400 })[v.trim().toLowerCase()] ?? parseFloat(v);
+
+function checkIdentificationChannels(siteRules, vars) {
+	const entries = [...CFG.ACCENT_TEXT_ALLOWLIST, ...EXTRA_CHANNEL_ENTRIES];
+	const n900 = normalizeColor(resolveVars('var(--color-text)', vars));
+	let humanOnly = 0;
+
+	for (const e of entries) {
+		const kind = CFG.ACCENT_CHANNELS[e.channel];
+		if (!kind) {
+			fail('channel', e.sel, `辨識通道「${e.channel}」不在 ACCENT_CHANNELS 詞彙表裡——清單只能用表上有的鍵`);
+			continue;
+		}
+		if (!e.why || !e.why.trim()) {
+			fail('channel', e.sel, '清單條目沒有寫理由——這份清單的存在意義就是「有理由的名單」');
+		}
+
+		// ── 宣告得出來的通道（字重／襯線／字級／底線）─────────────────────
+		if (kind.props.length) {
+			if (!e.on) {
+				fail('channel', e.sel, `宣稱辨識通道是「${kind.name}」，卻沒說它宣告在哪個選擇器上（on 是空的）`);
+				continue;
+			}
+			const got = declaredProp(siteRules, e.on, kind.props);
+			if (!got) {
+				fail(
+					'channel',
+					e.sel,
+					`宣稱辨識通道是「${kind.name}」，但產物裡 ${e.on} 沒有宣告 ${kind.props.join('／')}——` +
+						'清單說的理由與產物已經對不上，不是改回來就是把這條退出清單',
+				);
+				continue;
+			}
+			// 底線：`text-decoration: none` 是「明講不要」，不是有線（`.st-table a` 就長這樣）
+			if (e.channel === 'underline' && /^none$/i.test(got.value.trim())) {
+				fail('channel', e.sel, `宣稱辨識通道是「${kind.name}」，但產物裡 ${e.on} 寫的是 ${got.prop}: none——那是明講不要底線`);
+				continue;
+			}
+			if (e.channel === 'weight') {
+				const w = weightNumber(resolveVars(got.value, vars));
+				if (!(w >= 500)) {
+					fail('channel', e.sel, `宣稱辨識通道是「${kind.name}」，但 ${e.on} 的字重是 ${got.value}——不到 500 撐不起辨識`);
+					continue;
+				}
+			}
+			note(`辨識通道 ${e.sel}　${kind.name}　由 ${e.on} 的 ${got.prop}: ${got.value} 承擔`);
+			continue;
+		}
+
+		// ── 狀態改變：sel 要真的是狀態選擇器，且靜止態必須已在 n-900 ────────
+		if (e.channel === 'state') {
+			if (!STATE_SELECTOR_RE.test(e.sel)) {
+				fail(
+					'channel',
+					e.sel,
+					'宣稱辨識通道是「狀態改變」，但這是一條靜止態選擇器——靜止的字沒有「它變了」這回事可以當辨識',
+				);
+				continue;
+			}
+			if (!e.on) {
+				fail('channel', e.sel, '宣稱辨識通道是「狀態改變」，卻沒說靜止態是哪一條選擇器（on 是空的）');
+				continue;
+			}
+			const rest = declaredValue(siteRules, e.on, ['color'], vars);
+			if (rest !== n900) {
+				fail(
+					'channel',
+					e.sel,
+					`宣稱「靜止態已在中性階頂端，所以只能靠變色回饋」，但產物裡 ${e.on} 的文字色是 ` +
+						`${rest ?? '（找不到這條規則）'}，不是 n-900 ${n900}——中性階之上還有得換，就不該動用主色`,
+				);
+				continue;
+			}
+			note(`辨識通道 ${e.sel}　${kind.name}　靜止態 ${e.on} 已在 n-900`);
+			continue;
+		}
+
+		// ── 沒有任何宣告證明得了（目前只有 shape）：登記，不查 ──────────────
+		humanOnly++;
+		note(`辨識通道 ${e.sel}　${kind.name}　**機器查不到**，由清單的 why 交給人審`);
+	}
+
+	note(
+		`辨識通道：清單 ${entries.length} 條，其中 ${humanOnly} 條沒有機器查得到的通道` +
+			`${EXTRA_CHANNEL_ENTRIES.length ? `（含自我檢查注入的 ${EXTRA_CHANNEL_ENTRIES.length} 條假條目）` : ''}`,
+	);
+}
+
 /**
  * 檢查 8（票 03）：聚焦組標記的孤兒。
  *
@@ -1324,44 +1471,47 @@ function main() {
 		.map((f) => ({ rel: relative(ROOT, f), text: readFileSync(f, 'utf8') }));
 	const siteHtmlFiles = allFiles.filter((f) => /\.html$/i.test(f) && !isProcessPage(f));
 
-	console.log('— 1／11 色碼白名單');
+	console.log('— 1／12 色碼白名單');
 	checkColorWhitelist(textFiles, allowedCss);
 	checkSiteColorsOnRamp();
 	checkChartPixels();
 
-	console.log('— 2／11 對比度');
+	console.log('— 2／12 對比度');
 	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
-	console.log('— 3／11 色盲安全');
+	console.log('— 3／12 色盲安全');
 	checkColorVision();
 
-	console.log('— 4／11 色階規律');
+	console.log('— 4／12 色階規律');
 	checkRamps(vars);
 
-	console.log('— 5／11 排版與間距規律');
+	console.log('— 5／12 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／11 可及性偏好的逃生口（降低動態／增加對比）');
+	console.log('— 6／12 可及性偏好的逃生口（降低動態／增加對比）');
 	checkReducedMotion(siteParsed);
 	checkStandingMotionReducedMotion(scriptSources);
 	checkContrastEscape(siteParsed);
 
-	console.log('— 7／11 母題參數與常駐動態');
+	console.log('— 7／12 母題參數與常駐動態');
 	checkMotif(siteHtmlFiles);
 
-	console.log('— 8／11 聚焦組標記完整（孤兒檢查）');
+	console.log('— 8／12 聚焦組標記完整（孤兒檢查）');
 	checkFocusOrphans(siteHtmlFiles);
 
-	console.log('— 9／11 場的參數與回彈紅線');
+	console.log('— 9／12 場的參數與回彈紅線');
 	checkField(siteHtmlFiles);
 
-	console.log('— 10／11 全站不用陰影');
+	console.log('— 10／12 全站不用陰影');
 	checkNoShadow(siteRules);
 
-	console.log('— 11／11 z 層級白名單');
+	console.log('— 11／12 z 層級白名單');
 	checkZIndex(siteRules);
+
+	console.log('— 12／12 允許清單宣稱的辨識通道');
+	checkIdentificationChannels(siteRules, vars);
 
 	// ---- 回報 ----
 	if (process.env.VERIFY_VERBOSE) {
@@ -1402,7 +1552,7 @@ function main() {
 		process.exit(1);
 	}
 
-	console.log(`\n✓ 十一類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
+	console.log(`\n✓ 十二類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
 }
 
 main();

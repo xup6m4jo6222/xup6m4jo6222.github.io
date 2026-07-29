@@ -27,9 +27,9 @@ const VERIFIER = join(ROOT, 'scripts', 'verify-palette.mjs');
  * maxBuffer 也要放大：預設 1MB，閘門輸出一多就被截斷並設成錯誤，看起來像閘門失敗。
  */
 const CASE_TIMEOUT_MS = 120_000;
-function run(dist) {
+function run(dist, env = {}) {
 	const r = spawnSync(process.execPath, [VERIFIER], {
-		env: { ...process.env, VERIFY_DIST: dist },
+		env: { ...process.env, VERIFY_DIST: dist, ...env },
 		encoding: 'utf8',
 		timeout: CASE_TIMEOUT_MS,
 		maxBuffer: 32 * 1024 * 1024,
@@ -39,7 +39,7 @@ function run(dist) {
 	return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
 }
 
-function withCopy(mutate) {
+function withCopy(mutate, env) {
 	const dir = mkdtempSync(join(tmpdir(), 'verify-selftest-'));
 	try {
 		cpSync(join(ROOT, 'dist'), dir, { recursive: true });
@@ -47,11 +47,29 @@ function withCopy(mutate) {
 		const cssFile = join(cssDir, readdirSync(cssDir).find((f) => f.endsWith('.css')));
 		// 票 01 起有注入到 JS 與 HTML 的案例，所以第二個參數把整個產物目錄交出去
 		mutate(cssFile, dir);
-		return run(dir);
+		return run(dir, env);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
 }
+
+/**
+ * 案例的 `entries` 欄位（元素主色份量票 03）：注入**允許清單的條目**，不只是產物。
+ * 「條目宣稱襯線但產物沒宣告字體」這種缺陷本質上在判準檔那一側，光改 CSS 造不出來。
+ *
+ * 為什麼走環境變數而不是改判準檔再還原（`probe.mjs` 那種做法）：判準檔是正本，
+ * 中途中斷就留下一個被污染的正本，代價與收穫不成比例。
+ *
+ * **這個鉤子只可能讓閘門更紅。**注入的條目只進辨識通道檢查的輸入，不進 `claimedSelectors`
+ * 也不進 `fgOn`——所以它放行不了任何一個主色文字，最壞情況是讓建置失敗。這一點與
+ * `VERIFY_DIST` 不同（那個換掉的是被讀的產物），拿它當繞路工具是沒有意義的。
+ *
+ * 連帶的誠實邊界：`fgOn` 是判準檔載入時就用 `.map()` 算完的，所以注入的條目**不會**出現
+ * 在認領清單裡。真實情況下有人加一條會同時進兩邊；這裡刻意只進一邊，好讓案例紅的原因
+ * **只有一個**——否則會先被「判準說 sel 的文字色是 fg，產物找不到這條規則」那道斷言咬掉，
+ * 就測不到通道檢查本身了。
+ */
+const channelEnv = (entries) => (entries ? { VERIFY_CHANNEL_EXTRA: JSON.stringify(entries) } : undefined);
 
 /** 在首頁塞一個帶 data-motif 的 canvas——母題上線後產物就長這樣。 */
 const injectMotif = (dir, params) =>
@@ -387,6 +405,75 @@ const cases = [
 			),
 		expect: /zindex[\s\S]*fake-z-inline/,
 	},
+
+	// ── 元素主色份量票 03：第十二類（辨識通道）──────────────────────────
+	{
+		// 判準：「主色可以當文字色，但只在那個字的認得出來不靠顏色的時候。」
+		// 清單上的 `a` 宣稱的通道是底線，而底線宣告在 `.content a` 上——把那條規則清空，
+		// 等於清單還在說「有底線」，產物卻已經沒有了。**這是清單與現實脫節的真實形狀**：
+		// 沒有人會蓄意刪它，但重構 `.content` 那一段時很容易順手帶走。
+		name: '清單條目宣稱的通道在產物裡消失了（底線被拿掉）',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, readFileSync(f, 'utf8').replace(/\.content a\{[^}]*\}/, '.content a{}')),
+		expect: /channel[\s\S]*底線[\s\S]*\.content a/,
+	},
+	{
+		// 票要求的第二例：條目宣稱襯線，產物裡那個選擇器根本沒宣告字體。
+		// `.fake-serif-label` 不存在於產物，所以「找不到宣告」與「沒宣告」在這裡是同一件事。
+		name: '條目宣稱襯線，產物裡那個選擇器沒宣告字體',
+		expectPass: false,
+		mutate: () => {},
+		entries: [
+			{ sel: '.fake-serif-label:hover', channel: 'serif', on: '.fake-serif-label', why: '自我檢查用的假條目' },
+		],
+		expect: /channel[\s\S]*fake-serif-label:hover[\s\S]*襯線/,
+	},
+	{
+		// 票要求的第三例：宣稱「狀態改變」，但那是一條靜止態選擇器。
+		// 擋的是「把 state 當成萬用免死金牌」——它只對 hover／focus／active 這種
+		// 真的會變的選擇器成立，靜止態的字沒有「變了」這回事可以當辨識。
+		name: '條目宣稱狀態改變，但那是一條靜止態選擇器',
+		expectPass: false,
+		mutate: () => {},
+		entries: [{ sel: '.fake-static-label', channel: 'state', on: '.fake-static-label', why: '自我檢查用的假條目' }],
+		expect: /channel[\s\S]*fake-static-label[\s\S]*靜止態/,
+	},
+	{
+		// 與母題那一條同型：沒有這一條的話，「只要有 VERIFY_CHANNEL_EXTRA 就紅」也會通過
+		// 上面三條——那是一個永遠紅的檢查，跟永遠綠一樣沒用。這一條的假條目樣樣齊備：
+		// 通道是襯線、指向產物裡真的宣告了 `font-family` 的 `.site-nav .nav-brand`。
+		name: '假條目的通道在產物裡真的成立時應該綠',
+		expectPass: true,
+		mutate: () => {},
+		entries: [
+			{
+				sel: '.site-nav .nav-brand:hover',
+				channel: 'serif',
+				on: '.site-nav .nav-brand',
+				why: '自我檢查用：這條的字體是真的宣告了的',
+			},
+		],
+		expect: null,
+	},
+	{
+		// **只比對「有沒有宣告這個屬性」會放行這一條**：`.st-table a` 的產物是
+		// `text-decoration:none`，那是明講不要底線。現有七條沒有一條走到這個分支，
+		// 沒有這個案例的話，那段程式碼等於從來沒被驗證過。
+		name: '宣稱底線，但那個選擇器寫的是 text-decoration: none',
+		expectPass: false,
+		mutate: () => {},
+		entries: [{ sel: '.st-table a:hover', channel: 'underline', on: '.st-table a', why: '自我檢查用的假條目' }],
+		expect: /channel[\s\S]*st-table a:hover[\s\S]*明講不要底線/,
+	},
+	{
+		// 判準寫的是**字重 ≥500**，不是「有宣告 font-weight」。`.home-tagline` 產物是 400——
+		// 門檻若沒真的比大小，這一類對字重就是一個永遠通過的檢查。
+		name: '宣稱字重，但那個選擇器的字重不到 500',
+		expectPass: false,
+		mutate: () => {},
+		entries: [{ sel: '.home-tagline:hover', channel: 'weight', on: '.home-tagline', why: '自我檢查用的假條目' }],
+		expect: /channel[\s\S]*home-tagline:hover[\s\S]*不到 500/,
+	},
 ];
 
 let failed = 0;
@@ -395,7 +482,7 @@ for (const c of cases) {
 	// CI 的日誌要等整個步驟結束才拿得到，於是「卡在哪裡」變成無從得知。
 	process.stdout.write(`… ${c.name}\n`);
 	const t0 = Date.now();
-	const { code, out, timedOut } = withCopy(c.mutate);
+	const { code, out, timedOut } = withCopy(c.mutate, channelEnv(c.entries));
 	const secs = ((Date.now() - t0) / 1000).toFixed(1);
 	const passed = code === 0;
 	const ok = !timedOut && passed === c.expectPass && (!c.expect || c.expect.test(out));
