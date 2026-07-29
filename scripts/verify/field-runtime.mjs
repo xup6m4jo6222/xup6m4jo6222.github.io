@@ -56,7 +56,16 @@ const MAX_REPORT = 4 * 1024 * 1024;
 
 let inbox = null;
 const server = createServer((req, res) => {
-	const url = new URL(req.url, `http://localhost:${PORT}`);
+	/* **`new URL` 也會丟。**第二輪修 `decodeURIComponent` 時守衛放在它後面，
+	   晚了一行——`GET //`（主機為空）在這裡就丟 `ERR_INVALID_URL`，一個請求
+	   打死整個行程，與那一條是同一個 bug。同族還有 `///`、`//@`、`//?x`。 */
+	let url;
+	try {
+		url = new URL(req.url, `http://localhost:${PORT}`);
+	} catch {
+		res.writeHead(400).end('bad request');
+		return;
+	}
 	if (url.pathname === '/report') {
 		let body = '';
 		req.on('data', (c) => {
@@ -107,15 +116,23 @@ const server = createServer((req, res) => {
 		res.writeHead(404).end('nope');
 		return;
 	}
-	const type = TYPES[extname(file)] || 'application/octet-stream';
-	res.writeHead(200, { 'content-type': type });
-	if (extname(file) !== '.html') {
-		res.end(readFileSync(file));
+	/* **先讀檔再送標頭。**反過來的話（先前的寫法）`readFileSync` 丟 EISDIR／EACCES
+	   時標頭已經送出，那個例外沒有人接、也已經改不成 4xx——行程直接死。
+	   實測：dist 裡放一個名為 `a.html` 的**目錄**，`GET /a.html` 就把伺服器打掉。 */
+	let body;
+	try {
+		body =
+			extname(file) === '.html'
+				? // 探針是 classic script、插在 </body> 前，所以它在元件那支 module 之前執行——
+					// 對照組要先把屬性改掉才有意義，順序是規格保證的，不是碰運氣。
+					readFileSync(file, 'utf8').replace('</body>', `<script>${PROBE}</script></body>`)
+				: readFileSync(file);
+	} catch (e) {
+		res.writeHead(500).end(`read failed: ${e.code || e.message}`);
 		return;
 	}
-	// 探針是 classic script、插在 </body> 前，所以它在元件那支 module 之前執行——
-	// 對照組要先把屬性改掉才有意義，順序是規格保證的，不是碰運氣。
-	res.end(readFileSync(file, 'utf8').replace('</body>', `<script>${PROBE}</script></body>`));
+	res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
+	res.end(body);
 });
 
 /* `child.kill()` 在 Windows 上只送給那一個 process，Chrome 的子行程會活下來抱著
@@ -136,6 +153,8 @@ const killTree = (pid) =>
 /* 每一次開一個全新的設定檔目錄。共用一個的話，前一次的殘留行程還抱著鎖，
    下一次啟動就會把網址轉給舊實例、自己立刻結束，於是永遠等不到回報。 */
 let runs = 0;
+/** 還活著的無頭 Chrome。SIGINT 要先收掉它們，設定檔目錄才刪得動。 */
+const live = new Set();
 
 /** 這一輪開過的設定檔目錄，收工時一起刪。 */
 const profiles = [];
@@ -147,9 +166,14 @@ const trackProfile = (name) => {
 	return dir;
 };
 const sweepProfiles = () => {
-	for (const p of profiles.splice(0)) {
+	/* **刪成功了才從清單移除。**先前是 `profiles.splice(0)` 先清空再刪，於是
+	   `catch {}` 吞掉的每一次失敗都永遠沒有第二次機會（exit 監聽器拿到空陣列）。
+	   而 Chrome 還活著時 `rmSync` 必然 EPERM——SIGINT 那條路又沒有先 killTree，
+	   所以每按一次 Ctrl-C 就留下一批。實測 %TEMP% 又累積了 77 個、約 1GB。 */
+	for (let i = profiles.length - 1; i >= 0; i--) {
 		try {
-			rmSync(p, { recursive: true, force: true, maxRetries: 3 });
+			rmSync(profiles[i], { recursive: true, force: true, maxRetries: 3 });
+			profiles.splice(i, 1);
 		} catch {}
 	}
 };
@@ -160,7 +184,9 @@ const sweepProfiles = () => {
 process.on('exit', sweepProfiles);
 /* `exit` 在 Ctrl-C 底下不會跑，而 `--lan` 的收工方式**寫在畫面上的就是 Ctrl-C**——
    不接這個訊號的話那條路每次都留下目錄。 */
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
+	// 先把 Chrome 收掉，否則它還握著設定檔目錄、rmSync 必然 EPERM
+	await Promise.all([...live].map(killTree));
 	sweepProfiles();
 	process.exit(130);
 });
@@ -178,6 +204,7 @@ function run(path, extra = [], ms = 45000) {
 			settled = true;
 			inbox = null;
 			clearTimeout(timer);
+			live.delete(child.pid);
 			await killTree(child.pid);
 			fn(v);
 		};
@@ -194,6 +221,7 @@ function run(path, extra = [], ms = 45000) {
 			...extra,
 			`http://localhost:${PORT}${path}`,
 		]);
+		live.add(child.pid);
 		child.on('error', reject);
 	});
 }
@@ -479,7 +507,7 @@ const dispatch = async () => {
 	const pulseAt = process.argv.indexOf('--pulse');
 	if (pulseAt >= 0) {
 		const dir = process.argv[pulseAt + 1];
-		const values = process.argv.slice(pulseAt + 2).map(Number).filter((n) => n > 0);
+		const values = process.argv.slice(pulseAt + 2).map(Number).filter((n) => Number.isFinite(n) && n > 0);
 		if (!dir || !values.length) {
 			console.error('用法：--pulse <輸出目錄> <毫秒> [毫秒…]');
 			server.close();
@@ -510,8 +538,8 @@ const dispatch = async () => {
 		// `--shots` 放在最後一個參數時 dir 是 undefined，join 會丟 TypeError，
 		// 而這裡是 listen 的回呼、沒有 catch —— 結果是 server 不關、行程掛住
 		const dir = process.argv[shotsAt + 1];
-		if (!dir) {
-			console.error('用法：--shots <輸出目錄>');
+		if (!dir || !existsSync(dir)) {
+			console.error(`用法：--shots <輸出目錄>${dir ? `（找不到 ${dir}）` : ''}`);
 			server.close();
 			process.exit(2);
 		}
@@ -596,7 +624,7 @@ const dispatch = async () => {
 			continue;
 		}
 		console.log(
-			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　單次捲動後 ${r.shift}　六秒連續捲動晃了 ${r.rhythm?.hits} 次　靜置十秒內最大 ${r.ember}`,
+			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　單次捲動後 ${r.shift}　連續捲動晃了 ${r.rhythm?.hits} 次　靜置十秒內最大 ${r.ember}`,
 		);
 		const want = flags.length > 0;
 		if (r.reduced !== want) {
@@ -635,14 +663,22 @@ const dispatch = async () => {
 				} else {
 					console.log('   ✓ 降低動態偏好下持續捲動一次都沒晃');
 				}
+			} else if (r.rhythm.moving && hits === 0) {
+				/* `hits = 0` 有兩種完全相反的成因。`moving` 分得出來：中位數也很高
+				   就是**一直在晃**（結構守衛因 peak≈median 不成立而數不出脈衝），
+				   印成「幾乎不出現」會讓修的人往反方向找。 */
+				console.log(
+					`   ✗ 持續捲動期間畫面一直在動（中位 ${r.rhythm.median}、峰值 ${r.rhythm.peak}）——回彈被每一幀重新觸發，不是節奏太稀`,
+				);
+				bad++;
 			} else if (Math.abs(hits - want) > 1) {
 				console.log(
-					`   ✗ 六秒連續捲動晃了 ${hits} 次，冷卻 ${r.rhythm.rearm}ms 應該是 ${want} 次左右` +
-						(hits > want ? "——回彈被過度重新觸發" : "——回彈幾乎不出現，敘事不可觀察"),
+					`   ✗ ${r.rhythm.window / 1000} 秒連續捲動晃了 ${hits} 次，冷卻 ${r.rhythm.rearm}ms 應該是 ${want} 次左右` +
+						(hits > want ? '——回彈被過度重新觸發' : '——回彈幾乎不出現，敘事不可觀察'),
 				);
 				bad++;
 			} else {
-				console.log(`   ✓ 節奏對得上：六秒晃 ${hits} 次（冷卻 ${r.rhythm.rearm}ms，期望 ${want} 次）`);
+				console.log(`   ✓ 節奏對得上：${r.rhythm.window / 1000} 秒晃 ${hits} 次（冷卻 ${r.rhythm.rearm}ms，期望 ${want} 次）`);
 			}
 		}
 		// 餘燼只在不透明度上動，兩種偏好下都必須還在燒
@@ -681,12 +717,29 @@ async function pulse(dir, values) {
 			console.log(`✗ rearm=${x}：${r.why || '沒有拿到時間軸'}`);
 			continue;
 		}
+		/* **回讀斷言。**先前這裡印的是「我要求的 x」，不是「頁面實際生效的值」——
+		   `?rearm=Infinity` 會被 JSON.stringify 寫成 null、讓冷卻整個失效，而畫面上
+		   印出來是「冷卻 Infinityms → 晃了 1 次」，冷卻最長、晃最少，結論完全相反。
+		   這就是這個站的產物端契約用在自己的工具上：**比對實際生效的值，不是意圖。** */
+		if (r.pulse.rearm !== x) {
+			console.log(`   ✗ 要求冷卻 ${x}ms，頁面實際生效的是 ${r.pulse.rearm}——這一筆不算數`);
+			continue;
+		}
 		const name = `pulse-rearm-${String(x).padStart(5, '0')}ms.png`;
 		writeFileSync(join(dir, name), Buffer.from(r.pulse.png.split(',')[1], 'base64'));
 		console.log(`   冷卻 ${String(x).padStart(5)}ms → 12 秒連續捲動晃了 ${String(r.pulse.hits).padStart(2)} 次　${name}`);
 	}
 	return 0;
 }
+
+server.on('error', (e) => {
+	console.error(
+		e.code === 'EADDRINUSE'
+			? `✗ 埠 ${PORT} 已經有人在聽——另一個 field-runtime 還在跑？`
+			: `✗ 伺服器錯誤：${e.message}`,
+	);
+	process.exit(1);
+});
 
 server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : '127.0.0.1', () => {
 	dispatch().catch((e) => {

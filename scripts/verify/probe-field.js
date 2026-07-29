@@ -76,9 +76,17 @@
 
 	/** `data-field-craft` 的旋鈕。`rearm` 是回彈的冷卻時間，票 05 要拿它出比對圖。 */
 	if (cv0 && q.has('rearm')) {
-		const k = JSON.parse(cv0.dataset.fieldCraft);
-		k.shockRearmMs = +q.get('rearm');
-		cv0.dataset.fieldCraft = JSON.stringify(k);
+		/* **必須擋非有限值。**`JSON.stringify` 把 Infinity 與 NaN 都寫成 `null`，
+		   而元件的 `now - shockT < null` 恆為 false → 每一幀都觸發回彈，冷卻機制
+		   整個反轉成「完全沒有冷卻」。抗辯第三輪實測 `?rearm=Infinity` 拍出來是
+		   整整 12 秒的滿版高原，而工具印的是「冷卻 Infinityms → 晃了 1 次」——
+		   冷卻最長、晃最少，結論完全相反。 */
+		const v = +q.get('rearm');
+		if (Number.isFinite(v) && v > 0) {
+			const k = JSON.parse(cv0.dataset.fieldCraft);
+			k.shockRearmMs = v;
+			cv0.dataset.fieldCraft = JSON.stringify(k);
+		}
 	}
 
 	const KNOBS = { ink: 'ink', dim: 'textDim', crack: 'crack', ember: 'ember' };
@@ -479,6 +487,12 @@
 		   **守不住反過來那一端**——第一版的修法（冷卻從上一次 scroll 事件算）會讓
 		   常見的滾輪節奏永遠不武裝，整段閱讀只晃一次，而那一條檢查照樣是綠的。
 		   現在數的是「六秒連續捲動裡回彈了幾次」，兩端都夾得住。 */
+		/* **視窗起點要對齊冷卻的相位。**先前這裡直接開始，而前面剛送過一次 scroll
+		   又等了 `shockMs + 400`，進入視窗時冷卻已經走掉約 1 秒——第一次回彈落在
+		   t≈1700ms 而不是 0，六秒只裝得下 2 次，而期望值算的是 3 次。
+		   ±1 的容差因此被吃光（官方跑出來就是「晃了 2 次／期望 3 次」，低側零餘裕）。
+		   先把冷卻等滿，再開始 pump 與取樣，第一次回彈就會落在 t≈0。 */
+		await wait(K.shockRearmMs + 200);
 		const rest = snap();
 		let pumping = true;
 		const pump = () => {
@@ -486,7 +500,7 @@
 			dispatchEvent(new Event('scroll'));
 			requestAnimationFrame(pump);
 		};
-		const RHYTHM_MS = 6000;
+		const RHYTHM_MS = K.rhythmWindowMs;
 		const series = [];
 		const tPump = performance.now();
 		pump();
@@ -509,7 +523,18 @@
 				if (series[i] > floor && (i === 0 || series[i - 1] <= floor)) hits++;
 			}
 		}
-		report.rhythm = { hits, window: RHYTHM_MS, rearm: K.shockRearmMs, peak, median };
+		/* `hits = 0` 有兩種完全相反的成因：真的沒動（peak 與 median 都很小），
+		   或**一直在動**（peak≈median，結構守衛不成立）。只回報 hits 的話，
+		   「一直晃」會被印成「幾乎不出現，敘事不可觀察」——紅得對、理由相反。
+		   把 `moving` 一起送回去，判定那邊才分得出來。 */
+		report.rhythm = {
+			hits,
+			window: RHYTHM_MS,
+			rearm: K.shockRearmMs,
+			peak,
+			median,
+			moving: median > Math.max(200, 4 * noise),
+		};
 
 		await wait(P.shockMs + K.shockRearmMs + 400); // 回位＋重新武裝都過去了，才量餘燼
 

@@ -333,7 +333,13 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 		function frame(now: number) {
 			raf = requestAnimationFrame(frame);
 			if (document.hidden) return; // 分頁不可見時不繪製
-			if (shock > 0) shock = Math.max(0, 1 - (now - shockT) / P.shockMs);
+			/* **上界要夾。**`scroll` 在同一幀的輸入階段派送，而 rAF 的時戳是**幀起點**——
+			   所以 `kick()` 記下的 `performance.now()` 可能晚於下一個回呼收到的時戳。
+			   抗辯第三輪用真的 `scrollTo` 量 21 次，**21 次全部是負差**（−0.3 到 −16.2ms），
+			   算出來的 shock 最高到 1.046：位移峰值 4.19px 超過留白 4px（貼圖邊緣露 0.19px），
+			   而且單次動作實際長度 366ms **超過動效紅線① 的 350ms**。
+			   閘門看不到這 4.6%——它拿參數裡的 350 去比紅線，不是量畫面。 */
+			if (shock > 0) shock = Math.min(1, Math.max(0, 1 - (now - shockT) / P.shockMs));
 			if (now - last < 1000 / K.fpsCap) return; // 幀率上限
 			last = now;
 			draw((now - t0) / 1000);
