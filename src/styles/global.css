@@ -47,6 +47,11 @@
 	--color-accent: #7998c3;
 	--color-accent-fade: #7998c355; /* 捲軸拉桿＝元素主色 33% */
 	--color-accent-bloom: rgba(121, 152, 195, 0.1); /* 背景右上的藍暈 */
+	/* 「面」的淡底＝元素主色 7%。**站在這塊底上的字一律用內文色，不得用主色**——
+	   主色是中明度色，鋪面的同時也在削自己的字對比：7% 淡底上主色字九態最壞只有 4.27
+	   （表頭）與 4.36（比對器），都低於 4.5；淡底要壓到 3% 才過（4.54），而 3% 看不見。
+	   改用內文色是 10 上下，寬鬆得多。理念一壓過份量，這是硬邊界不是偏好。 */
+	--color-accent-tint: rgba(121, 152, 195, 0.07);
 	--color-nav-bg: #20131deb; /* 導覽列半透明底＝背景主色 92%。85% 時亮圖捲到導覽列下方，muted 連結掉到 4.41 */
 	/* 背景左下的黑莓暗暈。刻意不上階：它與上面那道藍暈成對，是背景主色的組成，
 	   不是承載層級的表面——上了階會被連帶提亮，那道暈就沒了。 */
@@ -992,10 +997,13 @@ main > h1 {
 	transition: color var(--dur-lg) var(--ease);
 }
 
+/* 兩側的小標都用內文色，不是只有本人側——只提亮一側的話，AI 側反而變成比較暗的那個，
+   讀者會把「暗」讀成「次要」，而這兩側要比的是內容不是位階。身分歸屬由本人側那塊
+   淡底承擔，完全不動文字。 */
 .cs-side em {
 	display: block;
 	font-style: normal;
-	color: var(--color-text-muted);
+	color: var(--color-text);
 	margin-bottom: var(--sp-xs);
 }
 
@@ -1006,13 +1014,16 @@ main > h1 {
 	color: var(--color-text-muted);
 }
 
-/* 兩側的小標都走 .cs-side em 的 muted，不再兼職標身分。身分由小標**寫的字**講
-   （「AI 初版」／「最終決定」），靜止態另有色階輔助（主側 n-900、AI 側 n-600）——
-   注意 :hover 會把兩側一起提到 n-900（刻意的，讀者這時要讀 AI 側），所以色階只在
-   靜止態成立，文字才是那個一直都在的通道。主色對 muted 的可辨識度只有 0.058
-   （門檻 0.185），它本來就傳不出這件事。 */
+/* 「面」的落點（比稿 D 版）：本人側鋪 7% 主色淡底。**身分歸屬改由一整塊區域承擔，
+   完全不動文字**——這正是上一輪目視驗收第一題（「分不出誰說的」）的處置：那時身分只剩
+   「AI 側 muted、本人側內文色」一層色階，而 :hover 會把兩側一起提到 n-900，色階等於只在
+   靜止態成立。面不會被 hover 洗掉。
+
+   字維持內文色，不跟著變主色——面與字同色會互相抵銷（見 `--color-accent-tint` 那段的
+   實測數字）。 */
 .cs-track .cs-side--me {
 	color: var(--color-text);
+	background: var(--color-accent-tint);
 }
 
 .cs-reason {
@@ -1032,11 +1043,12 @@ main > h1 {
 	color: var(--color-text-muted);
 }
 
-/* 文字所有權卡的內嵌對質 */
+/* 文字所有權卡的內嵌對質。與 `.cs-track` 同族，所以比照辦理：本人側鋪淡底、兩側小標
+   內文色。**內距從容器移到兩半身上**——淡底要有呼吸空間，貼著字的底看起來是螢光筆
+   不是區塊。 */
 .cs-pair {
 	border-top: 1px solid var(--color-border);
 	margin-top: var(--sp-md);
-	padding: var(--sp-md) var(--sp-lg);
 	display: grid;
 	gap: var(--sp-md);
 }
@@ -1044,12 +1056,24 @@ main > h1 {
 .cs-pair em {
 	display: block;
 	font-style: normal;
-	color: var(--color-text-muted);
+	color: var(--color-text);
 	margin-bottom: var(--sp-xs);
+}
+
+.cs-pair-ai,
+.cs-pair-me {
+	padding: var(--sp-md) var(--sp-lg);
 }
 
 .cs-pair-ai {
 	color: var(--color-text-muted);
+}
+
+/* 前一輪登記在案的缺陷：這條選擇器在內容檔裡存在（`.cs-pair-me`），CSS 裡卻選不到
+   任何樣式——那一側等於從來沒有被設計過。這張票順手補上，形式與 `.cs-side--me` 一致。 */
+.cs-pair-me {
+	color: var(--color-text);
+	background: var(--color-accent-tint);
 }
 
 /* 頁尾原件附錄 */
@@ -1281,8 +1305,12 @@ main > h1 {
 	vertical-align: top;
 }
 
+/* 「面」的落點（比稿 D 版）：表頭列鋪 7% 主色淡底，字維持內文色。
+   這是這張表「被設計過」的來源——靜止態原本一點主色都沒有，主色只在 hover 出現。
+   字不跟著變主色的理由與比對器同一條，數字見 `--color-accent-tint`。 */
 .st-table thead th {
 	color: var(--color-text);
+	background: var(--color-accent-tint);
 	white-space: nowrap;
 }
 

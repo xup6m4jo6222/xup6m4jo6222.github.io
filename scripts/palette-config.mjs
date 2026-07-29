@@ -78,6 +78,7 @@ export const SITE_PALETTE = {
 	'#7998c3': '元素主色（凍結）',
 	'#7998c355': '捲軸拉桿＝元素主色 33%',
 	'#7998c31a': '背景漸層＝元素主色 10%（建置後由 rgba() 縮寫而來）',
+	'#7998c312': '「面」的淡底＝元素主色 7%（同上，建置後由 rgba() 縮寫而來）',
 	'#0000': 'transparent 的縮寫（建置產生）',
 };
 
@@ -165,6 +166,18 @@ export const PAGE_SURFACES = [
 	...surface('var(--color-bloom-dark)', '黑莓暗暈'),
 	...surface('bloom:var(--color-accent)@0.1/var(--color-bg)', '藍暈峰值'),
 ];
+
+/**
+ * 頁面表面再疊一層「面」的淡底（票 05）。統計表頭與 `.cs-pair` 本人側都是**半透明的底**，
+ * 底下透出來的仍然是頁面那九種狀態——所以它們也是九態，不是一個值。
+ *
+ * `over:` 用那個色**自己的 alpha** 去疊，判準檔裡不重寫一次 7%：淡底的濃度只寫在
+ * `--color-accent-tint` 一個地方，改那裡就會連帶改這裡量到的底。
+ */
+export const TINTED_PAGE_SURFACES = PAGE_SURFACES.map((s) => ({
+	bg: `over:var(--color-accent-tint)/${s.bg}`,
+	label: `${s.label}＋7% 主色淡底`,
+}));
 
 /** 疊在頁底上的東西：九種背景狀態全部量，回報時只印最壞的那一個。 */
 const onPage = (fg, what, min) => ({ fg, bgs: PAGE_SURFACES, where: `${what} on 頁底（含漸層與顆粒）`, min });
@@ -384,6 +397,43 @@ export const CONTRAST_PAIRS = [
 	{ fg: 'var(--n-700)', bg: 'var(--color-bg-card)', where: '卡片摘要 on 列表卡底', fgOn: ['.card p'], bgOn: '.card' },
 
 	{ fg: 'var(--color-text)', bg: 'var(--color-bg-alt)', where: '面板內文', bgOn: '.tl-solo' },
+
+	/**
+	 * 票 05：「面」的三個新表面。三組都把兩端釘到真的選擇器——**底色守衛不能是無主的**，
+	 * 否則誰把淡底換成別的濃度、或把上面的字改成主色，閘門都不會知道。
+	 *
+	 * `bgLiteral` 是這一輪新加的：淡底是**半透明**的，宣告值（`#7998c312`）與渲染值
+	 * （疊出來的合成色）本來就不是同一個東西。沒有它的話，「產物宣告的底＝判準說的底」
+	 * 那道斷言只能拿合成色去比，永遠對不上。比對含 alpha，所以把 7% 換成 33% 會紅。
+	 *
+	 * **這三組同時就是「面上不得有主色文字」那條規則的執行版**：`fgOn` 斷言這些選擇器的
+	 * 文字色必須是 n-900，誰把它改成主色都會紅——面與字同色會互相抵銷（7% 淡底上主色字
+	 * 只有 4.27／4.36），那正是這一輪最晚才發現、也最容易重犯的一件事。
+	 */
+	{
+		fg: 'var(--color-text)',
+		bg: 'over:var(--color-accent-tint)/var(--color-bg-alt)',
+		where: '比對器本人側（7% 主色淡底 on 面板底）',
+		fgOn: ['.cs-track .cs-side--me', '.cs-side em'],
+		bgOn: '.cs-track .cs-side--me',
+		bgLiteral: 'var(--color-accent-tint)',
+	},
+	{
+		fg: 'var(--color-text)',
+		bgs: TINTED_PAGE_SURFACES,
+		where: '統計表頭（7% 主色淡底 on 頁面九態）',
+		fgOn: ['.st-table thead th'],
+		bgOn: '.st-table thead th',
+		bgLiteral: 'var(--color-accent-tint)',
+	},
+	{
+		fg: 'var(--color-text)',
+		bgs: TINTED_PAGE_SURFACES,
+		where: '文字所有權對質本人側（7% 主色淡底 on 頁面九態）',
+		fgOn: ['.cs-pair-me', '.cs-pair em'],
+		bgOn: '.cs-pair-me',
+		bgLiteral: 'var(--color-accent-tint)',
+	},
 	/**
 	 * 票 02 前，`.cs-track` 的底色守衛掛在「面板上的元素主色小標」那組配對上。
 	 * 那組的兩條 `fgOn`（`.tl-solo em`、`.cs-track .cs-side--me em`）在票 02 都退了主色，

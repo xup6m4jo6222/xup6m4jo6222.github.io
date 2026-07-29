@@ -451,6 +451,20 @@ function resolveSurface(spec, vars) {
 		const base = resolveSurface(grain[2], vars);
 		return base && C.applyGrain(opaque(base), Number(grain[1]), CFG.GRAIN.alpha);
 	}
+	/**
+	 * `over:<半透明色>/<底>` —— 用那個色**自己的 alpha** 疊上去（票 05 的 7% 主色淡底）。
+	 * 與 `bloom:` 的差別是這裡不在判準檔重寫一次濃度：淡底的濃度只寫在 CSS 的
+	 * `--color-accent-tint` 一個地方，改那裡就會連帶改這裡量到的底。底可以是另一個
+	 * 表面規格（淡底是半透明的，底下透出來的是頁面那九種狀態）。
+	 */
+	const over = spec.match(/^over:(.+?)\/(.+)$/s);
+	if (over) {
+		const top = normalizeColor(resolveVars(over[1], vars));
+		const base = resolveSurface(over[2], vars);
+		if (!top || !base) return null;
+		const alpha = top.length === 9 ? parseInt(top.slice(7), 16) / 255 : 1;
+		return C.blend(opaque(top), opaque(base), alpha);
+	}
 	const bloom = spec.match(/^bloom:(.+)@([\d.]+)\/(.+)$/s);
 	if (bloom) {
 		const over = normalizeColor(resolveVars(bloom[1], vars));
@@ -579,7 +593,24 @@ function checkContrast(vars, siteRules) {
 				);
 			}
 		}
-		if (pair.bgOn) {
+		if (pair.bgOn && pair.bgLiteral) {
+			/**
+			 * 半透明的底（票 05 的 7% 主色淡底）：**宣告值不等於渲染值**，所以這裡比的是
+			 * 「產物宣告了哪個色」而不是合成之後的色——後者永遠對不上。
+			 * 比對含 alpha（用 `declaredProp` 拿原始宣告，不走 `declaredValue` 的 `opaque()`），
+			 * 所以把 7% 換成 33% 會紅，那正是這道守衛要擋的漂移。
+			 */
+			const want = normalizeColor(resolveVars(pair.bgLiteral, vars));
+			const decl = declaredProp(siteRules, pair.bgOn, ['background-color', 'background']);
+			const got = decl && normalizeColor(resolveVars(decl.value, vars));
+			if (want && got !== want) {
+				fail(
+					'contrast',
+					`${pair.bgOn} 的底色`,
+					`${pair.where}：判準說 ${pair.bgOn} 宣告的底是 ${want}（半透明淡底），產物是 ${got ?? '（找不到這條規則）'}`,
+				);
+			}
+		} else if (pair.bgOn) {
 			const bgHex = resolveSurface(pair.bg, vars);
 			const got = declaredValue(siteRules, pair.bgOn, ['background-color', 'background'], vars);
 			if (bgHex && got !== opaque(bgHex)) {

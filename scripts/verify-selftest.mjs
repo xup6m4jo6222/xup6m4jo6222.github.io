@@ -474,6 +474,29 @@ const cases = [
 		entries: [{ sel: '.home-tagline:hover', channel: 'weight', on: '.home-tagline', why: '自我檢查用的假條目' }],
 		expect: /channel[\s\S]*home-tagline:hover[\s\S]*不到 500/,
 	},
+
+	// ── 元素主色份量票 05：「面」的三個表面 ──────────────────────────────
+	{
+		// **面與字同色會互相抵銷**：7% 主色淡底上，主色字九態最壞只有 4.27，過不了 4.5。
+		// 這是這一輪最晚才發現的一件事（實作前算對比才撞出來），也最容易重犯——
+		// 「它是標籤，標籤拿主色」這個順手推理會直接把人帶到這裡。
+		// 期待的訊息刻意指定成**那組配對自己的斷言**：`.st-table thead th` 本來就不在允許
+		// 清單上，所以第二類也會紅，但那條擋的是「誰可以用主色」，不是「面上不能有主色」。
+		name: '把主色的字放到鋪了主色淡底的面上',
+		expectPass: false,
+		mutate: (f) => writeFileSync(f, `${readFileSync(f, 'utf8')}\n.st-table thead th{color:#7998c3}\n`),
+		expect: /統計表頭[\s\S]*判準說 \.st-table thead th 的文字色是 #ebe5eb/,
+	},
+	{
+		// 淡底是半透明的，宣告值與渲染值不是同一個東西，所以那道守衛比的是**宣告了哪個色**。
+		// 這一條證明它含 alpha：把 7%（`#7998c312`）換成 33%（`--color-accent-fade`），
+		// 不透明的部分完全一樣、只有 alpha 變了，必須照樣紅。
+		name: '把面的淡底從 7% 換成 33%（只有 alpha 變）',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(f, `${readFileSync(f, 'utf8')}\n.cs-track .cs-side--me{background:var(--color-accent-fade)}\n`),
+		expect: /比對器本人側[\s\S]*宣告的底是 #7998c312[\s\S]*產物是 #7998c355/,
+	},
 ];
 
 let failed = 0;
