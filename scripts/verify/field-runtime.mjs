@@ -22,9 +22,9 @@
  */
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
-import { extname, join } from 'node:path';
+import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -52,13 +52,23 @@ const TYPES = {
 	'.txt': 'text/plain',
 };
 
+/** 回報的大小上限。`--lan` 會綁 0.0.0.0，沒有上限的話區網上任何人都能把它灌爆。 */
+const MAX_REPORT = 4 * 1024 * 1024;
+
 let inbox = null;
 const server = createServer((req, res) => {
 	const url = new URL(req.url, `http://localhost:${PORT}`);
 	if (url.pathname === '/report') {
 		let body = '';
-		req.on('data', (c) => (body += c));
+		req.on('data', (c) => {
+			body += c;
+			if (body.length > MAX_REPORT) {
+				res.writeHead(413).end('too big');
+				req.destroy();
+			}
+		});
 		req.on('end', () => {
+			if (res.writableEnded) return;
 			try {
 				inbox?.(JSON.parse(body));
 			} catch (e) {
@@ -68,8 +78,21 @@ const server = createServer((req, res) => {
 		});
 		return;
 	}
-	let file = join(DIST, decodeURIComponent(url.pathname));
+	/* ── 路徑必須真的落在 dist 裡 ────────────────────────────────────────
+	   **不能只靠 URL 正規化。**WHATWG 的解析器會吃掉 `..` 與 `%2e%2e`，但**不動 `%5c`**；
+	   `decodeURIComponent` 之後那個 `%5c` 變成 `\`，而 win32 的 `path.join` 把 `\` 當分隔符。
+	   實測（2026-07-29 抗辯，真的跑出 HTTP 200）：
+	     /a/%5c..%5c..%5cDECISIONS.md            → repo 根的私人決策紀錄
+	     /a/(%5c..)×8%5cWindows/win.ini          → C:\ 絕對可達
+	   而 `--lan` 是綁 0.0.0.0 的（手機量測的標準流程），等於同一個 wifi 上任何裝置都能
+	   讀走這台機器上使用者讀得到的任何檔案。**唯一正確的守法是解析完之後檢查它在不在
+	   dist 底下**，不是去黑名單哪些字元——黑名單永遠少一個。 */
+	let file = resolve(DIST, '.' + decodeURIComponent(url.pathname));
 	if (!extname(file)) file = join(file, 'index.html');
+	if (file !== DIST && !file.startsWith(DIST + sep)) {
+		res.writeHead(403).end('nope');
+		return;
+	}
 	if (!existsSync(file)) {
 		res.writeHead(404).end('nope');
 		return;
@@ -104,23 +127,43 @@ const killTree = (pid) =>
    下一次啟動就會把網址轉給舊實例、自己立刻結束，於是永遠等不到回報。 */
 let runs = 0;
 
+/** 這一輪開過的設定檔目錄，收工時一起刪。 */
+const profiles = [];
+const sweepProfiles = () => {
+	for (const p of profiles.splice(0)) {
+		try {
+			rmSync(p, { recursive: true, force: true, maxRetries: 3 });
+		} catch {}
+	}
+};
+
 /** 開一次無頭 Chrome，等探針回報，回報到了就把它整棵收掉。 */
 function run(path, extra = [], ms = 45000) {
 	return new Promise((resolve, reject) => {
+		/* `settled` 不只是禮貌。逾時分支原本沒清掉 `inbox`，所以被殺掉的 Chrome 若有一個
+		   在途的 sendBeacon 在 reject 之後才抵達，會**第二次**進 finish，對**同一個 pid**
+		   再跑一次 `taskkill /T /F`——而那個 pid 早就結束、Windows 的 pid 會重用，
+		   `/T` 會把新主人的整棵行程樹強殺。機率低，但後果是靜默誤殺使用者的其他程式。 */
+		let settled = false;
 		const finish = async (fn, v) => {
+			if (settled) return;
+			settled = true;
+			inbox = null;
 			clearTimeout(timer);
 			await killTree(child.pid);
 			fn(v);
 		};
 		const timer = setTimeout(() => finish(reject, new Error(`逾時：${path} 沒有回報`)), ms);
 		inbox = (r) => finish(resolve, r);
+		const profile = join(tmpdir(), `field-chrome-${process.pid}-${runs++}`);
+		profiles.push(profile);
 		const child = spawn(CHROME, [
 			'--headless=new',
 			'--disable-gpu',
 			'--hide-scrollbars',
 			'--window-size=1280,720',
 			'--force-device-scale-factor=1',
-			`--user-data-dir=${join(tmpdir(), `field-chrome-${process.pid}-${runs++}`)}`,
+			`--user-data-dir=${profile}`,
 			...extra,
 			`http://localhost:${PORT}${path}`,
 		]);
@@ -411,17 +454,28 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 	}
 	const shotsAt = process.argv.indexOf('--shots');
 	if (shotsAt >= 0) {
-		await shots(process.argv[shotsAt + 1]);
+		// `--shots` 放在最後一個參數時 dir 是 undefined，join 會丟 TypeError，
+		// 而這裡是 listen 的回呼、沒有 catch —— 結果是 server 不關、行程掛住
+		const dir = process.argv[shotsAt + 1];
+		if (!dir) {
+			console.error('用法：--shots <輸出目錄>');
+			server.close();
+			process.exit(2);
+		}
+		await shots(dir);
+		sweepProfiles();
 		server.close();
 		process.exit(0);
 	}
 	if (process.argv.includes('--runtime')) {
 		const bad = await runtime();
+		sweepProfiles();
 		server.close();
 		process.exit(bad ? 1 : 0);
 	}
 	if (process.argv.includes('--signoff')) {
 		await signoff();
+		sweepProfiles();
 		server.close();
 		process.exit(0);
 	}
