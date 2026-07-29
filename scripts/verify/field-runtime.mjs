@@ -22,7 +22,7 @@
  */
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -447,7 +447,42 @@ function lan() {
 	};
 }
 
+/**
+ * 票 05 抗辯：回彈的逐格對比。
+ *
+ *   node scripts/verify/field-runtime.mjs --shockfilm <輸出目錄> [標籤]
+ *
+ * 拍的是**畫面與靜止態的差**（放大 20 倍），不是畫面本身——4px 的位移在
+ * 0.040 強度的線上，靜態截圖裡看不見。亮起來的地方就是場移動過的地方。
+ */
+async function shockfilm(dir, label = 'now') {
+	const r = await run('/?shockfilm=1', ['--window-size=1280,720'], 120000);
+	if (!r.ok || !r.frames) {
+		console.log(`✗ ${r.why || '沒有拿到逐格'}`);
+		return 1;
+	}
+	for (const [i, f] of r.frames.entries()) {
+		const name = `shock-${label}-${String(i + 1).padStart(2, '0')}-${f.phase === '捲動中' ? 'during' : 'after'}-${f.at}ms.png`;
+		writeFileSync(join(dir, name), Buffer.from(f.png.split(',')[1], 'base64'));
+		console.log(`   ${f.phase} ${String(f.at).padStart(4)}ms → ${name}`);
+	}
+	return 0;
+}
+
 server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, async () => {
+	const filmAt = process.argv.indexOf('--shockfilm');
+	if (filmAt >= 0) {
+		const dir = process.argv[filmAt + 1];
+		if (!dir) {
+			console.error('用法：--shockfilm <輸出目錄> [標籤]');
+			server.close();
+			process.exit(2);
+		}
+		const bad = await shockfilm(dir, process.argv[filmAt + 2]);
+		sweepProfiles();
+		server.close();
+		process.exit(bad);
+	}
 	if (process.argv.includes('--lan')) {
 		lan();
 		return; // 不結束，等手機回報
@@ -551,7 +586,7 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 			continue;
 		}
 		console.log(
-			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　捲動後 ${r.shift}　靜置四秒後 ${r.ember}`,
+			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　單次捲動後 ${r.shift}　持續捲動中 ${r.sustained}　靜置十秒內最大 ${r.ember}`,
 		);
 		const want = flags.length > 0;
 		if (r.reduced !== want) {
@@ -576,12 +611,27 @@ server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : undefined, asyn
 		} else {
 			console.log(`   ✓ 捲動回彈會動（${r.shift}，底噪只有 ${r.noise}）`);
 		}
+		/* **一段連續捲動只准晃一次。**這一條是 2026-07-29 抗辯的產物：先前的探針
+		   只送一次合成 scroll，所以「每一幀 scroll 都把幅度重設回滿格」這條路
+		   從來沒被觀察到，而它讓動效紅線①（單一動作 ≤350ms）在真實捲動下不成立。
+		   判的是「持續捲動中的畫面差有沒有回到底噪量級」，不是絕對值——餘燼一直在燒。 */
+		if (r.sustained != null) {
+			const stillMoving = r.sustained > Math.max(4 * r.noise, 200);
+			if (stillMoving) {
+				console.log(
+					`   ✗ 持續捲動期間畫面仍在大幅變動（${r.sustained} 對底噪 ${r.noise}）——回彈被每一幀的 scroll 重新觸發，變成「捲多久晃多久」`,
+				);
+				bad++;
+			} else {
+				console.log(`   ✓ 一段連續捲動只晃一次（持續捲動中 ${r.sustained} 已回到底噪 ${r.noise} 的量級）`);
+			}
+		}
 		// 餘燼只在不透明度上動，兩種偏好下都必須還在燒
 		if (!r.ember) {
-			console.log('   ✗ 靜置四秒畫面完全沒變——餘燼沒在燒');
+			console.log('   ✗ 靜置十秒畫面完全沒變——餘燼沒在燒');
 			bad++;
 		} else {
-			console.log(`   ✓ 餘燼在燒（靜置四秒畫面差 ${r.ember}）`);
+			console.log(`   ✓ 餘燼在燒（靜置十秒內畫面差最大 ${r.ember}）`);
 		}
 	}
 

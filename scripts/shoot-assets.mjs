@@ -60,12 +60,16 @@ function chrome(args) {
 mkdirSync(PROFILE, { recursive: true });
 
 /* 首頁：整頁剛好一屏，device scale factor 0.5 直接輸出 760×470，不用再縮。
-   **必須加 --force-prefers-reduced-motion**（第 9 版母題上線後補）：母題是常駐 rAF 迴圈，
-   而 --virtual-time-budget 遇到常駐迴圈幾乎不前進，[data-reveal] 的 0.35s 淡入永遠跑不完，
-   拍出來的首頁會只剩一個 h1。加了這個旗標之後淡入直接到位，母題也畫在 breath(0)——
-   那恰好是呼吸中點，是這張比對圖最有代表性的一幀，不是隨機取樣。 */
+   **必須加 --force-prefers-reduced-motion**（第 9 版母題上線後補）：母題在這個偏好下
+   不跑迴圈，畫在 breath(0)——那恰好是呼吸中點，是這張比對圖最有代表性的一幀。
+
+   **--virtual-time-budget 在第 10 版拿掉了。**它原本的作用是讓 [data-reveal] 的 0.35s
+   淡入跑完；第 9 版時「降低動態偏好 → 母題不跑迴圈 → 虛擬時間推得動」這條鏈成立，
+   所以它有效。第 10 版的等高線場**在降低動態偏好下仍然跑常駐迴圈**（規格要求餘燼的
+   不透明度變化保留），虛擬時間因此幾乎不前進，淡入永遠跑不完——拍出來的首頁只剩
+   一個 h1，而那張圖是 AI 專案頁的封面。A/B 實測：加旗標只剩大字，拿掉旗標完整。
+   這就是 RUNBOOK 的坑之二（不可加 --virtual-time-budget）在拍圖工具上的落點。 */
 chrome([
-	'--virtual-time-budget=8000',
 	`--window-size=${SHOT_W},${SHOT_H}`,
 	'--force-device-scale-factor=0.5',
 	'--force-prefers-reduced-motion',

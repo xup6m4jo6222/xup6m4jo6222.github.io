@@ -336,11 +336,24 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 			draw((now - t0) / 1000);
 		}
 
-		/** 捲動＝一次觸發，整場輕微位移後回位。降低動態偏好時不觸發。 */
+		/**
+		 * 捲動＝**一次**觸發，整場輕微位移後回位。降低動態偏好時不觸發。
+		 *
+		 * 「一次」要自己守住：真實捲動（滾輪與慣性）**每一幀送一次 scroll 事件**，
+		 * 每一次都重設幅度的話，回彈就變成「捲多久晃多久」——2026-07-29 抗辯實測，
+		 * 持續捲動期間逐幀畫面差 45716、靜置底噪 53，位移全程滿幅。那同時踩掉
+		 * 動效紅線①（單一動作 ≤350ms）與敘事本身（一直在震就沒有「恢復得很快」）。
+		 * 所以要先安靜 `shockRearmMs` 才重新武裝：一段連續捲動只晃一次。
+		 */
+		let lastScroll = -1e9;
 		const kick = () => {
 			if (still.matches) return;
+			const now = performance.now();
+			const armed = now - lastScroll > K.shockRearmMs;
+			lastScroll = now;
+			if (!armed) return;
 			shock = 1;
-			shockT = performance.now();
+			shockT = now;
 		};
 
 		/* main 的盒子會在字體換上來之後改變（`display=fallback` 的那一次交換），

@@ -83,11 +83,14 @@
 		savedField = cv0.dataset.field;
 	}
 
-	const send = (r) =>
-		navigator.sendBeacon(
-			`http://${location.hostname}:4477/report`,
-			new Blob([JSON.stringify(r)], { type: 'text/plain' }),
-		);
+	/* sendBeacon 有大約 64KB 的上限，逐格對比那一輪要送七張 PNG，一定超過。
+	   大的走 fetch（那一輪不需要 beacon 的「頁面關掉也送得出去」保證）。 */
+	const send = (r) => {
+		const url = `http://${location.hostname}:4477/report`;
+		const body = JSON.stringify(r);
+		if (body.length > 50000) return fetch(url, { method: 'POST', body });
+		return navigator.sendBeacon(url, new Blob([body], { type: 'text/plain' }));
+	};
 	const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 	const nextFrames = (n) =>
 		new Promise((r) => {
@@ -223,6 +226,59 @@
 			const l2 = Math.min(lum(text), best);
 			return { contrast: (l1 + 0.05) / (l2 + 0.05), worstPx, peakAlpha: peakA };
 		};
+
+		if (q.has('shockfilm')) {
+			/* ── 回彈的逐格對比（票 05 抗辯）────────────────────────────────
+			   問題：回彈幅度只有 4px、線又只有 0.040 的強度，**在靜態截圖裡看不見**。
+			   所以拍的不是畫面，是**畫面與靜止態的差**——場移動過的地方會亮起來，
+			   沒動的地方是黑的。放大 20 倍才看得出來。
+
+			   時間軸刻意跨過「捲動中」與「停止捲動之後」：現行版本在整段捲動期間
+			   都是滿幅（每一幀 scroll 事件都把幅度重設成 1），單次觸發的版本
+			   應該在 350ms 之內就衰減到黑。 */
+			const W = Math.min(cv.width, 900);
+			const H = Math.min(cv.height, 500);
+			const rest = g.getImageData(0, 0, W, H).data;
+			const out = document.createElement('canvas');
+			out.width = W;
+			out.height = H;
+			const og = out.getContext('2d');
+			const shot = () => {
+				const now = g.getImageData(0, 0, W, H);
+				const d = now.data;
+				for (let i = 0; i < d.length; i += 4) {
+					const v = Math.min(255, Math.abs(d[i + 3] - rest[i + 3]) * 20);
+					d[i] = d[i + 1] = d[i + 2] = v;
+					d[i + 3] = 255;
+				}
+				og.putImageData(now, 0, 0);
+				return out.toDataURL('image/png');
+			};
+
+			// 每幀送一次 scroll，模擬真實的滾輪／慣性捲動
+			let scrolling = true;
+			const pump = () => {
+				if (!scrolling) return;
+				dispatchEvent(new Event('scroll'));
+				requestAnimationFrame(pump);
+			};
+			const frames = [];
+			const t0 = performance.now();
+			pump();
+			for (const at of [150, 500, 1000, 1800]) {
+				while (performance.now() - t0 < at) await nextFrames(1);
+				frames.push({ at, phase: '捲動中', png: shot() });
+			}
+			scrolling = false;
+			const tStop = performance.now();
+			for (const after of [120, 400, 900]) {
+				while (performance.now() - tStop < after) await nextFrames(1);
+				frames.push({ at: after, phase: '停止捲動後', png: shot() });
+			}
+			report.frames = frames;
+			send(report);
+			return;
+		}
 
 		if (runtime) {
 			/* ── 票 04：把「每幀」與「一次性」分開量 ────────────────────────
@@ -414,13 +470,45 @@
 		const p = window12();
 		dispatchEvent(new Event('scroll'));
 		const shift = await p;
+		await wait(P.shockMs + 400);
 
-		await wait(P.shockMs + 400); // 回位之後才量餘燼，免得把回彈算進去
-		const rest = snap();
-		await wait(4000);
+		/* **持續捲動**要另外量一次。只送一次合成 scroll 的話，「捲多久晃多久」這條路
+		   從來不會被觀察到——2026-07-29 的抗辯就是這樣抓到它的，而這支探針當時
+		   報綠。真實捲動每一幀送一次事件，所以這裡也每幀送一次：先讓第一次回彈
+		   衰減完，再開始取樣；量到的差應該回到底噪的量級。 */
+		let pumping = true;
+		const pump = () => {
+			if (!pumping) return;
+			dispatchEvent(new Event('scroll'));
+			requestAnimationFrame(pump);
+		};
+		pump();
+		await wait(P.shockMs + 300); // 第一次回彈已經回位，之後不該再被重新觸發
+		const sustained = await window12();
+		pumping = false;
+		report.sustained = sustained;
+
+		await wait(P.shockMs + K.shockRearmMs + 400); // 回位＋重新武裝都過去了，才量餘燼
+
+		/* 餘燼要**跨過週期的一大段**才量得到。只有 6 顆，而且不透明度是
+		   `底 + k^6 × 峰`——`k^6` 讓它大部分時間貼在底值附近，只有短暫一段會亮。
+		   30 秒的週期裡取 4 秒的兩端，很容易兩端都落在暗處而量到 0（實測就發生過，
+		   而且**先前那次量到 33 是運氣好**，不是機制穩）。改成十秒內每秒取一張，
+		   取對第一張的最大差——只要期間有任何一顆亮過就抓得到。 */
+		/* 而且要取**整張畫布**，不能用上面那塊左上角 600×400：只有 6 顆餘燼、散在整面，
+		   那一角很可能一顆都沒有——實測常態那一輪就一直量到 0，而畫面上餘燼確實在燒。
+		   位移那幾輪可以用小塊（整場一起動，取哪裡都看得到），餘燼不行。
+		   一秒一張、只取十張，整張畫布的成本付得起。 */
+		const fullSnap = () => new Uint8Array(g.getImageData(0, 0, cv.width, cv.height).data);
+		const first = fullSnap();
+		let ember = 0;
+		for (let i = 0; i < 10; i++) {
+			await wait(1000);
+			ember = Math.max(ember, diff(fullSnap(), first));
+		}
 		report.noise = noise;
 		report.shift = shift;
-		report.ember = diff(snap(), rest);
+		report.ember = ember;
 		send(report);
 	});
 })();
