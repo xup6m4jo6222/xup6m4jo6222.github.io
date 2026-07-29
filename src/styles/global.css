@@ -936,9 +936,18 @@ main > h1 {
 	outline-offset: 2px;
 }
 
+/* 兩個角標各自貼著一邊，所以**它們的寬度和不能超過容器**，否則就疊在一起。
+   2026-07-29 實測：375 寬下兩個角標合計 366px、容器只有約 324px，早在標籤樣式合併之前
+   就已經重疊（合併讓它多疊 6.6px，不是元凶）。
+
+   **不用斷點修**：斷點只補得到量過的那一格，而這個缺陷的成因是「文字長度 × 容器寬度」
+   的關係，不是某個特定寬度。上限釘在容器一半（扣掉兩側 0.6rem 內縮與中間 0.6rem 間隙），
+   兩個角標就在**任何**寬度都碰不到彼此——日後有人寫更長的版本標籤也一樣。
+   放不下時角標自己折行往下長；它是絕對定位，不會推動任何東西。 */
 .cs-wipe-tag {
 	position: absolute;
 	top: 0.6rem;
+	max-width: calc(50% - 0.9rem);
 	padding: var(--sp-xs) var(--sp-sm);
 	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
 	border: 1px solid var(--color-border-strong);
