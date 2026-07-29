@@ -72,8 +72,16 @@
 	   `?nodim=1` 關掉減光（票 01 的 fail-then-pass 對照組）；
 	   `?ink=` `?dim=` 直接換值（票 02 的比對截圖）。改屬性就等於改參數，
 	   不必為了看另一組值而重新建置——這是產物端契約付出來的紅利。 */
-	const KNOBS = { ink: 'ink', dim: 'textDim', crack: 'crack', ember: 'ember' };
 	const cv0 = document.querySelector('canvas.field');
+
+	/** `data-field-craft` 的旋鈕。`rearm` 是回彈的冷卻時間，票 05 要拿它出比對圖。 */
+	if (cv0 && q.has('rearm')) {
+		const k = JSON.parse(cv0.dataset.fieldCraft);
+		k.shockRearmMs = +q.get('rearm');
+		cv0.dataset.fieldCraft = JSON.stringify(k);
+	}
+
+	const KNOBS = { ink: 'ink', dim: 'textDim', crack: 'crack', ember: 'ember' };
 	if (cv0 && !killed && (nodim || Object.keys(KNOBS).some((k) => q.has(k)))) {
 		const p = JSON.parse(cv0.dataset.field);
 		if (nodim) p.textDim = 0;
@@ -276,6 +284,67 @@
 			return;
 		}
 
+		if (q.has('pulse')) {
+			/* ── 回彈的節奏時間軸（票 05）────────────────────────────────
+			   三個候選的**振幅完全一樣，只有節奏不同**，所以逐格截圖看不出差別——
+			   要看的是「12 秒連續捲動裡，它在哪些時刻動了」。
+			   量法：每 100ms 取一次「與靜止態的差」，畫成一條時間軸。
+			   高的地方＝場在動，平的地方＝靜止。 */
+			const SW = Math.min(cv.width, 600);
+			const SH = Math.min(cv.height, 400);
+			const rest = new Uint8Array(g.getImageData(0, 0, SW, SH).data);
+			const level = () => {
+				const d = g.getImageData(0, 0, SW, SH).data;
+				let acc = 0;
+				for (let i = 3; i < d.length; i += 4) acc += Math.abs(d[i] - rest[i]);
+				return acc;
+			};
+
+			let pumping = true;
+			const pump = () => {
+				if (!pumping) return;
+				dispatchEvent(new Event('scroll'));
+				requestAnimationFrame(pump);
+			};
+			const series = [];
+			const t0 = performance.now();
+			pump();
+			while (performance.now() - t0 < 12000) {
+				await wait(100);
+				series.push(level());
+			}
+			pumping = false;
+
+			// 畫成時間軸：寬 = 12 秒，高 = 差的量，峰值正規化
+			const W2 = 960;
+			const H2 = 150;
+			const out = document.createElement('canvas');
+			out.width = W2;
+			out.height = H2;
+			const og = out.getContext('2d');
+			og.fillStyle = '#20131d';
+			og.fillRect(0, 0, W2, H2);
+			const peak = Math.max(...series, 1);
+			og.fillStyle = '#7998c3';
+			series.forEach((v, i) => {
+				const h = Math.max(1, Math.round((v / peak) * (H2 - 20)));
+				og.fillRect(Math.round((i / series.length) * W2), H2 - h, Math.ceil(W2 / series.length), h);
+			});
+			// 每秒一格刻度
+			og.fillStyle = '#736770';
+			for (let sec = 1; sec < 12; sec++) og.fillRect(Math.round((sec / 12) * W2), H2 - 6, 1, 6);
+
+			// 峰值超過底噪的次數 = 回彈了幾次（相鄰的高點算同一次）
+			const floor = peak * 0.15;
+			let hits = 0;
+			for (let i = 0; i < series.length; i++) {
+				if (series[i] > floor && (i === 0 || series[i - 1] <= floor)) hits++;
+			}
+			report.pulse = { hits, rearm: K.shockRearmMs, png: out.toDataURL('image/png') };
+			send(report);
+			return;
+		}
+
 		if (runtime) {
 			/* ── 票 04：把「每幀」與「一次性」分開量 ────────────────────────
 			   每幀成本量的是貼圖＋餘燼；**建場**是另一件事，只在視窗寬或文字帶
@@ -405,21 +474,42 @@
 		const shift = await p;
 		await wait(P.shockMs + 400);
 
-		/* **持續捲動**要另外量一次。只送一次合成 scroll 的話，「捲多久晃多久」這條路
-		   從來不會被觀察到——2026-07-29 的抗辯就是這樣抓到它的，而這支探針當時
-		   報綠。真實捲動每一幀送一次事件，所以這裡也每幀送一次：先讓第一次回彈
-		   衰減完，再開始取樣；量到的差應該回到底噪的量級。 */
+		/* **持續捲動要量的是節奏，不是「有沒有在動」。**
+		   先前這裡只判「持續捲動中的畫面差有沒有回到底噪」，那守得住「捲多久晃多久」，
+		   **守不住反過來那一端**——第一版的修法（冷卻從上一次 scroll 事件算）會讓
+		   常見的滾輪節奏永遠不武裝，整段閱讀只晃一次，而那一條檢查照樣是綠的。
+		   現在數的是「六秒連續捲動裡回彈了幾次」，兩端都夾得住。 */
+		const rest = snap();
 		let pumping = true;
 		const pump = () => {
 			if (!pumping) return;
 			dispatchEvent(new Event('scroll'));
 			requestAnimationFrame(pump);
 		};
+		const RHYTHM_MS = 6000;
+		const series = [];
+		const tPump = performance.now();
 		pump();
-		await wait(P.shockMs + 300); // 第一次回彈已經回位，之後不該再被重新觸發
-		const sustained = await window12();
+		while (performance.now() - tPump < RHYTHM_MS) {
+			await wait(100);
+			series.push(diff(snap(), rest));
+		}
 		pumping = false;
-		report.sustained = sustained;
+		/* 門檻不能只用「峰值的幾成」——**純雜訊的峰值就是雜訊本身**，那樣數出來
+		   永遠有「幾次」。降低動態偏好那一輪實測就被自己的計數器判成晃了 1 次，
+		   而那條路上 `kick()` 進門就 return、根本沒有位移。
+		   改成先看這串數列有沒有結構：峰值要明顯高過中位數，才算得上有回彈。 */
+		const sorted = [...series].sort((a, b) => a - b);
+		const median = sorted[Math.floor(sorted.length / 2)] || 0;
+		const peak = Math.max(...series, 1);
+		let hits = 0;
+		if (peak > Math.max(4 * median, 200)) {
+			const floor = Math.max(peak * 0.15, 2 * median);
+			for (let i = 0; i < series.length; i++) {
+				if (series[i] > floor && (i === 0 || series[i - 1] <= floor)) hits++;
+			}
+		}
+		report.rhythm = { hits, window: RHYTHM_MS, rearm: K.shockRearmMs, peak, median };
 
 		await wait(P.shockMs + K.shockRearmMs + 400); // 回位＋重新武裝都過去了，才量餘燼
 

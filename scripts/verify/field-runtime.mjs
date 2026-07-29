@@ -476,6 +476,19 @@ async function shots(dir) {
    EADDRINUSE——**這次真的踩到了**（刪 --signoff 時連帶砍掉三個函式，ReferenceError
    之後 4477 一直被佔著）。包起來，讓它印得出原因並且真的收掉。 */
 const dispatch = async () => {
+	const pulseAt = process.argv.indexOf('--pulse');
+	if (pulseAt >= 0) {
+		const dir = process.argv[pulseAt + 1];
+		const values = process.argv.slice(pulseAt + 2).map(Number).filter((n) => n > 0);
+		if (!dir || !values.length) {
+			console.error('用法：--pulse <輸出目錄> <毫秒> [毫秒…]');
+			server.close();
+			process.exit(2);
+		}
+		await pulse(dir, values);
+		server.close();
+		process.exit(0);
+	}
 	const filmAt = process.argv.indexOf('--shockfilm');
 	if (filmAt >= 0) {
 		const dir = process.argv[filmAt + 1];
@@ -583,7 +596,7 @@ const dispatch = async () => {
 			continue;
 		}
 		console.log(
-			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　單次捲動後 ${r.shift}　持續捲動中 ${r.sustained}　靜置十秒內最大 ${r.ember}`,
+			`   ${name}　偏好讀到 reduce＝${r.reduced}　底噪（不捲動）${r.noise}　單次捲動後 ${r.shift}　六秒連續捲動晃了 ${r.rhythm?.hits} 次　靜置十秒內最大 ${r.ember}`,
 		);
 		const want = flags.length > 0;
 		if (r.reduced !== want) {
@@ -608,19 +621,28 @@ const dispatch = async () => {
 		} else {
 			console.log(`   ✓ 捲動回彈會動（${r.shift}，底噪只有 ${r.noise}）`);
 		}
-		/* **一段連續捲動只准晃一次。**這一條是 2026-07-29 抗辯的產物：先前的探針
-		   只送一次合成 scroll，所以「每一幀 scroll 都把幅度重設回滿格」這條路
-		   從來沒被觀察到，而它讓動效紅線①（單一動作 ≤350ms）在真實捲動下不成立。
-		   判的是「持續捲動中的畫面差有沒有回到底噪量級」，不是絕對值——餘燼一直在燒。 */
-		if (r.sustained != null) {
-			const stillMoving = r.sustained > Math.max(4 * r.noise, 200);
-			if (stillMoving) {
+		/* **節奏要兩端都夾。**只判「有沒有在動」守得住「捲多久晃多久」，守不住
+		   反過來那一端——冷卻從上一次 scroll 事件算的那個版本會讓常見的滾輪節奏
+		   永遠不武裝、整段閱讀只晃一次，而那樣的檢查照樣是綠的。
+		   期望次數＝視窗長度 ÷ 冷卻時間，向下取整再加一（t=0 那次），容差 ±1。 */
+		if (r.rhythm) {
+			const want = Math.floor(r.rhythm.window / r.rhythm.rearm) + 1;
+			const { hits } = r.rhythm;
+			if (r.reduced) {
+				if (hits > 0) {
+					console.log(`   ✗ 降低動態偏好下持續捲動仍晃了 ${hits} 次，位移沒關掉`);
+					bad++;
+				} else {
+					console.log('   ✓ 降低動態偏好下持續捲動一次都沒晃');
+				}
+			} else if (Math.abs(hits - want) > 1) {
 				console.log(
-					`   ✗ 持續捲動期間畫面仍在大幅變動（${r.sustained} 對底噪 ${r.noise}）——回彈被每一幀的 scroll 重新觸發，變成「捲多久晃多久」`,
+					`   ✗ 六秒連續捲動晃了 ${hits} 次，冷卻 ${r.rhythm.rearm}ms 應該是 ${want} 次左右` +
+						(hits > want ? "——回彈被過度重新觸發" : "——回彈幾乎不出現，敘事不可觀察"),
 				);
 				bad++;
 			} else {
-				console.log(`   ✓ 一段連續捲動只晃一次（持續捲動中 ${r.sustained} 已回到底噪 ${r.noise} 的量級）`);
+				console.log(`   ✓ 節奏對得上：六秒晃 ${hits} 次（冷卻 ${r.rhythm.rearm}ms，期望 ${want} 次）`);
 			}
 		}
 		// 餘燼只在不透明度上動，兩種偏好下都必須還在燒
@@ -644,6 +666,28 @@ const dispatch = async () => {
 /* **預設一定要綁 localhost。**`host` 傳 `undefined` 時 Node 綁的是 `::`（雙堆疊全介面），
    所以先前「只有 --lan 才對區網開放」是錯的——每一次 `npm run verify:field` 都對區網開著。
    第二輪抗辯實測 `listen(0, undefined)` 回 `{"address":"::"}`。 */
+/**
+ * 票 05：回彈冷卻時間 X 的節奏比對。
+ *
+ *   node scripts/verify/field-runtime.mjs --pulse <輸出目錄> 700 3000 8000
+ *
+ * 三個候選的振幅一樣、只有節奏不同，所以拍逐格看不出差別——這一支畫的是
+ * 「12 秒連續捲動裡它在哪些時刻動了」的時間軸。
+ */
+async function pulse(dir, values) {
+	for (const x of values) {
+		const r = await run(`/?pulse=1&rearm=${x}`, ['--window-size=1280,720'], 120000);
+		if (!r.ok || !r.pulse) {
+			console.log(`✗ rearm=${x}：${r.why || '沒有拿到時間軸'}`);
+			continue;
+		}
+		const name = `pulse-rearm-${String(x).padStart(5, '0')}ms.png`;
+		writeFileSync(join(dir, name), Buffer.from(r.pulse.png.split(',')[1], 'base64'));
+		console.log(`   冷卻 ${String(x).padStart(5)}ms → 12 秒連續捲動晃了 ${String(r.pulse.hits).padStart(2)} 次　${name}`);
+	}
+	return 0;
+}
+
 server.listen(PORT, process.argv.includes('--lan') ? '0.0.0.0' : '127.0.0.1', () => {
 	dispatch().catch((e) => {
 		console.error(`

@@ -372,12 +372,13 @@ const cases = [
 		expect: /alphaBuckets[\s\S]*不透明黑線/,
 	},
 	{
-		// 重新武裝的安靜時間若不大於回位時間，回彈會在回位前被重新觸發——
-		// 那正是 2026-07-29 抗辯抓到的「捲多久晃多久」，改完之後要有東西守著它。
-		name: '把重新武裝時間調到不大於回位時間',
+		/* 冷卻的下限是推導出來的：敘事「我恢復得很快」要求回彈之後有一段看得見的
+		   靜止，所以冷卻必須明顯大於回位時間（取兩倍）。先前只擋「不大於回位時間」，
+		   設 351ms 一樣過關，而那是回位後 10ms 又滿幅——擋不住它要擋的那件事。 */
+		name: '把回彈冷卻調到低於回位時間的兩倍',
 		expectPass: false,
-		mutate: (_f, dir) => injectCraft(dir, { ...CFG.FIELD_CRAFT, shockRearmMs: 200 }),
-		expect: /shockRearmMs[\s\S]*捲多久晃多久/,
+		mutate: (_f, dir) => injectCraft(dir, { ...CFG.FIELD_CRAFT, shockRearmMs: 500 }),
+		expect: /shockRearmMs（退化值）[\s\S]*小於回位時間的兩倍/,
 	},
 	{
 		/* 契約的 fail-open 防線是**存在性**不是**全稱性**：只要任一頁有屬性就不進那個分支。

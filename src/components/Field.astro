@@ -348,13 +348,13 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 		 * 動效紅線①（單一動作 ≤350ms）與敘事本身（一直在震就沒有「恢復得很快」）。
 		 * 所以要先安靜 `shockRearmMs` 才重新武裝：一段連續捲動只晃一次。
 		 */
-		let lastScroll = -1e9;
 		const kick = () => {
 			if (still.matches) return;
 			const now = performance.now();
-			const armed = now - lastScroll > K.shockRearmMs;
-			lastScroll = now;
-			if (!armed) return;
+			/* 冷卻是**從上一次回彈算起**，不是從上一次 scroll 事件算起。
+			   後者（第一版的修法）會讓「事件間隔恆小於冷卻時間」的捲動節奏永遠不武裝——
+			   實測滾輪每 400–600ms 一格時，整段閱讀只會出現一次回彈，敘事等於不可觀察。 */
+			if (now - shockT < K.shockRearmMs) return;
 			shock = 1;
 			shockT = now;
 		};

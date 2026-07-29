@@ -1232,11 +1232,17 @@ function checkField(htmlFiles) {
 			if (k.fbmWeights.length !== k.fbmOctaves.length) {
 				fail('field', `${rel} :: fbm`, `疊加的權重 ${k.fbmWeights.length} 個與頻率 ${k.fbmOctaves.length} 個對不起來`);
 			}
-			if (!(k.shockRearmMs > CFG.FIELD.shockMs)) {
+			/* **下限是推導出來的，不是隨手挑的**：敘事是「我恢復得很快」，回彈之後必須有
+			   一段看得見的靜止，否則沒有「恢復」可言。所以冷卻要明顯大於回位時間——
+			   取兩倍當硬下限（工作週期 ≤50%，再高它就不是事件而是常駐動態，
+			   連適用哪一條紅線都變了）。
+			   先前只要求「大於回位時間」，設 351ms 一樣過關，而那是回位後 10ms 又滿幅。 */
+			const floor = 2 * CFG.FIELD.shockMs;
+			if (!(k.shockRearmMs >= floor)) {
 				fail(
 					'field',
 					`${rel} :: shockRearmMs（退化值）`,
-					`重新武裝的安靜時間 ${k.shockRearmMs}ms 不大於回位時間 ${CFG.FIELD.shockMs}ms——回彈會在回位前被重新觸發，變回「捲多久晃多久」`,
+					`回彈冷卻 ${k.shockRearmMs}ms 小於回位時間的兩倍（${floor}ms）——回彈之間沒有看得見的靜止，工作週期超過一半，那不是「恢復得很快」而是持續震動`,
 				);
 			}
 		},
