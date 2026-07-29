@@ -1366,11 +1366,19 @@ main > h1 {
 	vertical-align: top;
 }
 
+/* 淡底鋪在**內容側**，不鋪在行標下面（2026-07-29 本人選的）。理由是量出來的：行標是
+   主色字，底一被鋪亮它自己就破線（7% 上只剩 4.33，門檻 4.5）；鋪在內容側則是 muted 字，
+   7% 上實測 4.56 過，而行標底下沒有底，維持 4.81。整張表有被鋪過的感覺，判準二不用動。
+
+   **橫向漸層不是縱向**：每個 `td` 各自畫一次底，縱向漸層會變成一列一段的橫紋；橫向的
+   每列長得一樣，疊起來才是一條連續的欄。方向從左緣往右淡出——左緣正是那條分隔線，
+   等於暈從線滲進內容，與行標左緣那條 2px 主色線是同一個語彙。 */
 .dmr td {
 	border: 0;
 	border-left: 2px solid var(--color-border);
 	padding: var(--sp-xs) 0 var(--sp-xs) var(--sp-md);
 	color: var(--color-text-muted);
+	background: linear-gradient(to right, var(--color-accent-tint), transparent);
 }
 
 .dmr td b {

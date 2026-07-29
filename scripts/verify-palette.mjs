@@ -602,12 +602,26 @@ function checkContrast(vars, siteRules) {
 			 */
 			const want = normalizeColor(resolveVars(pair.bgLiteral, vars));
 			const decl = declaredProp(siteRules, pair.bgOn, ['background-color', 'background']);
-			const got = decl && normalizeColor(resolveVars(decl.value, vars));
-			if (want && got !== want) {
+			const resolved = decl && resolveVars(decl.value, vars);
+			/**
+			 * 淡底可以是**漸層**（2026-07-29 本人否決純色平塗的「一塊感」），所以宣告值不一定
+			 * 是單一顏色，而可能是一串色停。逐一取出來看：**全透明的那些跳過，其餘每一個都
+			 * 必須是判準說的那個色**。只比對「有沒有出現過那個色」的話，
+			 * `linear-gradient(#7998c355, #7998c312, transparent)` 會過——峰值偷偷加濃，
+			 * 而峰值正是對比模型假設的最壞情況。
+			 */
+			const stops = resolved
+				? [...resolved.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g)]
+						.map((m) => normalizeColor(m[0]))
+						.filter((h) => h && !(h.length === 9 && h.endsWith('00')))
+				: [];
+			const strays = [...new Set(stops.filter((h) => h !== want))];
+			if (want && (!stops.length || strays.length)) {
 				fail(
 					'contrast',
 					`${pair.bgOn} 的底色`,
-					`${pair.where}：判準說 ${pair.bgOn} 宣告的底是 ${want}（半透明淡底），產物是 ${got ?? '（找不到這條規則）'}`,
+					`${pair.where}：判準說 ${pair.bgOn} 宣告的底是 ${want}（半透明淡底，可以是漸層的色停），` +
+						`產物是 ${resolved ?? '（找不到這條規則）'}${strays.length ? `——不該出現的色停：${strays.join('、')}` : ''}`,
 				);
 			}
 		} else if (pair.bgOn) {

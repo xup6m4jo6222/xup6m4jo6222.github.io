@@ -434,6 +434,24 @@ export const CONTRAST_PAIRS = [
 		bgOn: '.cs-pair-me',
 		bgLiteral: 'var(--color-accent-tint)',
 	},
+
+	/**
+	 * 列聯表的內容側（2026-07-29 本人選的落點）。**這是唯一一塊淡底上不是內文色的面**——
+	 * 內容本來就是 muted，而 muted 在 7% 淡底上只剩 4.56，餘裕比其他三塊小得多
+	 * （那幾塊是 10 上下）。所以這一組是這一輪最接近門檻的一條線，**淡底再濃一點就會破**：
+	 * 5% 時 4.68、7% 時 4.56、若有人加到 10% 就掉到 4.4x。改動它之前先重量。
+	 *
+	 * 淡底之所以鋪在這一側而不是行標那一側：行標是主色字，底一鋪亮它自己就破線
+	 * （7% 上 4.33）。鋪這邊則兩件事都保住——行標底下沒有底、藍字維持 4.81。
+	 */
+	{
+		fg: 'var(--color-text-muted)',
+		bgs: TINTED_PAGE_SURFACES,
+		where: '列聯表內容側（7% 主色淡底 on 頁面九態）',
+		fgOn: ['.dmr td'],
+		bgOn: '.dmr td',
+		bgLiteral: 'var(--color-accent-tint)',
+	},
 	/**
 	 * 票 02 前，`.cs-track` 的底色守衛掛在「面板上的元素主色小標」那組配對上。
 	 * 那組的兩條 `fgOn`（`.tl-solo em`、`.cs-track .cs-side--me em`）在票 02 都退了主色，

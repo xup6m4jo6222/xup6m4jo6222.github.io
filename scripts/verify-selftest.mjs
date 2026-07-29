@@ -497,6 +497,20 @@ const cases = [
 			writeFileSync(f, `${readFileSync(f, 'utf8')}\n.cs-track .cs-side--me{background:var(--color-accent-fade)}\n`),
 		expect: /比對器本人側[\s\S]*宣告的底是 #7998c312[\s\S]*產物是 #7998c355/,
 	},
+	{
+		// 列聯表內容側的淡底是**漸層**（2026-07-29 本人要「渲染的感覺，不是直接一塊」），
+		// 所以宣告值是一串色停。**只檢查「有沒有出現過那個色」會放行這一條**：峰值偷偷
+		// 加濃成 33%，7% 那一停還在，字面上看起來沒問題——而峰值正是對比模型假設的最壞
+		// 情況，這一列的餘裕又是全站最小的（4.56）。
+		name: '漸層淡底偷偷多一個更濃的色停',
+		expectPass: false,
+		mutate: (f) =>
+			writeFileSync(
+				f,
+				`${readFileSync(f, 'utf8')}\n.dmr td{background:linear-gradient(to right,#7998c355,#7998c312,transparent)}\n`,
+			),
+		expect: /列聯表內容側[\s\S]*不該出現的色停：#7998c355/,
+	},
 ];
 
 let failed = 0;
