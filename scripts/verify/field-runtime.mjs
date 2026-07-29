@@ -197,8 +197,11 @@ async function runtime() {
 			const marginal = full.cost.med - fixed;
 			console.log(`\n── ${name}　${full.vw}×${full.vh} DPR ${full.dpr}　畫面更新率 ${full.fps.toFixed(1)} fps`);
 			console.log(
-				`   每幀成本　　中位 ${ms(full.cost.med)}　p95 ${ms(full.cost.p95)}　最大 ${ms(full.cost.max)} ／ 預算 ${BUDGET} ms（取樣 ${full.cost.n} 幀）`,
+				`   每幀成本　　中位 ${ms(full.cost.med)}　p95 ${ms(full.cost.p95)}　最大 ${ms(full.cost.max)} ／ 預算 ${BUDGET} ms（有量到的 ${full.cost.n} 幀）`,
 			);
+			if (full.silentFrames != null) {
+				console.log(`   　其中 ${(full.silentFrames * 100).toFixed(0)}% 的幀量到 0（計時器解析度以下）`);
+			}
 			/* 差額小於計時器解析度時**只給上界，不給數字**。0.1ms 的量化下，
 			   兩個 0.4ms 相減可以是 −0.1 也可以是 +0.1——把那個當成「每顆 −0.85µs」
 			   印出來，是在假裝量到了沒量到的東西。 */
@@ -224,9 +227,13 @@ async function runtime() {
 					`   　　同一條路上母題佔 ${ms(without.build.med)}（三張整面離屏遮罩＋遠景層）——場不是這條路的瓶頸`,
 				);
 			}
+			/* `builds` 現在只收「真的重建了」那幾次，所以要拿 rebuilt 對 tries 比，
+			   不能拿它對 builds.length 比——後者永遠相等，等於這道檢查失效。 */
 			for (const [tag, r] of [['場單獨', alone], ['完整', full]]) {
-				if (r.ok && r.build.rebuilt !== r.build.n) {
-					console.log(`   ✗ ${tag}那一輪五次改版面裡只有 ${r.build.rebuilt} 次畫面真的變了——量到的不是建場成本`);
+				if (r.ok && r.build.rebuilt !== r.build.tries) {
+					console.log(
+						`   ✗ ${tag}那一輪 ${r.build.tries} 次改版面裡只有 ${r.build.rebuilt} 次畫面真的變了——沒觸發到的那幾次不算數`,
+					);
 					bad++;
 				}
 			}
@@ -372,10 +379,27 @@ function lan() {
 		console.log(`── ${r.page}　${r.vw}×${r.vh} DPR ${r.dpr}　畫面更新率 ${r.fps?.toFixed(1)} fps`);
 		if (r.cost) {
 			console.log(
-				`   每幀成本 中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)} ／ 預算 11 ms（取樣 ${r.cost.n} 幀）`,
+				`   每幀成本 中位 ${ms(r.cost.med)}　p95 ${ms(r.cost.p95)}　最大 ${ms(r.cost.max)} ／ 預算 11 ms（有量到的 ${r.cost.n} 幀）`,
 			);
+			/* iOS Safari 把 performance.now() 量化到 1ms，所以每一筆不是 0 就是 1。
+			   「中位 1.00ms」只講得出「有量到的那些幀」——**量不到的比例才是真實量級**。 */
+			if (r.silentFrames != null) {
+				console.log(
+					`   　其中 ${(r.silentFrames * 100).toFixed(0)}% 的幀量到 0（計時器解析度以下）→ 真實每幀成本遠低於中位那個數`,
+				);
+			}
 		}
-		if (r.build) console.log(`   建場成本 中位 ${ms(r.build.med)}　最大 ${ms(r.build.max)}`);
+		/* **沒重建就不印建場成本。**手機第一次跑就是這樣騙到我的：五個強迫寬度
+		   全都比 402px 的視窗還寬，`main` 一動也不動、根本沒重建，而「那段時間的
+		   最大成本」照樣給出一個看起來很合理的 1.00ms。 */
+		if (r.build?.rebuilt) {
+			console.log(`   建場成本 中位 ${ms(r.build.med)}　最大 ${ms(r.build.max)}（五次改版面裡 ${r.build.rebuilt} 次真的重建）`);
+		} else if (r.build) {
+			console.log('   建場成本 —（強迫改版面沒有觸發重建，這一輪量不到，不編一個數字給你）');
+		}
+		if (r.contrast != null) {
+			console.log(`   文字帶最壞對比 ${r.contrast.toFixed(2)} ／ 門檻 4.5　${r.contrast >= 4.5 ? '✓' : '✗'}`);
+		}
 		console.log(`   畫布非零像素 ${r.painted}　未捕捉例外 ${r.errors.length || '無'}\n`);
 	};
 }

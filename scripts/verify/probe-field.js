@@ -176,6 +176,54 @@
 			errors,
 		};
 
+		/**
+		 * 文字帶最壞對比：把場的每一個像素壓到背景主色上，取合成後**最亮**的那一顆，
+		 * 對內文色算對比。**沒有計入兩道亮光與顆粒**——與原型的量法一致，所以這個
+		 * 數字跟本人當初看到的 14.17 是可比的。
+		 *
+		 * 票 02 與票 04 兩條路都要它（手機那一組也要有對比，不能只有桌機有），
+		 * 所以抽成一支——抄兩份的話，哪天量法改了只會改到一邊。
+		 */
+		const worstContrast = () => {
+			const cs = getComputedStyle(document.body);
+			const parse = (v) => {
+				const m = v.trim().match(/^#([0-9a-f]{6})$/i);
+				if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+				const n = v.match(/\d+/g);
+				return n ? n.slice(0, 3).map(Number) : null;
+			};
+			const base = parse(cs.getPropertyValue('--color-bg')) || parse(cs.backgroundColor);
+			const text = parse(cs.getPropertyValue('--color-text')) || parse(cs.color);
+			const lum = (c) => {
+				const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+				return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+			};
+			const px0 = Math.max(0, Math.round(box.left * dpr));
+			const px1 = Math.min(cv.width, Math.round(box.right * dpr));
+			const py0 = Math.max(0, Math.round(y0 * dpr));
+			const py1 = Math.min(cv.height, Math.round(y1 * dpr));
+			if (px1 <= px0 || py1 <= py0) return {};
+			const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
+			let best = -1;
+			let worstPx = null;
+			let peakA = 0;
+			for (let i = 0; i < d.length; i += 4) {
+				const a = d[i + 3] / 255;
+				if (!a) continue;
+				if (a > peakA) peakA = a;
+				const c = [0, 1, 2].map((k) => Math.round(d[i + k] * a + base[k] * (1 - a)));
+				const L = lum(c);
+				if (L > best) {
+					best = L;
+					worstPx = c;
+				}
+			}
+			if (!worstPx) return {};
+			const l1 = Math.max(lum(text), best);
+			const l2 = Math.min(lum(text), best);
+			return { contrast: (l1 + 0.05) / (l2 + 0.05), worstPx, peakAlpha: peakA };
+		};
+
 		if (runtime) {
 			/* ── 票 04：把「每幀」與「一次性」分開量 ────────────────────────
 			   每幀成本量的是貼圖＋餘燼；**建場**是另一件事，只在視窗寬或文字帶
@@ -212,14 +260,22 @@
 			const builds = [];
 			let rebuilt = 0;
 			const original = main.style.maxWidth;
+			const w0 = main.getBoundingClientRect().width;
 			for (let i = 0; i < 5; i++) {
 				const mark = costs.length;
 				const before = fp();
-				main.style.maxWidth = `${560 + i * 60}px`;
+				/* 寬度要綁 **main 自己現在的寬**，而且**只能往小改**。
+				   寫死 560–800px 在手機上全部比 402 的視窗還寬，`main` 一動也不動
+				   （實測回報「建場 1.00ms」，那其實只是一幀普通的貼圖）；
+				   改成視窗比例又會在桌機上踩到另一半——`main` 有 `--max-width` 夾著
+				   （約 716–908px），比它大的值一樣不會讓盒子動。往小改則兩邊都成立。 */
+				main.style.maxWidth = `${Math.round(w0 * (0.9 - i * 0.1))}px`;
 				await nextFrames(6); // ResizeObserver → rAF → resize() → build()
-				if (fp() !== before) rebuilt++;
+				const changed = fp() !== before;
+				if (changed) rebuilt++;
+				// **沒重建的那幾次不進樣本**，否則量到的是普通幀被當成建場
 				const window_ = costs.slice(mark);
-				if (window_.length) builds.push(Math.max(...window_));
+				if (changed && window_.length) builds.push(Math.max(...window_));
 			}
 			main.style.maxWidth = original;
 			await nextFrames(6);
@@ -240,10 +296,16 @@
 				med: pctl(builds, 0.5),
 				max: builds.length ? Math.max(...builds) : null,
 				n: builds.length,
-				rebuilt, // 五次強迫改版面裡，畫面真的變了幾次
+				rebuilt, // 強迫改版面時，畫面真的變了幾次
+				tries: 5, // 試了幾次——rebuilt 少於這個就代表沒觸發到，量到的不算數
 			};
 			// 幀率也只看常態那一段：五次強迫重建每次 100ms 以上，混進去會把平均拉垮
 			report.fps = steadyTicks.length / ((steadyTicks[steadyTicks.length - 1] - steadyTicks[0]) / 1000);
+			/* 常態那一段有幾成的幀根本量不到成本。**手機必看這一項**：iOS Safari 把
+			   performance.now() 量化到 1ms，所以每一筆不是 0 就是 1——「中位 1.00ms」
+			   講的是「有量到的那些幀」，不是全部的幀。量不到的比例才講得出真實量級。 */
+			report.silentFrames = steadyTicks.length ? 1 - steady / steadyTicks.length : null;
+			Object.assign(report, worstContrast());
 			send(report);
 			return;
 		}
