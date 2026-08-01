@@ -386,20 +386,37 @@ function checkColorWhitelist(textFiles, allowedCss) {
 }
 
 /**
- * 白名單本身也要受管：網站自己的色必須落在中性階上，或是凍結色的透明度衍生。
+ * 白名單本身也要受管：網站自己的色必須落在中性階上，或是強調色（與其透明度衍生）。
  * 這一項才是「值在無人察覺的情況下擴散」的真正防線——白名單只擋新色，這裡擋舊色賴著不走。
+ *
+ * 票 03 起「哪些色可以不在階上」讀的是判準檔的 `ACCENTS`，不再是這裡寫死的 `'#7998c3'`
+ * （原本寫死兩次）。同一份清單順便驗**彩度**：強調色的 C 釘在 0.073 是推導鏈的第二步，
+ * 沒有這道斷言，那一步就只是一句寫在註解裡的話。
  */
 function checkSiteColorsOnRamp() {
 	const ramp = new Set(Object.values(CFG.NEUTRAL_RAMP));
-	const frozen = new Set([CFG.NEUTRAL_RAMP[50], '#7998c3']);
+	const accents = new Set(Object.keys(CFG.ACCENTS).map((h) => normalizeColor(h)));
+	const frozen = new Set([CFG.NEUTRAL_RAMP[50], ...accents]);
 	for (const [hex, why] of Object.entries(CFG.SITE_PALETTE)) {
 		const norm = normalizeColor(hex);
 		if (norm.length === 9 && norm.endsWith('00')) continue; // 全透明（transparent 的縮寫）不是顏色選擇
 		const base = opaque(norm);
-		if (norm.length > 7 && frozen.has(base)) continue; // 凍結色的透明度衍生
-		if (ramp.has(base) || base === '#7998c3') continue;
+		if (norm.length > 7 && frozen.has(base)) continue; // 凍結色與強調色的透明度衍生
+		if (ramp.has(base) || accents.has(base)) continue;
 		const { L } = C.hexToOklch(base);
 		fail('offramp', hex, `${why}：L=${L.toFixed(1)}，不在中性階的任何一階上`);
+	}
+	for (const [hex, why] of Object.entries(CFG.ACCENTS)) {
+		const { L, C: chroma, H } = C.hexToOklch(hex);
+		note(`強調色 ${hex}　${why}　L=${L.toFixed(1)}　C=${chroma.toFixed(4)}　H=${H.toFixed(0)}`);
+		if (Math.abs(chroma - CFG.ACCENT_CHROMA) > CFG.ACCENT_CHROMA_TOLERANCE) {
+			fail(
+				'offramp',
+				hex,
+				`${why}：C=${chroma.toFixed(4)}，強調色的彩度釘在 ${CFG.ACCENT_CHROMA}——` +
+					'那不是自由參數（主色與兩個類別色量出來都是這個值，示意色的上限也是它）',
+			);
+		}
 	}
 	for (const [hex, why] of Object.entries(CFG.PNG_LEGACY)) {
 		fail('pnglegacy', hex, `${why}：舊圖表色仍在 PNG 白名單上`);
