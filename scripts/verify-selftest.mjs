@@ -71,7 +71,7 @@ function withCopy(mutate, env) {
  */
 const channelEnv = (entries) => (entries ? { VERIFY_CHANNEL_EXTRA: JSON.stringify(entries) } : undefined);
 
-/** 在首頁塞一個帶 data-motif 的 canvas——母題上線後產物就長這樣。 */
+/** 在首頁塞一個帶 data-motif 的 canvas——背景設計上線後產物就長這樣。 */
 const injectMotif = (dir, params) =>
 	writeFileSync(
 		join(dir, 'index.html'),
@@ -223,7 +223,7 @@ const cases = [
 
 	// ── 票 01 新增的三種繞路（都是實際查出來的洞，不是想像的）──────────────
 	{
-		// 檢查 1 原本只掃 CSS 與 inline style。母題的色碼寫在腳本裡，那是一條白名單看不見的路。
+		// 檢查 1 原本只掃 CSS 與 inline style。背景設計的色碼寫在腳本裡，那是一條白名單看不見的路。
 		name: '把白名單外的色碼藏在腳本裡',
 		expectPass: false,
 		mutate: (_f, dir) =>
@@ -254,13 +254,13 @@ const cases = [
 		expect: /fake-min\.js/,
 	},
 	{
-		// 第七類的 fail-open 防線：母題在跑（有常駐迴圈）就必須找得到它的參數。
+		// 第七類的 fail-open 防線：背景設計在跑（有常駐迴圈）就必須找得到它的參數。
 		// 沒有這一條，把 canvas 改成由 JS 建立，整個第七類會靜靜地不作用。
 		//
-		// **票 02 起要先把真的屬性拿掉**：母題已經上線，產物本來就有 data-motif，
+		// **票 02 起要先把真的屬性拿掉**：背景設計已經上線，產物本來就有 data-motif，
 		// 只塞一個假迴圈證明不了任何事（實測會綠）。這一條模擬的就是「canvas 改成
 		// 由 JS 建立」——迴圈照跑，但伺服器端沒有渲染出參數。
-		name: '母題在跑卻沒有把參數渲染進 HTML',
+		name: '背景設計在跑卻沒有把參數渲染進 HTML',
 		expectPass: false,
 		mutate: (_f, dir) => {
 			stripMotifAttrs(dir);
@@ -315,15 +315,15 @@ const cases = [
 	},
 
 	{
-		name: '把母題參數改成檔位以外的值',
+		name: '把背景設計參數改成檔位以外的值',
 		expectPass: false,
 		mutate: (_f, dir) => injectMotif(dir, { ...CFG.MOTIF, fpsCap: 60 }),
-		expect: /fpsCap[\s\S]*母題參數漂離檔位/,
+		expect: /fpsCap[\s\S]*背景設計參數漂離檔位/,
 	},
 	{
 		// 沒有這一條的話，第七類只要「有 data-motif 就紅」也會通過上一條——
 		// 那是一個永遠紅的檢查，跟永遠綠一樣沒用。
-		name: '母題參數照判準檔寫應該綠',
+		name: '背景設計參數照判準檔寫應該綠',
 		expectPass: true,
 		mutate: (_f, dir) => injectMotif(dir, CFG.MOTIF),
 		expect: null,
@@ -389,7 +389,7 @@ const cases = [
 
 		   **這一條的 fail-then-pass 比別條弱，講清楚**：真正的洞在判準檔那一層，
 		   而注入產物屬性會同時觸發「漂離檔位」，所以補洞前它也是紅的（理由不對）。
-		   乾淨的證明是直接改判準檔跑一次：無上限時十二類全綠、加上限後紅——
+		   乾淨的證明是直接改判準檔跑一次：無上限時十三類全綠、加上限後紅——
 		   那一次是手動做的（2026-07-29），不在這份自動案例裡。
 		   這個案例證明的是**上限那段程式碼真的會產出它的訊息**。 */
 		name: '把回彈冷卻調到一次連續捲動只晃得到一次',
@@ -400,7 +400,7 @@ const cases = [
 	{
 		/* 契約的 fail-open 防線是**存在性**不是**全稱性**：只要任一頁有屬性就不進那個分支。
 		   第二輪抗辯實測：只拿掉 `projects/index.html` 的兩個屬性（那一頁的場等於整個
-		   不畫），閘門照樣印「✓ 十二類檢查全部通過」。真實觸發條件是新增版型時漏掉元件。 */
+		   不畫），閘門照樣印「✓ 十三類檢查全部通過」。真實觸發條件是新增版型時漏掉元件。 */
 		name: '只有一頁漏掉場的屬性（其餘頁都在）',
 		expectPass: false,
 		mutate: (_f, dir) => {
@@ -513,7 +513,7 @@ const cases = [
 		expect: /channel[\s\S]*fake-static-label[\s\S]*靜止態/,
 	},
 	{
-		// 與母題那一條同型：沒有這一條的話，「只要有 VERIFY_CHANNEL_EXTRA 就紅」也會通過
+		// 與背景設計那一條同型：沒有這一條的話，「只要有 VERIFY_CHANNEL_EXTRA 就紅」也會通過
 		// 上面三條——那是一個永遠紅的檢查，跟永遠綠一樣沒用。這一條的假條目樣樣齊備：
 		// 通道是襯線、指向產物裡真的宣告了 `font-family` 的 `.site-nav .nav-brand`。
 		name: '假條目的通道在產物裡真的成立時應該綠',
@@ -584,6 +584,17 @@ const cases = [
 				`${readFileSync(f, 'utf8')}\n.dmr td{background:linear-gradient(to right,#7998c355,#7998c312,transparent)}\n`,
 			),
 		expect: /列聯表內容側[\s\S]*不該出現的色停：#7998c355/,
+	},
+
+	// ── 署名標籤與框票 02：分類顯示名的單一來源 ────────────────────────────
+	{
+		/* 分類名收成一份定義之後，還是有一條回頭路：有人在某一頁把舊名手寫回去。
+		   注入產物而不是原始碼，是因為閘門只看得到產物——那正是它的守備範圍，
+		   也正是這條檢查上線前實際紅過的樣子（那時舊名還寫在 frontmatter 標題裡）。 */
+		name: '把退役的分類名寫回產物（同一個分類兩個顯示名）',
+		expectPass: false,
+		mutate: (f, dir) => editAiPage(dir, (h) => h.replace('</h1>', '</h1><p class="category-label">AI 專案 #1</p>')),
+		expect: /category-name[\s\S]*AI 專案/,
 	},
 ];
 

@@ -1,5 +1,5 @@
 ---
-title: "AI 專案 #1 個人作品頁"
+title: "個人作品頁"
 summary: 簡述建造該網站的簡易經過
 category: ai
 tags: [AI 協作, Claude Code, Astro, 決策紀錄]
@@ -9,7 +9,7 @@ date: 2026-07-16
 cover: /images/portfolio-site/current-v10.png
 ---
 
-<p class="cs-lead">我將「創建個人作品頁」作為第一個正式 AI 專案，下面會簡單呈現網站被建立的過程。</p>
+<p class="cs-lead">我將「創建個人作品頁」作為第一個正式的 AI 實作，下面會簡單呈現網站被建立的過程。</p>
 <p class="cs-stats"><span>關鍵決策<b>34</b></span><i>·</i><span>頁面版本<b>3</b></span><i>·</i><span>修改紀錄<b>29</b></span><i>·</i><span>網站實作<b>2</b>天</span><i>·</i><span>本頁實作<b>2</b>天</span></p>
 <p class="cs-wipe-invite">可以左右拖曳下方的滑桿，對比最終版（左邊）與初版（右邊）差距。</p>
 
@@ -34,7 +34,7 @@ cover: /images/portfolio-site/current-v10.png
   </li>
   <li class="tl-item" data-focus-group>
     <div class="cs-toggle-name">專案定位</div>
-    <div class="tl-solo">AI 專案名稱定為「個人作品頁」，目的是證明有正確使用 AI 的實務，來實際解決遇到的問題。</div>
+    <div class="tl-solo">這件 AI 實作的名稱定為「個人作品頁」，目的是證明有正確使用 AI 的實務，來實際解決遇到的問題。</div>
   </li>
   <li class="tl-item" data-focus-group>
     <div class="cs-toggle-name">核心理念</div>

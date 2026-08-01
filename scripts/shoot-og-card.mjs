@@ -13,9 +13,10 @@
  *   node scripts/shoot-og-card.mjs 4399
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { categoryLabel } from '../src/categories.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const port = process.argv[2] || '4321';
@@ -26,23 +27,23 @@ const CHROME = [
 ].find((p) => p && existsSync(p));
 
 /**
- * 各類有幾個專案。編號是人寫在標題裡的（「統計專案 #1-2」），沒有推導邏輯，
- * 所以這裡照那個編號數**不同的專案**而不是數檔案數：
- * 觀光那四篇是同一個專案的 #1-1～#1-4，數檔案會變成 4 個專案，卡上就是假數字。
+ * 各類有幾件作品。
+ *
+ * **票 02 之前這裡是數標題裡的「#N」。** 序號從標題收回 collection 之後，那個正則
+ * 一個都比不到，卡上會印兩個 0——而且是安靜地印，沒有人會發現，直到分享連結長那樣。
+ *
+ * 現在數檔案，因為票 02 起「一件作品一個 .md、序號依日期算」是全站唯一的規則。
+ * **已知待決**：封存區那四篇觀光文章原本是同一個專案的 #1-1～#1-4，撿回來會被數成
+ * 四件。要嘛 frontmatter 補一個「同屬一個專案」的欄位，要嘛接受它就是四件——
+ * 那要等統計 #2 上線時由郁為決定，不是這支腳本能替他決定的事。
  */
-function countProjects(category) {
-	const dir = join(ROOT, 'src', 'content', 'projects', category);
-	const ids = new Set();
-	for (const f of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
-		const m = readFileSync(join(dir, f), 'utf8').match(/^title:\s*"[^"#]*#(\d+)/m);
-		if (m) ids.add(m[1]);
-	}
-	return ids.size;
-}
+const countProjects = (category) =>
+	readdirSync(join(ROOT, 'src', 'content', 'projects', category)).filter((f) => f.endsWith('.md')).length;
 
+// 分類名一律查單一來源（票 02）。卡上寫死一份，就是站上第二個顯示名。
 const stats = countProjects('stats');
 const ai = countProjects('ai');
-console.log(`統計專案 ${stats}　AI 專案 ${ai}`);
+console.log(`${categoryLabel('stats')} ${stats}　${categoryLabel('ai')} ${ai}`);
 
 // 建置後的樣式表檔名帶雜湊，每次建置都不同——用找的，不要寫死
 const css = readdirSync(join(ROOT, 'dist', '_astro')).find(
@@ -81,7 +82,7 @@ const html = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
 		<div class="og-name">林郁為</div>
 		<p class="og-tagline">統計背景，正朝資料科學邁進。</p>
 	</div>
-	<p class="og-meta">統計專案 <b>${stats}</b><i>·</i>AI 專案 <b>${ai}</b><i>·</i>持續更新中</p>
+	<p class="og-meta">${categoryLabel('stats')} <b>${stats}</b><i>·</i>${categoryLabel('ai')} <b>${ai}</b><i>·</i>持續更新中</p>
 </div></body></html>`;
 
 const tmp = join(ROOT, 'dist', 'og-card-tmp.html');

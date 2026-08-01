@@ -1,22 +1,24 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getCollection, render } from 'astro:content';
+import { categoryIndexes, categoryLabel } from '../../../categories.mjs';
 
 export async function getStaticPaths() {
 	const allProjects = await getCollection('projects');
+	/* 序號在這裡算一次，當成 prop 傳下去。**不把序號塞回 entry 物件**——那個物件等一下
+	   要交給 `render()`，多塞一個欄位進去是在賭 Astro 的內部形狀，賭輸了是建置爆掉。 */
+	const indexes = categoryIndexes(allProjects);
 	return allProjects.map((project) => {
 		const [category, ...slugParts] = project.id.split('/');
 		return {
 			params: { category, slug: slugParts.join('/') },
-			props: { project },
+			props: { project, index: indexes.get(project.id) },
 		};
 	});
 }
 
-const { project } = Astro.props;
+const { project, index } = Astro.props;
 const { Content } = await render(project);
-
-const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 實作' };
 ---
 
 <BaseLayout
@@ -25,7 +27,10 @@ const categoryLabels: Record<string, string> = { stats: '統計分析', ai: 'AI 
 	motif="reading"
 >
 	<h1>{project.data.title}</h1>
-	<p class="category-label">{categoryLabels[project.data.category]}</p>
+	{/* 分類名與序號原本是人打在 frontmatter 標題字串裡的（「AI 專案 #1 個人作品頁」），
+	    票 02 把那兩件事收回來由這一行講：名字查單一來源，序號由 collection 依日期算。
+	    標題因此只剩作品名本身。**外觀沒有變**——同一個 `.category-label`、同一個位置。 */}
+	<p class="category-label">{categoryLabel(project.data.category)} #{index}</p>
 	<div class={`content content--${project.data.category}`}>
 		<Content />
 	</div>

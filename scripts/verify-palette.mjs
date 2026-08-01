@@ -5,10 +5,11 @@
  * 讀的是 `astro build` 的產物 `dist/` 與 21 張圖表 PNG，不讀原始碼：
  * 重構 CSS、換 token 分層都不該讓這支腳本失敗。
  *
- * 十二類檢查見 SPEC-design-system.md「Testing Decisions」、
+ * 十三類檢查見 SPEC-design-system.md「Testing Decisions」、
  * SPEC-motion-and-shape.md「加進 verify:palette 的第六類檢查」、
- * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）與
- * SPEC-focus-groups.md「T3 孤兒檢查」（票 03 補上第八類）。
+ * SPEC-background-and-homepage.md「閘門要補的兩個洞」（票 01 補上第七類）、
+ * SPEC-focus-groups.md「T3 孤兒檢查」（票 03 補上第八類）與
+ * SPEC-signature-tags-and-frame.md「接縫一」（票 02 補上第十三類：分類顯示名的單一來源）。
  *
  * ── 這道閘門守得到什麼、守不到什麼（請不要過度信任它）────────────────────
  *
@@ -29,7 +30,7 @@
  *     或改用 `setInterval` 逐幀繪製，都在這個結構之外，抓不到
  *   · **「有降低動態偏好的分支」的證明只到「同一個檔案裡出現 prefers-reduced-motion」**。
  *     它不保證那個分支真的把動態關掉——那要跑瀏覽器才驗得到
- *   · **母題比對的是 `data-motif` 與判準檔**。canvas 裡實際畫出來的像素不在觀察範圍內；
+ *   · **背景設計比對的是 `data-motif` 與判準檔**。canvas 裡實際畫出來的像素不在觀察範圍內；
  *     繪製程式若不從那個屬性取值而是另外寫一份數字，這一項看不見。
  *     （「屬性根本不出現」這條已經堵上：有常駐迴圈卻沒有 `data-motif` 會紅）
  *   · **切函式身體用的是 CSS 那支括號配對**。它認得字串與區塊註解，但不認得
@@ -54,6 +55,8 @@ import { fileURLToPath } from 'node:url';
 import * as C from './color-math.mjs';
 import { countColors, readPng } from './png-read.mjs';
 import * as CFG from './palette-config.mjs';
+// 分類名的單一來源與版面共用同一份（票 02）。閘門自己抄一份舊名，就又生出一個定義。
+import * as CATS from '../src/categories.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 // VERIFY_DIST 讓 verify-selftest.mjs 拿注入缺陷的產物副本來跑，不動真的 dist/
@@ -68,7 +71,21 @@ const DIST = process.env.VERIFY_DIST || join(ROOT, 'dist');
  * 這一點與 `VERIFY_DIST` 不同（那個換掉的是被讀的產物），拿它繞路沒有意義。
  */
 const EXTRA_CHANNEL_ENTRIES = process.env.VERIFY_CHANNEL_EXTRA ? JSON.parse(process.env.VERIFY_CHANNEL_EXTRA) : [];
-const CHART_DIR = join(ROOT, 'public', 'images', 'taiwan-tourism');
+/**
+ * 圖表 PNG 的所在。統計專案 #1 於 2026-07-30 封存到 `_parked/`，而那個資料夾
+ * **隨時可能被整個刪掉、也隨時可能被 `git mv` 搬回原位**（見它自己的 README）——
+ * 所以兩個位置都找，都不在就整項跳過並在 note 講明。
+ *
+ * 兩邊都要找，是因為寫死任何一邊都會壞：寫死原路徑就是封存當天那個紅燈（而且它讓
+ * 每一次執行都退出碼 1，`verify-selftest.mjs` 的六個「應該綠」基準案例因此全數失真，
+ * 整組自我檢查等於失效）；寫死封存路徑則是資料夾一刪就換它紅。
+ * 這樣寫的附帶好處是撿回來時不必回頭改這裡——README 的復原步驟不用多一條。
+ */
+const CHART_DIRS = [
+	join(ROOT, 'public', 'images', 'taiwan-tourism'),
+	join(ROOT, '_parked', 'stats-tourism-2026-07', 'images', 'taiwan-tourism'),
+];
+const CHART_DIR = CHART_DIRS.find(existsSync) || null;
 
 // ---------------------------------------------------------------------------
 // 回報
@@ -390,8 +407,10 @@ function checkSiteColorsOnRamp() {
 }
 
 function checkChartPixels() {
-	if (!existsSync(CHART_DIR)) {
-		fail('colors', 'charts-missing', `找不到圖表目錄 ${CHART_DIR}`);
+	if (!CHART_DIR) {
+		// 圖表不在站上就沒有像素可以驗——但**要講出來**，否則「跳過」與「驗過了」
+		// 在輸出上長得一模一樣，那是這道閘門最不該有的沉默。
+		note(`圖表 PNG：跳過——${CHART_DIRS.map((d) => relative(ROOT, d)).join('、')} 都不存在`);
 		return;
 	}
 	const files = readdirSync(CHART_DIR).filter((f) => f.endsWith('.png'));
@@ -433,7 +452,9 @@ function checkChartPixels() {
 			}
 		}
 	}
-	note(`圖表 PNG：${files.length} 張、主要顏色 ${checked} 個（門檻 ${CFG.PNG_MIN_PIXEL_RATIO * 100}% 像素）已逐一比對`);
+	note(
+		`圖表 PNG：${files.length} 張、主要顏色 ${checked} 個（門檻 ${CFG.PNG_MIN_PIXEL_RATIO * 100}% 像素）已逐一比對於 ${relative(ROOT, CHART_DIR)}`,
+	);
 	if (files.length !== 21) note(`⚠ 圖表張數為 ${files.length}，判準寫的是 21 張`);
 }
 
@@ -1030,16 +1051,16 @@ function checkStandingMotionReducedMotion(sources) {
 }
 
 // ===========================================================================
-// 檢查 7 — 母題參數必須落在票 00 定的檔位上
+// 檢查 7 — 背景設計參數必須落在票 00 定的檔位上
 // ===========================================================================
 /**
  * 值一律取自 `palette-config.mjs` 的 `MOTIF`，**這支腳本裡不寫值**。
  *
- * 產物端的契約：母題的 canvas 帶一個 `data-motif` 屬性，內容是判準檔 `MOTIF` 的 JSON。
+ * 產物端的契約：背景設計的 canvas 帶一個 `data-motif` 屬性，內容是判準檔 `MOTIF` 的 JSON。
  * 繪製程式從那個屬性取值，所以「判準檔 → 產物 → 執行期」是同一條路，
- * 沒有第二份數字可以偷偷漂掉。母題尚未上線時這一項只驗判準檔本身。
+ * 沒有第二份數字可以偷偷漂掉。背景設計尚未上線時這一項只驗判準檔本身。
  */
-/** 檢查 6 的 JS 那一半找到的常駐迴圈，檢查 7 要用它判斷「母題是不是已經上線了」。 */
+/** 檢查 6 的 JS 那一半找到的常駐迴圈，檢查 7 要用它判斷「背景設計是不是已經上線了」。 */
 const standingLoopFiles = [];
 
 const decodeEntities = (s) =>
@@ -1071,7 +1092,7 @@ function motifSpeeds(m) {
 }
 
 /**
- * 產物端契約的共用查法。母題（第七類）與場（第九類）是同一個形狀：
+ * 產物端契約的共用查法。背景設計（第七類）與場（第九類）是同一個形狀：
  * canvas 帶一個屬性、內容是判準檔那組參數的 JSON、繪製程式從屬性取值。
  *
  * **抽成一支而不是照抄一份**：兩份會分家，而分家的那一天不會有人發現——
@@ -1133,13 +1154,13 @@ function checkMotif(htmlFiles) {
 	const budget = CFG.MOTIF_CRAFT.speedBudget;
 	if (breath > budget.breath) fail('motif', '呼吸配額', `呼吸 ${breath.toFixed(1)} px/s 超過配額 ${budget.breath}`);
 	if (drift > budget.drift) fail('motif', '漂移配額', `漂移 ${drift.toFixed(1)} px/s 超過每軸配額 ${budget.drift}`);
-	note(`母題峰值速度 ${peak.toFixed(1)} px/s（呼吸 ${breath.toFixed(1)}／漂移 ${drift.toFixed(1)}，紅線③ ${limit}）`);
+	note(`背景設計峰值速度 ${peak.toFixed(1)} px/s（呼吸 ${breath.toFixed(1)}／漂移 ${drift.toFixed(1)}，紅線③ ${limit}）`);
 
 	checkParamContract({
 		check: 'motif',
 		attr: 'data-motif',
 		config: CFG.MOTIF,
-		label: '母題',
+		label: '背景設計',
 		htmlFiles,
 	});
 }
@@ -1162,11 +1183,11 @@ function checkMotif(htmlFiles) {
  * 契約的 fail-open 防線是**存在性**不是**全稱性**：`found` 跨所有 HTML 檔累積，
  * 只要任一頁有屬性就不會進那個分支，其餘頁缺屬性完全沒人看。
  * 第二輪抗辯實測：把 `dist/projects/index.html` 的兩個屬性拿掉（那一頁的場等於整個
- * 不畫），閘門照樣印「✓ 十二類檢查全部通過」。
+ * 不畫），閘門照樣印「✓ 十三類檢查全部通過」。
  *
  * 補法不是「每一頁都必須有場」——`BaseLayout` 的 `motif` prop 沒給就沒有背景層，
  * 那是明文允許的。要守的是**兩者同進同出**：`Field` 與 `Motif` 在 `BaseLayout` 裡
- * 由同一個條件渲染，所以有母題的頁面就必須有場。少一個就是元件被漏掉了。
+ * 由同一個條件渲染，所以有背景設計的頁面就必須有場。少一個就是元件被漏掉了。
  */
 function checkFieldCoverage(htmlFiles) {
 	let both = 0;
@@ -1184,7 +1205,7 @@ function checkFieldCoverage(htmlFiles) {
 		}
 		both++;
 	}
-	note(`場的覆蓋：${both} 個有母題的頁面，兩個屬性都在`);
+	note(`場的覆蓋：${both} 個有背景設計的頁面，兩個屬性都在`);
 }
 
 function checkField(htmlFiles) {
@@ -1561,6 +1582,82 @@ function checkFocusOrphans(htmlFiles) {
 	note(`聚焦組：${aiPages.length} 個 AI 專案內頁、${cards} 張時間軸卡、${groups} 組（統計頁不在範圍內）`);
 }
 
+/**
+ * 檢查 13（票 02）：一個分類只能有一個顯示名。
+ *
+ * 票 02 之前，分類名散在四個地方各寫一次（導覽列、列表頁、內頁的 map、以及人手打在
+ * frontmatter 標題裡的「AI 專案 #1」）。四份的漂移方式很具體：改了三處、漏掉第四處，
+ * 於是導覽列寫「AI 實作」、專案標題寫「AI 專案」，**同一個地方在同一屏上有兩個名字**。
+ * 30 秒的陌生人分不出那是不是兩個東西。
+ *
+ * 守法是掃產物找**登記過的舊名**（`src/categories.mjs` 的 `RETIRED_LABELS`）。
+ * 這裡刻意與版面共用同一份清單——閘門若自己抄一份舊名，就又生出第五個定義。
+ *
+ * ── 誠實邊界（三條，都是結構性的，不是懶）────────────────────────────
+ *
+ * · **只認得登記過的舊名。** 明天有人發明第三個叫法（「AI 作品」）而不登記，這條看不見。
+ *   它擋的是回頭路，不是想像力。
+ * · **不驗語意，只驗字串。** 一句「這是我第一個 AI 專案」與一個分類徽章「AI 專案」
+ *   在產物裡長得一模一樣，這條分不出來，兩個都會紅。**這是刻意的**：分不出來的時候
+ *   寧可紅，讓人來判斷；換成「只在某個 class 裡面才算」就會被下一個版型繞過去。
+ * · **`/process/` 的九頁豁免。** 那些是標了日期的歷史重演存檔，裡面的「AI 專案」是
+ *   當時的真實狀態，改它等於讓存檔說謊（與 CLAUDE.md 的明文豁免同一條理由）。
+ */
+function checkCategoryNames(htmlFiles) {
+	let hits = 0;
+	for (const f of htmlFiles) {
+		const rel = relative(DIST, f);
+		const html = readFileSync(f, 'utf8');
+		for (const r of CATS.RETIRED_LABELS) {
+			if (!html.includes(r.label)) continue;
+			hits++;
+			fail(
+				'category-name',
+				`${rel} :: ${r.label}`,
+				`「${r.label}」是分類 ${r.key} 的舊顯示名（${r.retiredOn} 退役），正名是「${CATS.categoryLabel(r.key)}」。` +
+					'產物裡同時出現兩個名字指同一個分類，讀者分不出那是不是兩個地方。' +
+					'改的是原始碼那一份，不是這裡——分類名的單一來源在 src/categories.mjs',
+			);
+		}
+	}
+	note(
+		`分類顯示名：${CATS.CATEGORIES.map((c) => `${c.key}→${c.label}`).join('、')}；` +
+			`退役名 ${CATS.RETIRED_LABELS.length} 個，掃過 ${htmlFiles.length} 頁，命中 ${hits} 次`,
+	);
+	checkCategoryIndexRules();
+}
+
+/**
+ * 序號規則的自我檢查（票 02）。
+ *
+ * **為什麼要一組假資料**：站上現在只有一件 AI 實作，所以產物裡那個「#1」不管排序邏輯
+ * 對不對都會印出來——寫死一個 1 也長一樣。序號真正要撐的三件事（依日期由舊到新、
+ * 每個分類各自數、同一天不得隨機排）在真實資料上一件都驗不到。
+ *
+ * **為什麼寫在閘門裡**：這個 repo 沒有測試框架，而閘門是唯一一個「紅了就不會部署」的
+ * 地方。序號算錯的後果是首頁展示卡掛一個錯號碼（票 05），那正是不該讓它上線的事。
+ */
+function checkCategoryIndexRules() {
+	const fake = [
+		{ id: 'ai/late', data: { category: 'ai', date: new Date('2026-03-01') } },
+		{ id: 'ai/early', data: { category: 'ai', date: new Date('2026-01-01') } },
+		{ id: 'stats/b-same-day', data: { category: 'stats', date: new Date('2026-02-01') } },
+		{ id: 'stats/a-same-day', data: { category: 'stats', date: new Date('2026-02-01') } },
+	];
+	const got = CATS.categoryIndexes(fake);
+	const want = { 'ai/early': 1, 'ai/late': 2, 'stats/a-same-day': 1, 'stats/b-same-day': 2 };
+	for (const [id, n] of Object.entries(want)) {
+		if (got.get(id) === n) continue;
+		fail(
+			'category-name',
+			`序號規則 :: ${id}`,
+			`categoryIndexes 給 ${id} 的號碼是 ${got.get(id)}，應該是 ${n}。` +
+				'三條規則各對應一個案例：依日期由舊到新（ai/early 要是 #1）、每個分類各自數' +
+				'（stats 不受 ai 影響）、同一天用 id 定序（否則同一份原始碼在不同機器上會給出不同號碼）',
+		);
+	}
+}
+
 // ===========================================================================
 // 主流程
 // ===========================================================================
@@ -1572,7 +1669,7 @@ function main() {
 
 	const allFiles = walk(DIST);
 
-	// 票 01：`.js` 進來了。母題的色碼寫在腳本裡，不掃 JS 等於留一條白名單看不見的路。
+	// 票 01：`.js` 進來了。背景設計的色碼寫在腳本裡，不掃 JS 等於留一條白名單看不見的路。
 	const textFiles = allFiles.filter((f) => /\.(html|css|svg|js)$/i.test(f));
 	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css') && !isProcessPage(f));
 
@@ -1616,47 +1713,50 @@ function main() {
 		.map((f) => ({ rel: relative(ROOT, f), text: readFileSync(f, 'utf8') }));
 	const siteHtmlFiles = allFiles.filter((f) => /\.html$/i.test(f) && !isProcessPage(f));
 
-	console.log('— 1／12 色碼白名單');
+	console.log('— 1／13 色碼白名單');
 	checkColorWhitelist(textFiles, allowedCss);
 	checkSiteColorsOnRamp();
 	checkChartPixels();
 
-	console.log('— 2／12 對比度');
+	console.log('— 2／13 對比度');
 	checkGrainModel();
 	checkContrast(vars, siteRules);
 	checkOpacityNotLevel(siteRules);
 
-	console.log('— 3／12 色盲安全');
+	console.log('— 3／13 色盲安全');
 	checkColorVision();
 
-	console.log('— 4／12 色階規律');
+	console.log('— 4／13 色階規律');
 	checkRamps(vars);
 
-	console.log('— 5／12 排版與間距規律');
+	console.log('— 5／13 排版與間距規律');
 	checkTypographyAndSpacing(siteRules, vars);
 
-	console.log('— 6／12 可及性偏好的逃生口（降低動態／增加對比）');
+	console.log('— 6／13 可及性偏好的逃生口（降低動態／增加對比）');
 	checkReducedMotion(siteParsed);
 	checkStandingMotionReducedMotion(scriptSources);
 	checkContrastEscape(siteParsed);
 
-	console.log('— 7／12 母題參數與常駐動態');
+	console.log('— 7／13 背景設計參數與常駐動態');
 	checkMotif(siteHtmlFiles);
 
-	console.log('— 8／12 聚焦組標記完整（孤兒檢查）');
+	console.log('— 8／13 聚焦組標記完整（孤兒檢查）');
 	checkFocusOrphans(siteHtmlFiles);
 
-	console.log('— 9／12 場的參數與回彈紅線');
+	console.log('— 9／13 場的參數與回彈紅線');
 	checkField(siteHtmlFiles);
 
-	console.log('— 10／12 全站不用陰影');
+	console.log('— 10／13 全站不用陰影');
 	checkNoShadow(siteRules);
 
-	console.log('— 11／12 z 層級白名單');
+	console.log('— 11／13 z 層級白名單');
 	checkZIndex(siteRules);
 
-	console.log('— 12／12 允許清單宣稱的辨識通道');
+	console.log('— 12／13 允許清單宣稱的辨識通道');
 	checkIdentificationChannels(siteRules, vars);
+
+	console.log('— 13／13 分類顯示名的單一來源');
+	checkCategoryNames(siteHtmlFiles);
 
 	// ---- 回報 ----
 	if (process.env.VERIFY_VERBOSE) {
@@ -1697,7 +1797,7 @@ function main() {
 		process.exit(1);
 	}
 
-	console.log(`\n✓ 十二類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
+	console.log(`\n✓ 十三類檢查全部通過${excepted.length ? `（${excepted.length} 項明文例外）` : ''}`);
 }
 
 main();
