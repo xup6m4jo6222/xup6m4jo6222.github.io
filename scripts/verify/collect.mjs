@@ -24,7 +24,7 @@ createServer((req, res) => {
 			for (const s of seen) {
 				console.log(`── ${s.ua}`);
 				console.log(`   ${s.mode}　${s.vw}×${s.vh}　DPR ${s.dpr}　點數 ${s.points}　已跑 ${s.secs}s`);
-				console.log(`   畫面更新率 最近5秒 ${s.fpsRecent} / 全程 ${s.fpsAll} fps　母題重畫 ${s.redraws} 次/秒`);
+				console.log(`   畫面更新率 最近5秒 ${s.fpsRecent} / 全程 ${s.fpsAll} fps　背景設計重畫 ${s.redraws} 次/秒`);
 				console.log(`   每幀成本 中位 ${s.med}ms　p95 ${s.p95}ms　最大 ${s.max}ms　長工作 ${s.jank} 次`);
 				console.log(`   → 11ms 預算下擺得下 ≈ ${s.cap} 個點\n`);
 			}

@@ -1,4 +1,4 @@
-/** 比較「有母題」與「沒有母題」兩張純背景截圖：每個文字方框最亮像素的對比各是多少。 */
+/** 比較「有背景設計」與「沒有背景設計」兩張純背景截圖：每個文字方框最亮像素的對比各是多少。 */
 import { readFileSync } from 'node:fs';
 import { readPng } from '../png-read.mjs';
 import * as C from '../color-math.mjs';
@@ -33,6 +33,6 @@ for (const e of spec.els) {
 	worstDrop = Math.max(worstDrop, drop);
 	const flag = a >= 4.5 ? '✓' : '✗';
 	if (a < 4.5 || drop > 0.05)
-		console.log(`${flag} ${a.toFixed(2)}（無母題 ${b.toFixed(2)}，差 ${drop.toFixed(2)}）  ${e.tag} ${fg} on ${brightest(imgs[0], e)}`);
+		console.log(`${flag} ${a.toFixed(2)}（無背景設計 ${b.toFixed(2)}，差 ${drop.toFixed(2)}）  ${e.tag} ${fg} on ${brightest(imgs[0], e)}`);
 }
-console.log(`\n有母題最壞 ${worst.toFixed(2)}（門檻 4.5）；母題造成的最大降幅 ${worstDrop.toFixed(2)}`);
+console.log(`\n有背景設計最壞 ${worst.toFixed(2)}（門檻 4.5）；背景設計造成的最大降幅 ${worstDrop.toFixed(2)}`);

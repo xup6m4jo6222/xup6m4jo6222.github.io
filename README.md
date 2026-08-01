@@ -4,7 +4,7 @@
 
 ## 技術
 
-Astro，部署於 GitHub Pages（GitHub Actions 自動建置，push 到 main 即部署）。
+部署於 GitHub Pages（GitHub Actions 自動建置，push 到 main 即部署）。
 
 本地開發
 

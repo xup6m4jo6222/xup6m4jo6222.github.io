@@ -1,0 +1,158 @@
+---
+/* 原型切換列（PROTOTYPE — 丟棄式）。
+   刻意做成高對比的膠囊，跟站上的設計語言明顯不同——它不該被誤認成被評估的設計之一。
+   `import.meta.env.DEV` 保證它進不了 production 建置。 */
+interface Props {
+	variants: { key: string; name: string }[];
+}
+const { variants } = Astro.props;
+---
+
+{
+	import.meta.env.DEV && (
+		<div class="proto-bar" data-keys={variants.map((v) => v.key).join(',')}>
+			<button type="button" data-dir="-1" aria-label="上一個變體">
+				←
+			</button>
+			<span class="proto-label">
+				<b data-cur-key>A</b>
+				<span data-cur-name>有框最近專案展示卡</span>
+			</span>
+			<button type="button" data-dir="1" aria-label="下一個變體">
+				→
+			</button>
+			<span class="proto-sep" aria-hidden="true" />
+			<button type="button" data-slots>
+				顯示文字槽位
+			</button>
+			<script type="application/json" data-names set:html={JSON.stringify(variants)} />
+		</div>
+	)
+}
+
+<style is:inline>
+	.proto-bar {
+		position: fixed;
+		bottom: 14px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		background: #101014;
+		border: 1px solid #4a4a55;
+		border-radius: 999px;
+		box-shadow: 0 6px 24px #000a;
+		font-family: ui-monospace, monospace;
+		font-size: 12px;
+		color: #e8e8ee;
+		max-width: calc(100vw - 20px);
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.proto-bar button {
+		appearance: none;
+		background: #23232b;
+		color: inherit;
+		border: 1px solid #4a4a55;
+		border-radius: 999px;
+		padding: 3px 9px;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.proto-bar button:hover {
+		background: #32323d;
+	}
+
+	.proto-bar button[aria-pressed='true'] {
+		background: #d8d8e4;
+		color: #101014;
+	}
+
+	.proto-label {
+		display: inline-flex;
+		gap: 6px;
+		align-items: baseline;
+		padding: 0 4px;
+		white-space: nowrap;
+	}
+
+	.proto-label b {
+		color: #9ecbff;
+	}
+
+	.proto-sep {
+		width: 1px;
+		align-self: stretch;
+		background: #4a4a55;
+		margin: 0 2px;
+	}
+</style>
+
+<script>
+	(() => {
+		function init() {
+			const bar = document.querySelector<HTMLElement>('.proto-bar');
+			if (!bar || bar.dataset.wired) return;
+			bar.dataset.wired = '1';
+
+			const names: { key: string; name: string }[] = JSON.parse(
+				bar.querySelector('[data-names]')?.textContent || '[]',
+			);
+			const keys = names.map((v) => v.key);
+
+			const paint = () => {
+				const q = new URLSearchParams(location.search).get('variant');
+				const key = keys.includes(q || '') ? (q as string) : 'A';
+				const hit = names.find((v) => v.key === key);
+				bar.querySelector('[data-cur-key]')!.textContent = key;
+				bar.querySelector('[data-cur-name]')!.textContent = hit ? hit.name : '';
+			};
+
+			const go = (dir: number) => {
+				const q = new URLSearchParams(location.search).get('variant');
+				const at = keys.indexOf(keys.includes(q || '') ? (q as string) : 'A');
+				const next = keys[(at + dir + keys.length) % keys.length];
+				const url = new URL(location.href);
+				url.searchParams.set('variant', next);
+				history.replaceState(null, '', url);
+				paint();
+				window.dispatchEvent(new CustomEvent('proto:variant'));
+			};
+
+			bar.querySelectorAll<HTMLButtonElement>('button[data-dir]').forEach((b) => {
+				b.addEventListener('click', () => go(Number(b.dataset.dir)));
+			});
+
+			const slotsBtn = bar.querySelector<HTMLButtonElement>('button[data-slots]');
+			slotsBtn?.setAttribute('aria-pressed', 'false');
+			slotsBtn?.addEventListener('click', () => {
+				const on = document.documentElement.classList.toggle('proto-slots');
+				slotsBtn.setAttribute('aria-pressed', String(on));
+			});
+
+			/* 鍵盤左右鍵也能切；輸入框有焦點時不攔。 */
+			document.addEventListener('keydown', (e) => {
+				if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+				const t = e.target as HTMLElement | null;
+				const tag = t?.tagName;
+				if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
+				e.preventDefault();
+				go(e.key === 'ArrowRight' ? 1 : -1);
+			});
+
+			paint();
+		}
+
+		document.addEventListener('astro:page-load', init);
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', init, { once: true });
+		} else {
+			init();
+		}
+	})();
+</script>

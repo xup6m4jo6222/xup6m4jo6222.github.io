@@ -30,7 +30,7 @@
 				new Blob([JSON.stringify({
 					id: `runtime-${location.pathname}`,
 					ua: `執行期檢查 ${location.pathname}`,
-					mode: cv ? cv.dataset.motifMode : '無母題',
+					mode: cv ? cv.dataset.motifMode : '無背景設計',
 					vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio,
 					points: '-', secs: '-', fpsRecent: '-', fpsAll: '-',
 					redraws: extra + (resized ? '（注意：期間畫布尺寸變過）' : ''),
@@ -39,7 +39,7 @@
 				})], { type: 'text/plain' }),
 			);
 
-		if (!cv) { report('這一頁沒有母題'); return; }
+		if (!cv) { report('這一頁沒有背景設計'); return; }
 		const ctx = cv.getContext('2d');
 		/* 取樣**固定大小**的一塊，不是整張畫布。
 		   第一版拿 `cv.width × cv.height` 整張做指紋，抗辯第四輪實測證明那會假綠：

@@ -1,0 +1,244 @@
+---
+/* 原型變體 D「左文字／右公告／下背景設計」（本人 2026-07-30 第三輪指定的版面）
+   PROTOTYPE：丟棄式程式。
+
+   本人原話：「文字放左上方，公告放右上邊，然後背景設計常駐在下方區塊」。
+   這一版要判的是**份量**——前兩版的公告都太大，這一版靠「並排」把它壓下去：
+   公告從「名字下面的一塊」變成「名字旁邊的一塊」，佔的是水平空間而不是垂直空間，
+   於是名字保住主角地位，而下半屏整塊留給背景設計。
+
+   兩段進場（本人指定）：文字先進場（約 1 秒）→ 最近專案展示卡接著進場。
+   紅線②（delay + duration ≤ 1s）的處理見 HomePrototype 的 playD 註解。
+
+   背景設計區塊：這一版用一個明確的下方區域標出它，而不是讓它鋪滿整個視窗——
+   那是本人「背景設計常駐在下方區塊」的字面意思，也順便讓背景設計不再跟公告搶同一塊畫面。
+
+   **手機要重新考慮**：並排在 375px 沒有意義，會疊成上下。這一版在窄螢幕退回
+   單欄（名字 → 公告 → 背景設計），高度因此會變高，量測見 FINDINGS。
+
+   文字是佔位，取自本人的口述草稿與既有內容，最終文字由本人撰寫。 */
+---
+
+<section class="pd">
+	<div class="pd-top">
+		<div class="pd-id" data-stage="1">
+			<h1 class="pd-name">林郁為</h1>
+			<p class="pd-tagline" data-slot="定位句｜我是誰、往哪走">統計背景，正朝資料科學邁進</p>
+		</div>
+
+		<article class="pd-card" data-stage="2">
+			<p class="pd-head">
+				<span class="pd-eyebrow">最近專案</span>
+				<span class="pd-title" data-slot="專案標題｜列在「最近專案」右邊">
+					AI 專案 #1 個人作品頁
+				</span>
+			</p>
+
+			<p class="pd-ask" data-slot="問句｜同時是鉤子與解讀說明書">
+				你知道，如果只跟 AI 說「我想做一個具有設計感的個人作品頁」，它會給你什麼成品嗎？
+			</p>
+
+			<div class="pd-gate">
+				<button type="button" class="pd-btn" data-reveal-btn data-slot="按鈕文字">
+					看 AI 給了什麼
+				</button>
+			</div>
+
+			{/* 2026-07-30 換圖：原本用 rejected-v1.png，但那是討論過幾輪之後的產物，
+			    拿它當「AI 的標準輸出」名不副實（本人原話：「第一版本身其實已經蠻有質感的了」）。
+			    改用當天實驗真的跑出來的成品——子代理拿到的只有那一句提示詞，沒有任何本站上下文。
+			    量測與另外五份在 `.scratch/naive-ai-experiment.md`。 */}
+			<figure class="pd-shot" data-curtain hidden>
+				<img
+					src="/images/portfolio-site/ai-baseline.png"
+					alt="只給一句話時，AI 產出的成品"
+					width="760"
+					height="470"
+				/>
+			</figure>
+
+			<footer class="pd-foot" hidden>
+				{/* 原文「這是 AI 給的第一版」已不成立——這張不是本站的舊版，是 AI 的原生產出。
+				    下面是建議稿，最終文字依第四章由本人撰寫。 */}
+				<p class="pd-note" data-slot="標註｜這張圖是什麼">這是 AI 拿到那句話之後給的成品</p>
+				<a href="/projects/ai/portfolio-site/" data-slot="出口文字">那我做了什麼 →</a>
+			</footer>
+		</article>
+	</div>
+
+	{/* 背景設計的常駐區塊。原型裡用一條標記線標出它的範圍，選定之後這裡就是背景設計畫布的家。 */}
+	<div class="pd-motif" aria-hidden="true">
+		<span class="pd-motif-label">背景設計常駐區塊</span>
+	</div>
+</section>
+
+<style is:inline>
+	.pd {
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-lg);
+		min-height: 100%;
+	}
+
+	/* 並排：文字左、公告右。900px 以下退回單欄——那是站上既有的斷點
+	   （`.home` 單欄／雙欄就用它），不新造一個。 */
+	.pd-top {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+		gap: var(--sp-2);
+		align-items: start;
+	}
+
+	@media (max-width: 900px) {
+		.pd-top {
+			grid-template-columns: 1fr;
+			gap: var(--sp-lg);
+		}
+	}
+
+	.pd-name {
+		font-size: var(--fs-6);
+		line-height: var(--lh-6);
+		letter-spacing: var(--ls-display);
+		font-weight: 400;
+		margin: 0;
+	}
+
+	.pd-tagline {
+		margin: var(--sp-xs) 0 0;
+		color: var(--color-text-muted);
+	}
+
+	.pd-card {
+		padding: var(--sp-lg);
+		background: var(--color-bg-alt);
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius);
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-md);
+	}
+
+	/* 「最近專案」＋專案標題同一行（本人指定）。標籤沿用站上既有的標籤樣式
+	   （襯線 600 ＋ 主色）——辨識通道是字體與字重，顏色只扛份量。 */
+	.pd-head {
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--sp-sm);
+	}
+
+	.pd-eyebrow {
+		font-family: var(--font-serif);
+		font-weight: 600;
+		font-size: var(--fs-1);
+		letter-spacing: var(--ls-label);
+		color: var(--color-accent);
+		white-space: nowrap;
+	}
+
+	.pd-title {
+		font-size: var(--fs-1);
+	}
+
+	.pd-ask {
+		margin: 0;
+	}
+
+	.pd-gate {
+		display: flex;
+	}
+
+	/* `hidden` 靠 UA 樣式的 display:none，作者的 display:flex 會蓋掉它，要顯式讓它贏。 */
+	.pd-gate[hidden],
+	.pd-foot[hidden],
+	.pd-shot[hidden] {
+		display: none;
+	}
+
+	.pd-btn {
+		appearance: none;
+		font: inherit;
+		color: var(--color-text);
+		background: transparent;
+		border: 1px solid var(--color-border-strong);
+		border-radius: var(--radius);
+		padding: var(--sp-sm) var(--sp-lg);
+		cursor: pointer;
+		transition: background 200ms ease-out;
+	}
+
+	.pd-btn:hover {
+		background: var(--color-bg-hover, var(--color-bg-alt));
+	}
+
+	.pd-shot {
+		margin: 0;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		overflow: hidden;
+		max-height: 240px;
+	}
+
+	.pd-shot img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.pd-foot {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--sp-sm);
+	}
+
+	.pd-note {
+		margin: 0;
+		color: var(--color-text-muted);
+	}
+
+	/* 背景設計區塊：原型只標出範圍，不畫背景設計（背景設計是 fixed 全屏畫布，改成區塊是另一件事）。 */
+	.pd-motif {
+		flex: 1;
+		min-height: 160px;
+		border-top: 1px solid var(--color-border);
+		display: flex;
+		align-items: flex-end;
+		padding-top: var(--sp-sm);
+	}
+
+	.pd-motif-label {
+		font-size: var(--fs--1);
+		color: var(--color-text-muted);
+		letter-spacing: var(--ls-label);
+		opacity: 0.55;
+	}
+
+	/* 兩段進場的起點。JS 逐段拿掉 `data-stage`，CSS 就接手把它帶進來。 */
+	[data-stage] {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	.pd-in {
+		opacity: 1;
+		transform: none;
+		transition:
+			opacity 320ms ease-out,
+			transform 320ms ease-out;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		[data-stage] {
+			opacity: 1;
+			transform: none;
+		}
+
+		.pd-in {
+			transition: opacity 320ms ease-out;
+		}
+	}
+</style>

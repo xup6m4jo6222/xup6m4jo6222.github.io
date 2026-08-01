@@ -1,0 +1,405 @@
+---
+/* ══════════════════════════════════════════════════════════════════════
+   首頁最近專案展示卡的 UI 原型（PROTOTYPE — 丟棄式，選定後整個 _proto/ 目錄刪掉）
+
+   問題：首頁那張唯一的最近專案展示卡，長什麼樣？
+   四個變體掛在同一路由 `/` 上，用 `?variant=` 切換：
+
+     0 現況        2026-07-30 的首頁原封不動（基準線）
+     A 有框最近專案展示卡  卡片有邊界，比對器是卡片裡的內容；把手滑動進場
+     B 無框全寬    卡片溶解，圖橫跨內容寬度當主視覺；上下揭幕進場
+     C 數字主導    數字放大成焦點，圖降級成窄預覽；數字滾動進場
+
+   為什麼是這三個而不是三種動畫：本人要判的是**結構**，不是效果。
+   三個變體對「主角是誰」的答案不同——卡片／圖／數字。動畫跟著結構走，
+   所以三者動的屬性也不同（clip 位置／clip 上下／文字內容）。
+
+   全部文字都是佔位，而且全部取自本人既有的內容（首頁與 portfolio-site.md）。
+   AI 沒有寫任何新文案——依保留條款，首頁最終文字由本人撰寫。
+   切換列上的「顯示文字槽位」可以把該由本人撰寫的位置全部框出來。
+   ══════════════════════════════════════════════════════════════════════ */
+import VariantBaseline from './VariantBaseline.astro';
+import VariantA from './VariantA.astro';
+import VariantB from './VariantB.astro';
+import VariantC from './VariantC.astro';
+import VariantD from './VariantD.astro';
+import VariantChat from './VariantChat.astro';
+import Switcher from './Switcher.astro';
+
+const VARIANTS = [
+	{ key: 'H', name: 'F ＋ 卡靠左收窄，右邊還給背景設計' },
+	{ key: 'J', name: 'H ＋ 訊息降階（最小的卡）' },
+	{ key: 'I', name: 'F ＋ 只降訊息字級，卡仍全寬' },
+	{ key: 'F', name: '對話框｜訊息讓位，圖佔走它的位置' },
+	{ key: 'E', name: '對話框｜訊息留著，圖接在下面' },
+	{ key: 'G', name: '對話框｜預留空框，送出前後同高' },
+	{ key: 'D', name: '左文字／右公告／下背景設計（舊）' },
+	{ key: '0', name: '現況（基準線）' },
+	{ key: 'A', name: '心裡猜｜自動揭曉' },
+	{ key: 'B', name: '心裡猜｜點了才揭曉（卡片式）' },
+	{ key: 'C', name: '心裡猜｜不演' },
+];
+---
+
+{/* 靜態站讀不到 query param，所以四個變體全部渲染，由前端依 `?variant=` 顯示一個。 */}
+<div class="proto-stage">
+	<div data-variant="0" hidden><VariantBaseline /></div>
+	<div data-variant="A" hidden><VariantA /></div>
+	<div data-variant="B" hidden><VariantB /></div>
+	<div data-variant="C" hidden><VariantC /></div>
+	<div data-variant="D" hidden><VariantD /></div>
+	<div data-variant="E" hidden><VariantChat form="thread" /></div>
+	<div data-variant="F" hidden><VariantChat form="inline" /></div>
+	<div data-variant="G" hidden><VariantChat form="slot" /></div>
+	<div data-variant="H" hidden><VariantChat form="inline" place="left" /></div>
+	<div data-variant="I" hidden><VariantChat form="inline" compact /></div>
+	<div data-variant="J" hidden><VariantChat form="inline" place="left" compact /></div>
+</div>
+
+<Switcher variants={VARIANTS} />
+
+<style is:inline>
+	/* 文字槽位的標示。預設關閉，由切換列的按鈕開。 */
+	html.proto-slots [data-slot] {
+		outline: 1px dashed var(--color-accent);
+		outline-offset: 3px;
+		position: relative;
+	}
+
+	html.proto-slots [data-slot]::after {
+		content: '✎ ' attr(data-slot);
+		position: absolute;
+		left: 0;
+		top: 100%;
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--color-accent);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+</style>
+
+<script>
+	/* PROTOTYPE 執行期：選變體、跑該變體的進場、接比對器的拖曳。
+	   刻意寫成一支，因為它要整支刪掉。 */
+	(() => {
+		const KEYS = ['0', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+		/* `?still=1` 直接跳終態，不演。走的是跟「降低動態偏好」完全同一條路——
+		   所以它同時驗證了兩件事：截圖拿得到終態，而且 reduced-motion 的分支真的能用。 */
+		const reduce =
+			matchMedia('(prefers-reduced-motion: reduce)').matches ||
+			new URLSearchParams(location.search).has('still');
+
+		function current() {
+			const q = new URLSearchParams(location.search).get('variant');
+			return KEYS.includes(q || '') ? (q as string) : 'E';
+		}
+
+		/* 揭幕：圖從中線往上下掀開。動的是 clip-path 的上下內縮，**不碰版面**——
+		   所以它不會造成重排，也不會把下面的文字推來推去。
+		   為什麼是揭幕不是淡入：淡入的中間狀態沒有意義（半透明的截圖不代表任何東西），
+		   揭幕的中間狀態有——它正在被掀開。 */
+		function curtain(fig: HTMLElement, dur = 800) {
+			if (reduce) {
+				fig.style.clipPath = '';
+				return;
+			}
+			let t0 = 0;
+			const step = (t: number) => {
+				if (!t0) t0 = t;
+				const p = Math.min(1, (t - t0) / dur);
+				const e = 1 - Math.pow(1 - p, 3); // ease-out cubic
+				const inset = 50 * (1 - e);
+				fig.style.clipPath = `inset(${inset}% 0 ${inset}% 0)`;
+				if (p < 1) requestAnimationFrame(step);
+				else fig.style.clipPath = '';
+			};
+			fig.style.clipPath = 'inset(50% 0 50% 0)';
+			requestAnimationFrame(step);
+		}
+
+		/* A：問句在第 0 毫秒就可讀 → 停頓 1.2 秒讓訪客在心裡回答 → 揭幕。
+		   停頓長度是這一組要判的重點：太短來不及想，太長會被當成壞掉。 */
+		function playA(root: Element) {
+			const fig = root.querySelector<HTMLElement>('[data-curtain]');
+			if (!fig) return;
+			if (reduce) return;
+			fig.style.clipPath = 'inset(50% 0 50% 0)';
+			setTimeout(() => curtain(fig), 1200);
+		}
+
+		/* B：藏著，按了才揭幕，同時把標註與出口帶出來。
+		   按鈕按過就移除——它的工作只有一次。 */
+		function playB(root: Element) {
+			const btn = root.querySelector<HTMLElement>('[data-reveal-btn]');
+			const fig = root.querySelector<HTMLElement>('[data-curtain]');
+			/* 選擇器要涵蓋兩種前綴：D 借用這支接線，但它的類名是 `pd-` 不是 `pb-`。
+			   只寫 `.pb-` 的話，D 按下按鈕後圖會出來，但標註與出口連結永遠不出現、
+			   按鈕也不會消失——2026-07-30 實測到的就是這個狀態。 */
+			const foot = root.querySelector<HTMLElement>('.pb-foot, .pd-foot');
+			if (!btn || !fig) return;
+			if (btn.dataset.wired) return;
+			btn.dataset.wired = '1';
+			btn.addEventListener('click', () => {
+				fig.hidden = false;
+				if (foot) foot.hidden = false;
+				const gate = root.querySelector<HTMLElement>('.pb-gate, .pd-gate');
+				if (gate) gate.hidden = true;
+				curtain(fig);
+			});
+		}
+
+		/* C：不演。刻意留空——它是 A 的對照組，用來檢驗「演出到底有沒有加分」。 */
+		function playC(_root: Element) {}
+
+		/* D：兩段進場（本人指定）——文字先，公告接著。同時接按鈕（同 B）。
+
+		   **紅線②（delay + duration ≤ 1s）的處理**：兩段各 320ms，第二段延遲 520ms，
+		   總長 840ms，**落在紅線內**。本人說的「文字動畫約一秒」如果照字面做 1000ms，
+		   公告接在後面就必然破線；所以這裡把兩段壓進 840ms 讓它合規，
+		   而「先文字後公告」的先後感仍然讀得出來。**這個數字是要本人判的重點之一**——
+		   如果覺得太快來不及感受到「兩段」，那就得動用一次豁免，不能偷偷放寬。 */
+		function playD(root: Element) {
+			playB(root); // 按鈕的接線與 B 相同
+			const stages = Array.from(root.querySelectorAll<HTMLElement>('[data-stage]')).sort(
+				(a, b) => Number(a.dataset.stage) - Number(b.dataset.stage),
+			);
+			if (reduce) {
+				stages.forEach((el) => el.classList.add('pd-in'));
+				return;
+			}
+			stages.forEach((el, i) => {
+				el.classList.remove('pd-in');
+				setTimeout(() => el.classList.add('pd-in'), i * 520);
+			});
+		}
+
+		/* E／F／G：模擬對話框。**點送出不會呼叫任何 AI，也沒有任何網路請求**——
+		   它只是把 2026-07-30 事先拍好的那張圖顯示出來，是重演不是生成。
+		   本人 2026-07-30 明確澄清過這一點。
+
+		   三拍：送出 → 圖 → 出口。時間預算照紅線②（delay + duration ≤ 1s）：
+		   圖是 curtain 的 800ms、無延遲；出口是延遲 400ms ＋ 淡入 350ms ＝ 750ms。
+		   兩者各自都在 1s 內，不必開豁免。
+
+		   三個 form 的差別只在「訊息與圖怎麼換位」：
+		     thread 訊息留著，圖接在下面（會長高）
+		     inline 整條訊息收起，圖佔走那個位置（高度變動最小）
+		     slot   圖框一開始就在，只是空的，送出後填進去（圖框不跳，出口仍會追加一行） */
+		function playChat(root: Element) {
+			/* 兩段進場自己跑，不借 playD——playD 加的是 `.pd-in`，這裡的 CSS 是 `.pc-in`，
+			   借用會讓兩段永遠停在 opacity 0。規格與 D 相同：各 320ms、第二段延遲 520ms、
+			   總長 840ms，落在紅線②內。
+			   **順序與憲法相反**：這裡 stage 1 是名字、stage 2 是卡，而憲法說「主角先落地」。
+			   沿用的是 DECISIONS.md 2026-07-30「進場改兩段：文字先，公告接著」那條拍板。
+			   兩者衝突，待本人裁決，原型先照既有拍板做。 */
+			const stages = Array.from(root.querySelectorAll<HTMLElement>('[data-stage]')).sort(
+				(a, b) => Number(a.dataset.stage) - Number(b.dataset.stage),
+			);
+			if (reduce) stages.forEach((el) => el.classList.add('pc-in'));
+			else
+				stages.forEach((el, i) => {
+					el.classList.remove('pc-in');
+					setTimeout(() => el.classList.add('pc-in'), i * 520);
+				});
+
+			const btn = root.querySelector<HTMLElement>('[data-send]');
+			const fig = root.querySelector<HTMLElement>('[data-shot]');
+			const msg = root.querySelector<HTMLElement>('.pc-msg');
+			const foot = root.querySelector<HTMLElement>('.pc-foot');
+			const form = root.querySelector<HTMLElement>('.pc')?.dataset.form;
+			if (!btn || !fig || !msg || !foot) return;
+			if (btn.dataset.wired) return;
+			btn.dataset.wired = '1';
+
+			btn.addEventListener('click', () => {
+				if (form === 'inline') {
+					msg.hidden = true; // 整條讓位
+				} else {
+					btn.hidden = true; // 訊息留著，只收掉按鈕——它的工作只有一次
+				}
+
+				if (form === 'slot') {
+					fig.classList.add('pc-filled'); // 框本來就在，只是把圖顯出來
+					if (!reduce) curtain(fig);
+				} else {
+					fig.hidden = false;
+					curtain(fig);
+				}
+
+				const showFoot = () => {
+					foot.hidden = false;
+				};
+				if (reduce) showFoot();
+				else setTimeout(showFoot, 400);
+			});
+		}
+
+		/* `?trend=甲|乙|丙` — 只存在於原型的比稿旋鈕：即時覆寫趨勢線的起訖高度。
+		   **判準檔一個字都不改**——那裡的改動有閘門在守，不能為了出一張比稿圖就先動它。
+		   作法：換掉 canvas 節點再重播 `astro:page-load`。因為 Motif 的 `start()` 有防重入
+		   （`if (cv === running) return`），不換節點就重播不了。 */
+		const TREND: Record<string, [number, number]> = {
+			a: [0.97, 0.72], // 甲 整條下移：從卡片下緣外側通過
+			b: [0.92, 0.8], // 乙 壓平＋下移：像一條地平線
+			c: [0.3, 0.14], // 丙 翻轉走上緣：從名字上方掠過
+		};
+		/* `?ink=1|2|3` — 加墨比稿。判準檔現值：density.home 0.25、depthAlpha [.3,.53,.92]、
+		   trendAlpha 0.62。三檔往上加，看多明顯才夠。
+		   **煞車一由既有機制守著，不是靠這裡克制**：文字帶遮罩用
+		   `globalAlpha = 1 - textBandMaxAlpha` 做 destination-out，所以文字帶內的合成
+		   不透明度封頂在 0.10，源頭再濃也一樣。加墨只會亮在文字帶外面。
+		   這一點下面會實測驗證，不是照著註解相信。 */
+		const INK: Record<string, { d: number; a: number[]; t: number }> = {
+			1: { d: 0.4, a: [0.39, 0.69, 1], t: 0.75 },
+			2: { d: 0.6, a: [0.48, 0.85, 1], t: 0.85 },
+			3: { d: 0.9, a: [0.6, 1, 1], t: 1 },
+		};
+		function applyTrend() {
+			const q = new URLSearchParams(location.search);
+			const band = TREND[q.get('trend') ?? ''] ?? null;
+			const ink = INK[q.get('ink') ?? ''] ?? null;
+			if (!band && !ink) return;
+			const cv = document.querySelector<HTMLCanvasElement>('canvas.motif');
+			if (!cv?.dataset.motifCraft || !cv.dataset.motif) return;
+			const craft = JSON.parse(cv.dataset.motifCraft);
+			const motif = JSON.parse(cv.dataset.motif);
+			if (band) craft.layout.trendBand = band;
+			if (ink) {
+				craft.layout.trendAlpha = ink.t;
+				motif.depthAlpha = ink.a;
+				motif.density = { ...motif.density, home: ink.d };
+			}
+			const next = cv.cloneNode(false) as HTMLCanvasElement;
+			next.dataset.motifCraft = JSON.stringify(craft);
+			next.dataset.motif = JSON.stringify(motif);
+			cv.replaceWith(next);
+			document.dispatchEvent(new Event('astro:page-load'));
+		}
+
+		/* `?ask=` — 問句色比稿。七個候選都是 C=0.073（站上彩度定值）下各色系裡
+		   對比最高的那一階，全部 ≥7.1（門檻 4.5）。`white` 是現況對照組。
+		   `?sig=` — 署名空間比稿：垂直 gap ／ 水平寬 ／ 字級三件一起換。
+		   `?line=1` — 導覽列底線與頁尾頂線換成主色線（第 ③ 件已拍板，放進圖裡才看得準）。 */
+		const ASK: Record<string, string> = {
+			white: '', // 現況：不覆寫，用 --color-text
+			red: '#edafa9',
+			gold: '#d6b084',
+			olive: '#babc85',
+			green: '#99c8a2',
+			teal: '#7dc6c6',
+			purple: '#c8b7ea',
+			magenta: '#e5b2d3',
+		};
+		const SIG: Record<string, [string, string, string, string]> = {
+			// gap ／ 寬 ／ 字級 ／ 行高
+			1: ['var(--sp-lg)', '100%', 'var(--fs-3)', 'var(--lh-3)'], // 現況對照
+			2: ['var(--sp-2)', '62%', 'var(--fs-4)', 'var(--lh-4)'], // 拍板值
+			3: ['var(--sp-3)', '48%', 'var(--fs-4)', 'var(--lh-4)'], // 再開一級
+			/* 4＝2026-07-31 拍板值：本人看完 sig-1/2/3 後裁定「只收 gap，字級與寬度留著」。
+			   署名的地由字級與右側留白劃，不靠把卡片往下推。 */
+			4: ['var(--sp-lg)', '62%', 'var(--fs-4)', 'var(--lh-4)'],
+		};
+		function applyProto() {
+			const q = new URLSearchParams(location.search);
+			const r = document.documentElement.style;
+			const ask = ASK[q.get('ask') ?? ''];
+			if (ask) r.setProperty('--proto-ask', ask);
+			const sig = SIG[q.get('sig') ?? ''];
+			if (sig) {
+				r.setProperty('--proto-sig-gap', sig[0]);
+				r.setProperty('--proto-sig-w', sig[1]);
+				r.setProperty('--proto-sig-fs', sig[2]);
+				r.setProperty('--proto-sig-lh', sig[3]);
+			}
+			if ((q.has('line') || q.has('bare')) && !document.getElementById('proto-line')) {
+				const s = document.createElement('style');
+				s.id = 'proto-line';
+				s.textContent =
+					/* `?line=1` 帶的是第 ③ 件全部的拍板：導覽列底線與頁尾頂線換主色線，
+					   外加頁尾拿掉「最後更新」（`.footer-inner` 的第三個 span）。
+					   頁尾那兩件在 720 高的視窗外，要 1280×1000 才看得到。 */
+					(q.has('line')
+						? '.site-nav{border-bottom-color:var(--color-accent)}' +
+							'footer{border-top-color:var(--color-accent)}' +
+							'.footer-inner>span:last-child{display:none}'
+						: '') + /* !important：Switcher 自己的 `is:inline` 樣式同specificity 且勝出，
+					   實測 2026-07-31 少了它切換列照樣蓋在頁尾上。 */
+					(q.has('bare') ? '.proto-bar{display:none!important}' : '');
+				document.head.appendChild(s);
+			}
+		}
+
+		function show() {
+			applyProto();
+			const key = current();
+			const stage = document.querySelector('.proto-stage');
+			if (!stage) return;
+			stage.querySelectorAll<HTMLElement>('[data-variant]').forEach((box) => {
+				box.hidden = box.dataset.variant !== key;
+			});
+			const active = stage.querySelector<HTMLElement>(`[data-variant="${key}"]`);
+			if (!active) return;
+			if (key === 'A') playA(active);
+			if (key === 'B') playB(active);
+			if (key === 'C') playC(active);
+			if (key === 'D') playD(active);
+			if ('EFGHIJ'.includes(key)) playChat(active);
+		}
+
+		/* `?measure=1`：把量到的高度寫進 DOM，讓 `chrome --headless --dump-dom` 讀得到。
+		   沿用 `scripts/verify/field-runtime.mjs` 的「頁面自己回報」手法，只是回報管道
+		   從 HTTP 換成 DOM——這裡只要一個數字，不值得為它架一個 inbox 伺服器。
+		   要測的是「單屏」這條硬約束：內容高有沒有超過可用高。 */
+		function measure() {
+			if (!new URLSearchParams(location.search).has('measure')) return;
+			const nav = document.querySelector('.site-nav')?.getBoundingClientRect().height || 0;
+			const ft = document.querySelector('footer')?.getBoundingClientRect().height || 0;
+			const avail = window.innerHeight - nav - ft;
+			const rows = KEYS.map((k) => {
+				const box = document.querySelector<HTMLElement>(`[data-variant="${k}"]`);
+				if (!box) return `${k}\t?`;
+				const was = box.hidden;
+				box.hidden = false;
+				const h = box.getBoundingClientRect().height;
+				box.hidden = was;
+				const over = Math.round(h - avail);
+				return `${k}\t${Math.round(h)}\t${Math.round(avail)}\t${over}\t${over > 0 ? '溢出' : '放得下'}`;
+			});
+			const pre = document.createElement('pre');
+			pre.id = 'proto-measure';
+			pre.textContent = `MEASURE ${window.innerWidth}x${window.innerHeight}\n變體\t內容高\t可用高\t差\t判定\n${rows.join('\n')}`;
+			document.body.appendChild(pre);
+		}
+
+		function init() {
+			show();
+			window.addEventListener('proto:variant', show as EventListener);
+			window.addEventListener('popstate', show);
+			setTimeout(measure, 400);
+			/* 只跑一次：applyTrend 會重播 `astro:page-load`，而 init 就掛在那個事件上。
+			   不擋的話 init → applyTrend → init → … 無限遞迴。 */
+			if (!trendDone) {
+				trendDone = true;
+				/* 必須等母題自己先啟動過一次再換節點。搶在它前面換的話，複製到的是一個
+				   還沒被 `start()` 設過 width/height 的 canvas（停在 HTML 預設的 300×150），
+				   於是整張畫不出來——實測就是全黑、零墨、console 無錯誤。
+				   用輪詢而不是固定延遲：無頭截圖不等 setTimeout，固定延遲會拍到覆寫前的畫面。 */
+				const wait = () => {
+					const cv = document.querySelector<HTMLCanvasElement>('canvas.motif');
+					if (cv && cv.width > 300) applyTrend();
+					else requestAnimationFrame(wait);
+				};
+				wait();
+			}
+		}
+		let trendDone = false;
+
+		document.addEventListener('astro:page-load', init);
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', init, { once: true });
+		} else {
+			init();
+		}
+	})();
+</script>

@@ -1,0 +1,24 @@
+---
+/* 原型變體「現況」——2026-07-30 的首頁原封不動，當基準線用。
+   PROTOTYPE：丟棄式程式，不要當成產品碼看。整個 _proto/ 目錄選定之後刪掉。 */
+const secondaryLinks = [
+	{ label: 'GitHub', href: 'https://github.com/xup6m4jo6222' },
+	{ label: 'Email', href: 'mailto:xup6m4jo6222@gmail.com' },
+];
+---
+
+<section class="home">
+	<h1>林郁為</h1>
+	<p class="home-tagline">個人作品頁</p>
+	<p class="home-note">統計背景，正朝資料科學邁進</p>
+	<p class="home-links">
+		{
+			secondaryLinks.map((link, i) => (
+				<Fragment>
+					{i > 0 && <span aria-hidden="true">·</span>}
+					<a href={link.href}>{link.label}</a>
+				</Fragment>
+			))
+		}
+	</p>
+</section>

@@ -1,13 +1,13 @@
 ---
 /**
- * 全站背景母題（視覺第 9 版，票 02／03）。
+ * 全站背景設計（視覺第 9 版，票 02／03）。
  *
  * 兩種模式共用同一支繪製程式：
  *   breathe — 首頁。散點＋一條不動的趨勢線；點各自漂移，全域在散→聚→散之間循環。
  *   reading — 閱讀頁。沒有趨勢線、沒有自發動態，磚頭式無縫平舖，跟著頁面捲動。
  *
  * **值一律由屬性帶進來，這支程式裡不寫值**（SPEC-background-and-homepage
- * 「母題參數的判準與檔位」）。`data-motif` 是票 01 定的產物端契約：內容必須等於
+ * 「背景設計參數的判準與檔位」）。`data-motif` 是票 01 定的產物端契約：內容必須等於
  * 判準檔的 `MOTIF`，閘門第七類就是照它驗的。技法常數走 `data-motif-craft`。
  *
  * canvas 是**純加法**：移除它之後頁面回到現行的三層背景，版面不受影響。
@@ -31,7 +31,7 @@ const { mode } = Astro.props;
 
 <style>
 	/* z 層級用既有的 −1（與顆粒層同層）。canvas 在 body::before 之後，
-	   所以母題畫在顆粒之上、內容之下——內容一律在 z-index auto 的常規流裡。 */
+	   所以背景設計畫在顆粒之上、內容之下——內容一律在 z-index auto 的常規流裡。 */
 	.motif {
 		position: fixed;
 		inset: 0;
@@ -45,7 +45,7 @@ const { mode } = Astro.props;
 <script>
 	const still = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-	/** 目前這一頁的收工函式（換頁與偏好改變時呼叫），沒有母題時是 null。 */
+	/** 目前這一頁的收工函式（換頁與偏好改變時呼叫），沒有背景設計時是 null。 */
 	let teardown: (() => void) | null = null;
 	/** 已經啟動過的那個 canvas。換頁時 ClientRouter 會換掉整個元素，所以比對元素本身。 */
 	let running: HTMLCanvasElement | null = null;
@@ -90,7 +90,7 @@ const { mode } = Astro.props;
 		const k = Math.log(M.trendSlopeRatio);
 		const expT = (u: number) => (Math.exp(k * u) - 1) / (Math.exp(k) - 1);
 
-		/* 母題走向上的座標。**只有這一份**——點的位置與線的位置各寫一份的話，
+		/* 背景設計走向上的座標。**只有這一份**——點的位置與線的位置各寫一份的話，
 		   哪天改了構圖常數就會分家，那正是「共用同一個離散度函式」在防的同一件事。
 		   （W／viewH 是 let，所以寫成函式而不是在 resize 時算好。） */
 		const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
@@ -235,7 +235,7 @@ const { mode } = Astro.props;
 		 * 文字可能出現的區域（文件座標）。
 		 *
 		 * main 取各個子元素的聯集而不是 main 自己的盒子：首頁的 main 撐滿一屏（flex:1），
-		 * 拿它當文字帶等於把下半整片一起減光，而那格空白正是母題的位置。
+		 * 拿它當文字帶等於把下半整片一起減光，而那格空白正是背景設計的位置。
 		 * **頁尾要各算一塊**：它在 main 外面、底又是透明的，第一次實測就是一顆點落在
 		 * 「© 2026」後面，muted 掉到 4.70——只差 0.2 就違規。導覽列不必：它自己有 92% 的底。
 		 */
@@ -261,7 +261,7 @@ const { mode } = Astro.props;
 		}
 
 		/**
-		 * 文字帶的減光遮罩。母題在文字可能出現的區域內，合成後的不透明度封頂在
+		 * 文字帶的減光遮罩。背景設計在文字可能出現的區域內，合成後的不透明度封頂在
 		 * `textBandMaxAlpha`（＝既有藍暈峰值）——元素主色對內文只有 2.39 的對比，
 		 * 一顆近景光點落在姓名後面就會讓那一帶掉到門檻以下。
 		 * **點還在，只是在文字帶內淡下來**：本人指定的是離群值的位置，不是亮度。
@@ -473,7 +473,7 @@ const { mode } = Astro.props;
 				}
 			}
 
-			// 四周化開：讓母題有重心，不是均勻鋪滿被視窗切斷
+			// 四周化開：讓背景設計有重心，不是均勻鋪滿被視窗切斷
 			ctx!.globalAlpha = 1;
 			ctx!.globalCompositeOperation = 'destination-out';
 			ctx!.fillStyle = fade!;

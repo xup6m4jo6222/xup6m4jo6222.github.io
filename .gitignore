@@ -29,6 +29,8 @@ HANDOVER.md
 SPEC-*.md
 .scratch/
 CONTEXT.md
+CONSTITUTION.md
+REFERENCE-*.md
 # 目視驗收截圖用的外框（.scratch/accent-text-semantics/shoot-acceptance.mjs 要它）
 # 必須放在 public/ 才會同源，iframe 裡才能捲到指定元素；同源限制不能繞
 public/shot-frame.html

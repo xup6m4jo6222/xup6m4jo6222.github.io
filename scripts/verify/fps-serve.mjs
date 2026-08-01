@@ -19,7 +19,7 @@ const probeName = process.env.PROBE || 'probe-fps.js';
 const js = readFileSync(new URL(probeName, import.meta.url), 'utf8');
 const pages = process.argv.slice(2).length
 	? process.argv.slice(2)
-	: ['index.html', 'projects/stats/taiwan-tourism/index.html'];
+	: ['index.html', 'projects/ai/portfolio-site/index.html'];
 
 for (const p of pages) {
 	const file = join(ROOT, 'dist', p);
@@ -37,6 +37,6 @@ const lan = Object.values(networkInterfaces())
 console.log('\n手機連同一個 wifi，開下面任一個網址：');
 for (const ip of lan) {
 	console.log(`  首頁      http://${ip}:4399/`);
-	console.log(`  閱讀頁    http://${ip}:4399/projects/stats/taiwan-tourism/`);
+	console.log(`  閱讀頁    http://${ip}:4399/projects/ai/portfolio-site/`);
 }
 console.log('\n畫面最上方那塊黑底綠字就是讀數。放著幾分鐘再截圖。');

@@ -1,20 +1,24 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+/* PROTOTYPE（2026-07-30）：最近專案展示卡的 UI 原型掛在這一頁上，`?variant=` 切換。
+   `import.meta.env.DEV` 之外完全不影響產品——建置時走原本的分支。
+   選定之後：把贏的變體折進下面的正式版面，然後刪掉 `src/components/_proto/` 與這兩行。 */
+import HomePrototype from '../components/_proto/HomePrototype.astro';
+const PROTO = import.meta.env.DEV;
 
 /* 主要行動：履歷 PDF。檔案還不存在——依 CLAUDE.md「沒有就不放，不放佔位」，
    空字串時整塊不渲染，也不渲染停用狀態的按鈕。有了把路徑填進來即可，版面已備好。 */
 const resumeHref = '';
 
-/* 次要連結：底線文字，以間隔點分開。版面按五個的容量做，現在只放兩個。
-   LinkedIn 帳號就緒後加在這個陣列裡——同樣是有才放。 */
-const secondaryLinks = [
-	{ label: 'GitHub', href: 'https://github.com/xup6m4jo6222' },
-	{ label: 'Email', href: 'mailto:xup6m4jo6222@gmail.com' },
-];
+/* 2026-07-30：GitHub 與 Email 移到頁尾（`BaseLayout.astro`），首頁不再重複列。
+   職責分工——導覽列回答「我要去哪」，頁尾回答「怎麼找到你」；放在頁尾之後它在
+   每一頁都在，讀者在任何一篇專案頁想聯絡都不必先捲回首頁。
+   LinkedIn 就緒後加在頁尾那一組裡，同樣是有才放。 */
 ---
 
 <BaseLayout title="林郁為" motif="breathe">
-	<section class="home">
+	{PROTO && <HomePrototype />}
+	<section class="home" style={PROTO ? 'display:none' : undefined}>
 		<h1 data-reveal>林郁為</h1>
 		<p class="home-tagline" data-reveal>個人作品頁</p>
 		<p class="home-note" data-reveal>統計背景，正朝資料科學邁進</p>
@@ -25,15 +29,5 @@ const secondaryLinks = [
 				</p>
 			)
 		}
-		<p class="home-links" data-reveal>
-			{
-				secondaryLinks.map((link, i) => (
-					<Fragment>
-						{i > 0 && <span aria-hidden="true">·</span>}
-						<a href={link.href}>{link.label}</a>
-					</Fragment>
-				))
-			}
-		</p>
 	</section>
 </BaseLayout>

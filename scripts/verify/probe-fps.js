@@ -5,19 +5,19 @@
  * `--virtual-time-budget` 遇到常駐 rAF 迴圈幾乎不前進（實測 2 秒只給 4 幀），
  * 在那個環境量到的幀率是量測環境的假象，不是這個站的數字（看板 2026-07-28 那條教訓）。
  *
- * 量法：在母題的模組執行**之前**換掉 window.requestAnimationFrame，替每一次回呼計時。
- * 注入點在 </body> 前，是傳統腳本，於解析當下執行；母題是 type=module（延後執行），
- * 所以順序穩定。母題被 fpsCap 擋掉的那些幀成本近 0，只計真的重畫的那些。
+ * 量法：在背景設計的模組執行**之前**換掉 window.requestAnimationFrame，替每一次回呼計時。
+ * 注入點在 </body> 前，是傳統腳本，於解析當下執行；背景設計是 type=module（延後執行），
+ * 所以順序穩定。背景設計被 fpsCap 擋掉的那些幀成本近 0，只計真的重畫的那些。
  *
  * 讀數三個層次：
  *   畫面更新率  ——「順不順」。60Hz 螢幕上掉到 50 以下就是讀者感覺得到的卡。
- *   母題重畫率  —— 應該貼齊 fpsCap（30）。明顯低於 30 表示畫不完。
+ *   背景設計重畫率  —— 應該貼齊 fpsCap（30）。明顯低於 30 表示畫不完。
  *   每幀成本    ——「還能加多少點」的唯一依據，pointCap 由它反推。
  */
 (() => {
 	const BUDGET = 11; // 每幀預算（ms）。pointCap 的定義就是「這個預算下擺得下幾個點」
 	const raf = window.requestAnimationFrame.bind(window);
-	const cost = []; // 母題真的重畫的那些幀，各佔用幾 ms
+	const cost = []; // 背景設計真的重畫的那些幀，各佔用幾 ms
 	const ticks = []; // 每一次畫面更新的時間戳
 
 	window.requestAnimationFrame = (cb) =>
@@ -50,7 +50,7 @@
 			'position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;' +
 			'font:13px/1.5 monospace;padding:10px;white-space:pre-wrap;pointer-events:none';
 		document.body.appendChild(box);
-		if (!cv) { box.textContent = '這一頁沒有母題（BaseLayout 沒給 motif prop）'; return; }
+		if (!cv) { box.textContent = '這一頁沒有背景設計（BaseLayout 沒給 motif prop）'; return; }
 
 		const M = JSON.parse(cv.dataset.motif);
 		const K = JSON.parse(cv.dataset.motifCraft);
@@ -121,8 +121,8 @@
 				`目前點數 ${n}　fpsCap ${M.fpsCap}　已跑 ${secs.toFixed(0)} 秒\n` +
 				`━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
 				`畫面更新率　最近5秒 ${fpsRecent.toFixed(1)} fps　全程 ${fpsAll.toFixed(1)} fps\n` +
-				`母題重畫率　${(cost.length / secs).toFixed(1)} 次/秒（應貼齊 ${M.fpsCap}）\n` +
-				`母題每幀成本　中位 ${med.toFixed(2)} ms　p95 ${p95.toFixed(2)} ms　最大 ${max.toFixed(2)} ms\n` +
+				`背景設計重畫率　${(cost.length / secs).toFixed(1)} 次/秒（應貼齊 ${M.fpsCap}）\n` +
+				`背景設計每幀成本　中位 ${med.toFixed(2)} ms　p95 ${p95.toFixed(2)} ms　最大 ${max.toFixed(2)} ms\n` +
 				`長工作(>50ms) ${jank} 次\n` +
 				`━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
 				`每幀預算 ${BUDGET}ms 下擺得下 ≈ ${cap} 個點（現行 pointCap ${K.pointCap}）\n` +

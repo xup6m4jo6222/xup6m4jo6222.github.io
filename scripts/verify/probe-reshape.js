@@ -4,9 +4,9 @@
  *
  * **不能看 canvas 尺寸**：canvas 本來就必須跟著視窗改尺寸才蓋得滿，修正前後都會變。
  * 要看的是**點有沒有被重擲**——而 `buildBreathe()`／`buildReading()` 是繪製程式裡
- * 唯二呼叫 `Math.random()` 的地方（每個點約六次）。所以在母題的模組執行**之前**
+ * 唯二呼叫 `Math.random()` 的地方（每個點約六次）。所以在背景設計的模組執行**之前**
  * 換掉 `Math.random` 並計數，就能精確分辨「重畫」與「重擲」。
- * 注入點在 </body> 前、是傳統腳本，於解析當下執行；母題是 type=module（延後執行）。
+ * 注入點在 </body> 前、是傳統腳本，於解析當下執行；背景設計是 type=module（延後執行）。
  *
  * 判準：載入後計數應該**凍住不動**。捲動時若持續增加，就是每次網址列收合都在重擲。
  * 同時要看 innerHeight 的變動範圍——若它從頭到尾沒變過，代表觸發條件根本沒出現，
@@ -27,7 +27,7 @@
 			'position:fixed;top:0;left:0;right:0;z-index:99999;background:#000;color:#0f0;' +
 			'font:13px/1.6 monospace;padding:10px;white-space:pre-wrap;pointer-events:none';
 		document.body.appendChild(box);
-		if (!cv) { box.textContent = '這一頁沒有母題'; return; }
+		if (!cv) { box.textContent = '這一頁沒有背景設計'; return; }
 
 		let hMin = innerHeight;
 		let hMax = innerHeight;

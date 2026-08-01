@@ -8,7 +8,7 @@ import '../styles/global.css';
 interface Props {
 	title: string;
 	backLink?: { href: string; label: string };
-	/** 背景母題的模式。不給就沒有母題——新頁面要自己選一種，不會靜靜地繼承一個。 */
+	/** 背景設計的模式。不給就沒有背景設計——新頁面要自己選一種，不會靜靜地繼承一個。 */
 	motif?: 'breathe' | 'reading';
 }
 
@@ -50,7 +50,7 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		<title>{title}</title>
 	</head>
 	<body>
-		{/* 背景層的疊法由 DOM 順序決定：顆粒（body::before）→ 場 → 母題 → 內容。
+		{/* 背景層的疊法由 DOM 順序決定：顆粒（body::before）→ 場 → 背景設計 → 內容。
 		    場沒有模式參數——首頁與閱讀頁用同一組值（2026-07-28 本人裁定），
 		    兩頁的差別全部來自文字帶的形狀（首頁是中間一塊、閱讀頁是整條正文欄）。 */}
 		{motif && <Field />}
@@ -64,9 +64,17 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		<main>
 			<slot />
 		</main>
+		{/* 2026-07-30：聯絡方式從首頁下移到這裡。職責分工——**導覽列回答「我要去哪」，
+		    頁尾回答「怎麼找到你」**。放在頁尾之後它在每一頁都在，讀者在任何一篇專案頁
+		    想聯絡都不必先捲回首頁。 */}
 		<footer>
 			<div class="footer-inner">
 				<span>&copy; 2026 林郁為</span>
+				<span class="footer-contact">
+					<a href="https://github.com/xup6m4jo6222">GitHub</a>
+					<span aria-hidden="true">·</span>
+					<a href="mailto:xup6m4jo6222@gmail.com">Email</a>
+				</span>
 				<span>最後更新 {buildDate}</span>
 			</div>
 		</footer>

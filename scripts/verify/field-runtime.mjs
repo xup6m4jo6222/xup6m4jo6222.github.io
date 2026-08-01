@@ -228,7 +228,7 @@ function run(path, extra = [], ms = 45000) {
 
 const PAGES = [
 	['首頁', '/'],
-	['閱讀頁', '/projects/stats/taiwan-tourism/'],
+	['閱讀頁', '/projects/ai/portfolio-site/'],
 ];
 
 /**
@@ -280,9 +280,9 @@ async function runtime() {
 			   裂縫都長餘燼（約 236 顆）。**這才是「還擺得下多少東西」問得到答案的量法**，
 			   只量現行值只會得到「量不到」。 */
 			const loaded = await run(`${path}?runtime=1&ember=0.9`, flags, 150000);
-			/* 建場成本要**單獨量**，不能用「有場」減「沒場」：改版面那條路上母題也在
+			/* 建場成本要**單獨量**，不能用「有場」減「沒場」：改版面那條路上背景設計也在
 			   重建（三張整面離屏遮罩＋遠景層，實測 72–178ms），兩個量級差太多的東西
-			   相減得到的是雜訊——第一版量到 −1.0 到 +4.5ms 都有。`?nomotif=1` 把母題
+			   相減得到的是雜訊——第一版量到 −1.0 到 +4.5ms 都有。`?nomotif=1` 把背景設計
 			   拿掉，讓場單獨走一次那條路。 */
 			const alone = await run(`${path}?runtime=1&nomotif=1`, flags, 150000);
 			const without = await run(`${path}?runtime=1&kill=1`, flags, 150000);
@@ -295,10 +295,10 @@ async function runtime() {
 			const marginal = full.cost.med - fixed;
 			console.log(`\n── ${name}　${full.vw}×${full.vh} DPR ${full.dpr}`);
 			/* **要分兩行報。**探針換掉的是**全域** requestAnimationFrame，所以任何消費者的
-			   回呼都會進樣本——首頁的母題也有一條常駐迴圈，於是「每幀成本」量到的是
-			   場＋母題。2026-07-29 抗辯實測：首頁完整 0.40ms／71.3fps，`?nomotif=1` 只有
+			   回呼都會進樣本——首頁的背景設計也有一條常駐迴圈，於是「每幀成本」量到的是
+			   場＋背景設計。2026-07-29 抗辯實測：首頁完整 0.40ms／71.3fps，`?nomotif=1` 只有
 			   0.20ms／51.1fps。**那個 71.3 本身就是破綻**——它高過這台無頭畫得出來的上限，
-			   因為它根本不是幀率，是兩條迴圈的回呼數相加。閱讀頁乾淨（那一頁母題沒有迴圈）。
+			   因為它根本不是幀率，是兩條迴圈的回呼數相加。閱讀頁乾淨（那一頁背景設計沒有迴圈）。
 			   兩個數字都有意義：場自己的成本是這一層的帳，首頁實際是讀者真的付的。 */
 			const line = (tag, r) =>
 				console.log(
@@ -306,7 +306,7 @@ async function runtime() {
 						` ／ 預算 ${BUDGET} ms（有量到的 ${r.cost.n} 幀，${((r.silentFrames ?? 0) * 100).toFixed(0)}% 量到 0）　更新率 ${r.fps.toFixed(1)}/s`,
 				);
 			if (alone.ok) line('（場自己）　', alone);
-			line('（場＋母題）', full);
+			line('（場＋背景設計）', full);
 			/* 差額小於計時器解析度時**只給上界，不給數字**。0.1ms 的量化下，
 			   兩個 0.4ms 相減可以是 −0.1 也可以是 +0.1——把那個當成「每顆 −0.85µs」
 			   印出來，是在假裝量到了沒量到的東西。 */
@@ -329,7 +329,7 @@ async function runtime() {
 			);
 			if (without.ok && without.build.med != null) {
 				console.log(
-					`   　　同一條路上母題佔 ${ms(without.build.med)}（三張整面離屏遮罩＋遠景層）——場不是這條路的瓶頸`,
+					`   　　同一條路上背景設計佔 ${ms(without.build.med)}（三張整面離屏遮罩＋遠景層）——場不是這條路的瓶頸`,
 				);
 			}
 			/* `builds` 現在只收「真的重建了」那幾次，所以要拿 rebuilt 對 tries 比，
@@ -425,7 +425,7 @@ function lan() {
 	console.log('手機連同一個 wifi，開下面任一個網址（開著別動，約 20 秒後會自己回報）：\n');
 	for (const ip of ips) {
 		console.log(`  首頁    http://${ip}:${PORT}/?runtime=1`);
-		console.log(`  閱讀頁  http://${ip}:${PORT}/projects/stats/taiwan-tourism/?runtime=1`);
+		console.log(`  閱讀頁  http://${ip}:${PORT}/projects/ai/portfolio-site/?runtime=1`);
 	}
 	console.log('\n收工按 Ctrl-C。等回報中……\n');
 	const ms = (v) => (v == null ? '—' : `${v.toFixed(2)} ms`);
@@ -481,7 +481,7 @@ async function shots(dir) {
 			]);
 			c.on('close', done);
 		});
-	const read = '/projects/stats/taiwan-tourism/';
+	const read = '/projects/ai/portfolio-site/';
 	// 第一題：線的強度。現行 0.040 對上原型上「明顯較有存在感」的 0.070
 	await shot('/', 'q1-home-ink-040.png');
 	await shot('/?ink=0.07', 'q1-home-ink-070.png');
