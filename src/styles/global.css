@@ -3,7 +3,7 @@
 
 	/* ── 中性階（primitive，無語義）───────────────────────────────────
 	   L 感知等距 ΔL=8、C 隨 L 線性遞減 .030→.010、H 全階 335（＝背景主色自己的色相）。
-	   兩端沿用凍結／既有字面值，其餘取公式值。推導與對比度表見 SPEC-design-system.md。
+	   兩端沿用凍結／既有字面值，其餘取公式值。推導與對比度表見 docs/SPEC-design-system.md。
 	   說「比邊框深一階」時指的就是這排數字，不要再發明新的語義名。 */
 	--n-50: #20131d;
 	--n-100: #342630;
@@ -214,6 +214,9 @@ body,
 .nav-progress,
 .home-cta a,
 .home-links,
+/* 展示卡裡的提示詞引文。降階不是排版偏好：那是**機器輸入的引文**，不是給人閱讀的
+   正文——卡片有六成高度是它，留在階 0 會讓證物看起來比問句還重要。 */
+.home-msg-text,
 .card p,
 .back-link,
 .category-label,
@@ -319,28 +322,41 @@ main > h1 {
 	font-weight: 400;
 }
 
-/* 樣式：首頁副標（階 3）。原本全頁只有階 6 與階 2 兩個字級在講話，中間三階全空，
-   讀起來像兩張投影片疊在一起。副標拆兩級補上中間階——純字級改動，零新文案。 */
+/* 樣式：署名的定位句（階 0）。票 05 從階 3 降下來：署名旁邊那一句是**說明**不是
+   第二個標題，而名字同時從階 6 降到階 4，兩個大字級並排會互相搶。 */
 .home-tagline {
-	font-size: var(--fs-3);
-	line-height: var(--lh-3);
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
 	letter-spacing: var(--ls-body);
 	font-weight: 400;
 }
 
-/* 樣式：首頁說明（階 1）。與段落標題同階但不同樣式：那組是襯線 600 ＋ 大字距的
-   標題，這裡是內文語氣的一句話。 */
+/* 樣式：展示卡的標註（階 0）。說明剛揭曉的那張圖是什麼，內文語氣的一句話。
+   票 05 前這個類名是首頁的說明句（階 1），署名改版後那個位置由定位句承接。 */
 .home-note {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：展示卡的專案名稱（階 1 ／半粗）。**不得借用「標籤」那一組襯線 600**——
+   那一組的定義是「說明接下來這一塊是什麼」的短詞，專案名稱是內容不是標籤，
+   借用會讓 `CONTEXT.md` 的詞彙定義當場說謊。可用的通道剩字級與字重，取字重 500
+   （介面字體只載入 400／500，700 會被靜默替換）。 */
+.home-title {
 	font-size: var(--fs-1);
 	line-height: var(--lh-1);
 	letter-spacing: var(--ls-body);
-	font-weight: 400;
+	font-weight: 500;
 }
 
-/* 樣式：首頁大字（階 6 ／襯線）。桌機約內文 5 倍、手機 3.2 倍。 */
+/* 樣式：署名的名字（階 4 ／襯線）。票 05 從階 6 降下來——主角是展示卡，名字回答的是
+   「這是誰」，兩者不爭同一份注意力預算。階 4 而不是更低：署名不參與讓位之後，
+   「名字不必靠字級去爭」那句話的前提就消失了。 */
 .home h1 {
-	font-size: var(--fs-6);
-	line-height: var(--lh-6);
+	font-size: var(--fs-4);
+	line-height: var(--lh-4);
 	letter-spacing: var(--ls-display);
 	font-weight: 400;
 }
@@ -490,8 +506,13 @@ html {
 }
 
 /* Nav */
+/* 底線用**主色線**（票 05）。原本是對比 2.35 的「線」token，導覽列與頁尾因此讀起來
+   「太素、沒有存在感」。這是既有的「線」語彙落點，判準二允許——線不改變字底下那塊底，
+   所以它不會削任何一個字的對比（主色線疊在頁底實測 6.05）。
+   **已登記的缺口**：框線色沒有任何閘門在看（對比檢查只驗文字色），見
+   `docs/REFERENCE-accent-text.md` 那份「刻意不修的」清單。 */
 .site-nav {
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-accent);
 	position: sticky;
 	top: 0;
 	background: var(--color-nav-bg);
@@ -564,33 +585,83 @@ html {
 	background: var(--color-accent);
 }
 
-/* 首頁：單欄左對齊，一塊完整的內容；右半邊整片留給背景設計。
+/* 首頁：單欄左對齊，兩塊內容——署名與展示卡。右半邊整片留給背景設計。
    原本是「左 h1＋副標／右 入口連結」的雙欄，兩欄底部對齊——但那讓按鈕頂端與姓名
    頂端切齊（實測差 0）而兩者相差七階，量級與位置互相打架。連結改為內容流的一部分。 */
+.home {
+	display: flex;
+	flex-direction: column;
+	/* 署名與卡片之間**維持既有的元件間距檔**。試過拉到 2×／3×，本人看過三檔後裁定
+	   「卡片位置放第一版比較好」——署名的地由字級與右側留白劃，不靠把主角往下推。 */
+	gap: var(--sp-lg);
+}
+
 .home h1 {
 	font-family: var(--font-display);
 	margin: 0;
 }
 
-/* 進場：姓名先，其餘同時跟上（沿用既有的 380ms；0.38＋0.35＝0.73s，在紅線②內）。
-   原本是四個元素各帶一條 inline style，值散在 HTML 裡。 */
-.js .home > :not(h1)[data-reveal] {
+/* 署名區只收右邊：左邊界維持與導覽列、頁尾同一條線（那個對齊是既有定案，
+   `main` 那個 1200px 破框當初就是為了它拿掉的），收窄出來的右側是背景設計的地。 */
+.home-id {
+	max-width: 62%;
+}
+
+/* 進場兩段：名字先，主角（展示卡）接著（本人 2026-07-30 指定的順序）。
+   沿用既有的 380ms；0.38＋0.35＝0.73s，在紅線②內。 */
+.js .home > .home-card[data-reveal] {
 	transition-delay: 380ms;
 }
 
 .home-tagline {
-	margin: var(--sp-0-75) 0 0; /* 標題 → 副標：0.75× */
+	color: var(--color-text-muted);
+	margin: var(--sp-xs) 0 0;
 }
 
 .home-note {
 	color: var(--color-text-muted);
-	margin: var(--sp-0-5) 0 0; /* 副標 → 說明：0.5× */
+	margin: 0;
 }
 
-/* 問句（票 03 先落地樣式，票 05 才有 HTML 掛上來——**現在站上沒有任何元素是
-   `.home-ask`，所以這條規則不改變任何一個既有畫面**）。新形態與舊形態並存，是為了讓
-   票 05 只扛「改一個版面」，不必同時扛「加一個顏色」。
+/* ── 最近專案展示卡（首頁主角）─────────────────────────────────────
+   組成順序＝陌生人 30 秒的讀取順序：分類與序號（這是什麼類的第幾件）→ 問句
+   （勾不勾得住我）→ 提示詞與圖（證物）→ 出口。 */
+.home-card {
+	padding: var(--sp-lg);
+	background: var(--color-bg-alt);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-md);
+}
 
+.home-head {
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--sp-sm);
+}
+
+/* 分類與序號的標籤：7% 主色淡底（「面」語彙的第 4 個實例）＋ 統一圓角（第 12 個）。
+   **字是內文色不是主色**——判準二量出來的硬邊界（主色字在 7% 淡底上只有 4.33／4.36，
+   低於 4.5），判準三也排除獨立成塊的標籤拿主色。這兩件事沒有選擇空間，是算出來的。
+   行高取 1 而不是階 −1 的 2.02：膠囊的高度由 padding 決定，行高在這裡是元件尺寸
+   不是文字節奏。 */
+.home-chip {
+	font-size: var(--fs--1);
+	line-height: 1;
+	letter-spacing: var(--ls-label);
+	font-weight: 400;
+	color: var(--color-text);
+	background: var(--color-accent-tint);
+	border-radius: var(--radius);
+	padding: var(--sp-xs) var(--sp-sm);
+	white-space: nowrap;
+}
+
+/* 問句（樣式票 03 先落地、票 05 掛上 HTML）。
    字級階 2 不是排版偏好，是**辨識通道**：判準一要求辨識由字重／字體／字級／底線承擔，
    顏色只負責份量。所以這一行的 font-size 就是允許清單第十條宣稱的那個通道，
    拿掉它等於那一條的理由消失，第十二類會紅。 */
@@ -598,10 +669,133 @@ html {
 	color: var(--color-ask);
 	font-size: var(--fs-2);
 	line-height: var(--lh-2);
+	margin: 0;
+}
+
+/* 對話框＝圓角框 ＋ 1px 線，兩個都是站上既有語彙。**不用陰影**（全站 0 處且已設閘門）、
+   **不用等寬字**（src/ 零實例，會是縫合）——所以它不會長得像 ChatGPT，那是刻意的。 */
+.home-msg {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--sp-md);
+	padding: var(--sp-md);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+.home-msg-text {
+	margin: 0;
+	flex: 1;
+	min-width: 0;
+	color: var(--color-text-muted);
+}
+
+.home-send {
+	appearance: none;
+	font: inherit;
+	flex-shrink: 0;
+	color: var(--color-text);
+	background: transparent;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-sm) var(--sp-lg);
+	cursor: pointer;
+	transition: background-color var(--dur-md) var(--ease);
+}
+
+/* hover 往上一階（卡底 n-100 → n-200），不是換一個新顏色。 */
+.home-send:hover {
+	background: var(--color-bg-card);
+}
+
+/* 圖用 aspect-ratio ＋ object-fit 取上緣，不用 max-height + overflow。
+   差別：前者「只顯示上面這一段」是宣告出來的，後者是裁到哪算哪。 */
+.home-shot {
+	margin: 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+	aspect-ratio: 760 / 340;
+}
+
+.home-shot img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: top;
+}
+
+.home-foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-sm);
+}
+
+/* ── 那一次點擊（機制 F：訊息讓位，圖佔走它的位置）────────────────────
+   **沒有 JS 的讀者拿到的是一張靜態但完整的卡**：圖、標註、出口都在，只有送出鍵不出現
+   ——按鈕的工作是揭曉，要揭曉的東西已經在畫面上時，那顆按鈕是一句謊。
+   所以三條規則的開關全掛在 `.js` 上，與聚焦組的第三個逃生口同一個作法。 */
+.home-send {
+	display: none;
+}
+
+.js .home-send {
+	display: inline-block;
+}
+
+.js .home-shot,
+.js .home-foot {
+	display: none;
+}
+
+.js .home-card.is-sent .home-msg {
+	display: none;
+}
+
+/* 揭幕：圖從中線往上下掀開。動的是 clip-path，**不碰版面**——不會重排，也不會把
+   下面的文字推來推去。為什麼是揭幕不是淡入：淡入的中間狀態沒有意義（半透明的截圖
+   不代表任何東西），揭幕的中間狀態有——它正在被掀開。
+   時序：圖 0.35s、出口延 0.35s 再淡入 0.35s ＝ 0.7s，兩者各自都在紅線①②內。 */
+.js .home-card.is-sent .home-shot {
+	display: block;
+	clip-path: inset(50% 0 50% 0);
+	transition: clip-path var(--dur-lg) var(--ease);
+}
+
+.js .home-card.is-open .home-shot {
+	clip-path: inset(0 0 0 0);
+}
+
+.js .home-card.is-sent .home-foot {
+	display: flex;
+	opacity: 0;
+	transition: opacity var(--dur-lg) var(--ease) var(--dur-lg);
+}
+
+.js .home-card.is-open .home-foot {
+	opacity: 1;
+}
+
+/* 降低動態偏好：揭幕是空間處理，關掉；淡化與延遲一併省去，按下去就是終態。 */
+@media (prefers-reduced-motion: reduce) {
+	.js .home-card.is-sent .home-shot {
+		clip-path: none;
+		transition: none;
+	}
+
+	.js .home-card.is-sent .home-foot {
+		opacity: 1;
+		transition: none;
+	}
 }
 
 /* 主要行動（履歷）：唯一的有框按鈕，量級與次要連結拉開。
-   來源不存在時整塊不渲染——連停用狀態的按鈕都不放，見 index.astro。 */
+   **票 05 起首頁沒有任何元素掛這一組**——履歷 PDF 還不存在（已明確擱置），版面改版時
+   把那個不渲染的分支一起收掉了。規則留著的理由與 `.home-links` 相同：它的 hover 是
+   允許清單上認領過的落點，拆掉等於拆掉一條有人審過的判準。檔案有了就掛回來。 */
 .home-cta {
 	margin: var(--sp-1) 0 0; /* 說明 → 主要按鈕：1× */
 }
@@ -1392,7 +1586,7 @@ main > h1 {
 }
 
 /* 「線」的落點（2026-07-28 本人從四個變體挑定的 D 版，比稿原始材料在 throwaway
-   branch `proto/accent-weight`；SPEC-accent-weight「落點」那張表是它的正本）：
+   branch `proto/accent-weight`；docs/SPEC-accent-weight「落點」那張表是它的正本）：
    主色以左緣那條 2px 的線存在，**線不改變字底下那塊底**，
    所以行標的字可以一起拿主色——九態最壞 4.81，過 4.5。
 
@@ -1479,9 +1673,10 @@ main > h1 {
 }
 
 /* Footer */
+/* 頂線與導覽列底線成對，同樣換成主色線（票 05）。理由與缺口見 `.site-nav` 那一段。 */
 footer {
 	color: var(--color-text-muted);
-	border-top: 1px solid var(--color-border);
+	border-top: 1px solid var(--color-accent);
 }
 
 .footer-inner {

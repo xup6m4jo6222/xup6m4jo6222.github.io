@@ -13,7 +13,6 @@ interface Props {
 }
 
 const { title, backLink, motif } = Astro.props;
-const buildDate = new Date().toLocaleDateString('sv-SE');
 ---
 
 <html lang="zh-Hant" class="no-js">
@@ -66,7 +65,9 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 		</main>
 		{/* 2026-07-30：聯絡方式從首頁下移到這裡。職責分工——**導覽列回答「我要去哪」，
 		    頁尾回答「怎麼找到你」**。放在頁尾之後它在每一頁都在，讀者在任何一篇專案頁
-		    想聯絡都不必先捲回首頁。 */}
+		    想聯絡都不必先捲回首頁。
+		    2026-08-02（票 05）：「最後更新」那一欄移除——建置日期對訪客沒有意義，
+		    它回答的是維護者的問題。頁尾剩版權與聯絡兩組。 */}
 		<footer>
 			<div class="footer-inner">
 				<span>&copy; 2026 林郁為</span>
@@ -75,7 +76,6 @@ const buildDate = new Date().toLocaleDateString('sv-SE');
 					<span aria-hidden="true">·</span>
 					<a href="mailto:xup6m4jo6222@gmail.com">Email</a>
 				</span>
-				<span>最後更新 {buildDate}</span>
 			</div>
 		</footer>
 		<script>

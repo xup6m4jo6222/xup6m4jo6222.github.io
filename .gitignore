@@ -24,13 +24,11 @@ pnpm-debug.log*
 .idea/
 
 .claude/
-DECISIONS.md
-HANDOVER.md
-SPEC-*.md
 .scratch/
-CONTEXT.md
-CONSTITUTION.md
-REFERENCE-*.md
+# 私有的協作文件全部住在 docs/，它自己是一個獨立的私有備份版本庫。
+# 公開的三份工具留在根目錄：CLAUDE.md、AGENTS.md、CONTEXT.md
+# （CONTEXT.md 依 DECISIONS.md 2026-07-25 拍板公開，2026-08-02 補執行）
+docs/
 # 目視驗收截圖用的外框（.scratch/accent-text-semantics/shoot-acceptance.mjs 要它）
 # 必須放在 public/ 才會同源，iframe 裡才能捲到指定元素；同源限制不能繞
 public/shot-frame.html

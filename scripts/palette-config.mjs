@@ -508,6 +508,26 @@ export const CONTRAST_PAIRS = [
 		bgOn: '.cs-track .cs-side--me',
 		bgLiteral: 'var(--color-accent-tint)',
 	},
+	/**
+	 * 票 05：首頁展示卡的分類／序號標籤——「面」語彙的第 4 個實例。
+	 *
+	 * 與比對器本人側同型（淡底疊在**面板底**上，不是頁面九態），所以底不必量九次：
+	 * 卡片有不透明的底，顆粒畫在內容之下、進不到卡片裡（2026-07-29 量真的像素證過）。
+	 *
+	 * 這一組同時是「兩枚標籤的字必須是內文色」那條判準的執行版：`fgOn` 一斷言，
+	 * 誰把 chip 的字改成主色都會紅——7% 淡底上主色字只有 4.33／4.36，低於 4.5。
+	 * 這正是這張卡最容易重犯的一件事，因為移除前導小標之後主色從卡上完全消失，
+	 * 「把顏色加回去」看起來會像一個無害的補救。
+	 */
+	{
+		fg: 'var(--color-text)',
+		bg: 'over:var(--color-accent-tint)/var(--color-bg-alt)',
+		where: '展示卡的分類／序號標籤（7% 主色淡底 on 面板底）',
+		fgOn: ['.home-chip'],
+		bgOn: '.home-chip',
+		bgLiteral: 'var(--color-accent-tint)',
+	},
+
 	{
 		fg: 'var(--color-text)',
 		bgs: TINTED_PAGE_SURFACES,

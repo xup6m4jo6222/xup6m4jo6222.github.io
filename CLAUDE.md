@@ -2,13 +2,15 @@
 
 | 情境 | 讀這份 |
 |---|---|
-| **任何視覺或互動的選擇** | `CONSTITUTION.md` — 設計憲法。第零條 → 三道門檻 → 三條油門 → 兩條煞車，依序過 |
+| **任何視覺或互動的選擇** | `docs/CONSTITUTION.md` — 設計憲法。第零條 → 三道門檻 → 三條油門 → 兩條煞車，依序過 |
 | 詞彙定義（版面 vs 內容、面 vs 線⋯⋯） | `CONTEXT.md` |
-| 決策沿革與郁為的原話 | `DECISIONS.md` |
-| 某一輪工作的完整規格 | `SPEC-*.md` |
-| 主色當文字色的實測數字與豁免登記 | `REFERENCE-accent-text.md` |
+| 決策沿革與郁為的原話 | `docs/DECISIONS.md` |
+| 某一輪工作的完整規格 | `docs/SPEC-*.md` |
+| 主色當文字色的實測數字與豁免登記 | `docs/REFERENCE-accent-text.md` |
 
-以上都在本目錄，且都在 `.gitignore` 內（不進版控）。
+`docs/` 是私有的協作文件區：不進本 repo 版控，它自己是一個獨立的私有備份版本庫。
+`CONTEXT.md` 例外——留在根目錄且公開進版控，性質同本檔，無決策弱點
+（`docs/DECISIONS.md` 2026-07-25 拍板，2026-08-02 補執行）。
 
 ## Project context
 
@@ -39,7 +41,7 @@ Architecture notes:
 - 涉及檔案：`global.css`＋process 頁＋`favicon.svg`；**`public/process/` 的九個 `.html` 每一個都有自己的 `--a`，一個都不能漏**（以 `ls public/process/` 為準，2026-07-28 實測更正）；收工前 `grep -ri "<舊色碼>" src public` 必須零殘留
 - 色碼改完≠完成：og-card.png 與 current-vN/page-timeline-vN 比對截圖需重生成、portfolio-site.md 版次角標進位（重大視覺版本慣例），對比度需驗 ≥4.5
 
-## 元素主色當文字色——門檻（完整判準見 `REFERENCE-accent-text.md`）
+## 元素主色當文字色——門檻（完整判準見 `docs/REFERENCE-accent-text.md`）
 
 **範圍限 `src/`。** 一句話的規則：
 
@@ -54,7 +56,7 @@ Architecture notes:
 
 合法的強調色是一份明列清單（`ACCENTS`），目前兩個：主色 `#7998c3` 與問句色 `#c8b7ea`。兩者彩度都釘在 0.073，**那不是自由參數**——新增強調色只有色相與明度兩個自由度，閘門會驗。
 
-要判斷某個元素該不該拿主色、或要查實測數字與「刻意不修」的登記，讀 `REFERENCE-accent-text.md`。
+要判斷某個元素該不該拿主色、或要查實測數字與「刻意不修」的登記，讀 `docs/REFERENCE-accent-text.md`。
 
 ## Development
 
@@ -81,7 +83,7 @@ Consult these guides before working on related tasks:
 
 ## Decision log（決策紀錄協議）
 
-當使用者在協作中做出「拍板／否決／推翻先前方案／修正流程」的決策時，當下 append 一行到本地檔 `DECISIONS.md`（已 gitignore，不進版控；私人備份在 sandbox repo）：
+當使用者在協作中做出「拍板／否決／推翻先前方案／修正流程」的決策時，當下 append 一行到本地檔 `docs/DECISIONS.md`（不進本 repo 版控；備份在 `docs/` 自己的私有版本庫）：
 
 ```
 - YYYY-MM-DD | [拍板|否決|修正] 決策一句話 | 理由（使用者原話優先；若是推斷，標註「推斷」）
