@@ -120,33 +120,30 @@ import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
 		let shockT = -1e9;
 
 		type Box = { top: number; bottom: number; left: number; right: number };
-		const union = (a: Box | null, r: DOMRect): Box =>
-			a
-				? {
-						top: Math.min(a.top, r.top),
-						bottom: Math.max(a.bottom, r.bottom),
-						left: Math.min(a.left, r.left),
-						right: Math.max(a.right, r.right),
-					}
-				: { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
 
 		/**
 		 * 文字可能出現的區域（視窗座標）。取法與背景設計的 `contentBoxes()` 同源：
-		 * main 取子元素的聯集而不是 main 自己的盒子（首頁的 main 撐滿一屏，
-		 * 拿它當文字帶等於把下半整片一起減光），頁尾另算一塊並收成欄寬。
+		 * **內容區的每個子元素各算一塊，不取聯集**（票 06——聯集只認最外緣，全寬的展示卡
+		 * 會把署名右側那塊留白一起拖進文字帶）；`main` 只有一個子元素時它是版面包裝盒
+		 * （首頁的 `section.home`），要往下一層再取；頁尾另算一塊並收成欄寬。
+		 * 拿 `main` 自己的盒子不行：首頁的 main 撐滿一屏，那等於把下半整片一起減光。
 		 *
 		 * **與背景設計不同的是這裡不跟著捲動走**：減光是烤進預繪圖裡的，跟著捲動就得每幀
 		 * 重貼一張遮罩，那正是「場只在參數或視窗改變時重建」要省下來的成本。
 		 * 閱讀頁的正文欄本來就貫穿整頁、與捲動無關；首頁只有一屏高，差別看不出來。
+		 *
+		 * 已知代價（票 06 明列並接受）：塊與塊之間的間距脫離減光，背景會從縫裡透出來。
+		 * 這裡的垂直方向沒有化開（`dimAt` 是硬邊界），所以縫在場上比在背景設計上明顯。
 		 */
 		function textBoxes(): Box[] {
+			let els = Array.from(main!.children);
+			while (els.length === 1 && els[0].children.length) els = Array.from(els[0].children);
 			const boxes: Box[] = [];
-			let inner: Box | null = null;
-			for (const el of Array.from(main!.children)) {
+			for (const el of els) {
 				const r = el.getBoundingClientRect();
-				if (r.width && r.height) inner = union(inner, r);
+				if (r.width && r.height)
+					boxes.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });
 			}
-			if (inner) boxes.push(inner);
 			const foot = document.querySelector('footer');
 			if (foot) {
 				const r = foot.getBoundingClientRect();

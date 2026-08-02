@@ -13,6 +13,8 @@
  *
  * 文字帶的盒子在這裡**故意重算一次**，規則與 Motif.astro 的 contentBoxes() 同源但各寫
  * 各的（理由同 probe-uniform.js：量測工具照抄被量的程式，兩邊會一起錯、一起看不見）。
+ * 票 06 起是**每個內容區子元素各一塊**，所以「帶內核心」不再是一整片矩形，
+ * 署名右側那塊留白已經不在裡面——那塊地的數字看 probe-signature-right.js。
  *
  * 配 `--force-prefers-reduced-motion` 跑，拿到的是確定性的呼吸中點幀。
  */
@@ -28,17 +30,16 @@ addEventListener('load', () => {
 	const fw = col * K.layout.textBandFeather;
 
 	// ── 文字帶（視窗座標，獨立重算） ──────────────────────────────────────
+	// 票 06 起**每個內容區子元素各一塊，不取聯集**；main 只有一個子元素時它是版面
+	// 包裝盒（首頁的 section.home），往下一層再取。
 	const boxes = [];
-	let inner = null;
-	for (const el of main.children) {
+	let els = Array.from(main.children);
+	while (els.length === 1 && els[0].children.length) els = Array.from(els[0].children);
+	for (const el of els) {
 		const r = el.getBoundingClientRect();
 		if (!r.width || !r.height) continue;
-		inner = inner
-			? { left: Math.min(inner.left, r.left), right: Math.max(inner.right, r.right),
-				top: Math.min(inner.top, r.top), bottom: Math.max(inner.bottom, r.bottom) }
-			: { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+		boxes.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
 	}
-	if (inner) boxes.push(inner);
 	const foot = document.querySelector('footer');
 	if (foot) {
 		const r = foot.getBoundingClientRect();

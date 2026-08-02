@@ -221,32 +221,34 @@ const { mode } = Astro.props;
 		}
 
 		type Box = { top: number; bottom: number; left: number; right: number };
-		const union = (a: Box | null, r: DOMRect): Box =>
-			a
-				? {
-						top: Math.min(a.top, r.top),
-						bottom: Math.max(a.bottom, r.bottom),
-						left: Math.min(a.left, r.left),
-						right: Math.max(a.right, r.right),
-					}
-				: { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
 
 		/**
-		 * 文字可能出現的區域（文件座標）。
+		 * 文字可能出現的區域（文件座標）。**內容區的每個子元素各算一塊，不取聯集**（票 06）。
 		 *
-		 * main 取各個子元素的聯集而不是 main 自己的盒子：首頁的 main 撐滿一屏（flex:1），
-		 * 拿它當文字帶等於把下半整片一起減光，而那格空白正是背景設計的位置。
+		 * 聯集只認最外緣：展示卡是全寬的，聯集矩形就跟著全寬，於是署名右側那塊刻意收窄出來
+		 * 的留白也落在文字帶內、一起壓在 `textBandMaxAlpha` 之下——「那塊地留給背景設計」
+		 * 在機制上不會發生，調任何參數都救不了。各算一塊之後，那塊地才真的在帶外。
+		 *
+		 * **`main` 只有一個子元素時它是版面包裝盒不是內容**（首頁的 `section.home`），
+		 * 要往下一層再取。只把聯集拿掉、不剝這層殼的話量到的還是同一塊全寬矩形，畫面不會變。
+		 *
+		 * 拿 `main` 自己的盒子更不行：首頁的 main 撐滿一屏（flex:1），那等於把下半整片一起
+		 * 減光，而那格空白正是背景設計的位置。
+		 *
 		 * **頁尾要各算一塊**：它在 main 外面、底又是透明的，第一次實測就是一顆點落在
 		 * 「© 2026」後面，muted 掉到 4.70——只差 0.2 就違規。導覽列不必：它自己有 92% 的底。
+		 *
+		 * 已知代價（票 06 明列並接受）：塊與塊之間的間距脫離減光，背景會從縫裡透出來。
 		 */
 		function contentBoxes() {
+			let els = Array.from(main!.children);
+			while (els.length === 1 && els[0].children.length) els = Array.from(els[0].children);
 			const boxes: Box[] = [];
-			let inner: Box | null = null;
-			for (const el of Array.from(main!.children)) {
+			for (const el of els) {
 				const r = el.getBoundingClientRect();
-				if (r.width && r.height) inner = union(inner, r);
+				if (r.width && r.height)
+					boxes.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });
 			}
-			if (inner) boxes.push(inner);
 			const foot = document.querySelector('footer');
 			if (foot) {
 				const r = foot.getBoundingClientRect();

@@ -12,7 +12,7 @@
  *
  * 文字帶的盒子在這裡**故意重算一次**，不從繪製程式取。量測工具照著被量的程式抄，
  * 兩邊一起錯就一起看不見；獨立重算才驗得出東西。規則與 Motif.astro 的 contentBoxes()
- * 同源（main 各子元素的聯集＋頁尾取欄寬），但這裡是各寫各的。
+ * 同源（內容區各子元素**各一塊、不取聯集**＋頁尾取欄寬），但這裡是各寫各的。
  */
 addEventListener('load', () => {
 	const CELL = 375; // 判準指定的方格邊長（CSS px）
@@ -63,17 +63,16 @@ addEventListener('load', () => {
 	}
 
 	// ── 3. 文字帶（視窗座標，獨立重算） ──────────────────────────────────
+	// 票 06 起**每個內容區子元素各一塊，不取聯集**；main 只有一個子元素時它是版面
+	// 包裝盒（首頁的 section.home），往下一層再取。
 	const boxes = [];
-	let inner = null;
-	for (const el of main.children) {
+	let els = Array.from(main.children);
+	while (els.length === 1 && els[0].children.length) els = Array.from(els[0].children);
+	for (const el of els) {
 		const r = el.getBoundingClientRect();
 		if (!r.width || !r.height) continue;
-		inner = inner
-			? { left: Math.min(inner.left, r.left), right: Math.max(inner.right, r.right),
-				top: Math.min(inner.top, r.top), bottom: Math.max(inner.bottom, r.bottom) }
-			: { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+		boxes.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
 	}
-	if (inner) boxes.push(inner);
 	const foot = document.querySelector('footer');
 	if (foot) {
 		const r = foot.getBoundingClientRect();
@@ -91,8 +90,8 @@ addEventListener('load', () => {
 	for (let top = 0; top + CELL <= H + 1; top += STEP) {
 		for (let left = 0; left + CELL <= W + 1; left += STEP) {
 			const cell = { left, top, right: left + CELL, bottom: top + CELL };
-			// 文字帶蓋過一半以上就豁免（多塊取聯集的上界，兩塊重疊會高估覆蓋率，
-			// 高估等於多豁免——所以這裡對判準是寬鬆的一側，不會假性通過）
+			// 文字帶蓋過一半以上就豁免。覆蓋率是各塊面積直接相加（不扣重疊），
+			// 所以它是真實覆蓋率的上界；高估等於多豁免——對判準是寬鬆的一側，不會假性通過。
 			let covered = 0;
 			for (const b of boxes) covered += overlap(cell, b);
 			if (covered / (CELL * CELL) > HALF) continue;

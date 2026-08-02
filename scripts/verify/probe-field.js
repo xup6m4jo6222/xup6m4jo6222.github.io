@@ -128,24 +128,26 @@
 		const dpr = cv.width / innerWidth;
 		const g = cv.getContext('2d');
 
-		// 文字帶的取法與元件一致：main 的子元素聯集，不是 main 自己的盒子
-		let box = null;
-		for (const el of main.children) {
+		/* 文字帶的取法與元件一致：票 06 起**每個內容區子元素各一塊，不取聯集**；
+		   main 只有一個子元素時它是版面包裝盒（首頁的 section.home），往下一層再取。
+
+		   「核心／帶外」那一組讀數取**面積最大的那一塊**：它是這一頁正文的所在，
+		   而聯集時代量的也是同一片地，所以那兩個數字前後仍然可比。
+		   最壞對比則要掃過**每一塊**——字不是只長在最大的那一塊上。 */
+		let els = Array.from(main.children);
+		while (els.length === 1 && els[0].children.length) els = Array.from(els[0].children);
+		const boxes = [];
+		for (const el of els) {
 			const r = el.getBoundingClientRect();
 			if (!r.width || !r.height) continue;
-			box = box
-				? {
-						top: Math.min(box.top, r.top),
-						bottom: Math.max(box.bottom, r.bottom),
-						left: Math.min(box.left, r.left),
-						right: Math.max(box.right, r.right),
-					}
-				: { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+			boxes.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });
 		}
-		if (!box) {
+		if (!boxes.length) {
 			send({ ok: false, why: 'main 裡沒有量得到的子元素', errors });
 			return;
 		}
+		const area = (b) => (b.right - b.left) * (b.bottom - b.top);
+		const box = boxes.reduce((a, b) => (area(b) > area(a) ? b : a));
 
 		/** 一塊矩形（視窗座標）裡的平均不透明度、非零像素數、帶元素主色的像素數。 */
 		const region = (x0, x1, y0, y1) => {
@@ -184,7 +186,7 @@
 			vw: innerWidth,
 			vh: innerHeight,
 			dpr,
-			band: `${Math.round(box.left)}–${Math.round(box.right)} × ${Math.round(y0)}–${Math.round(y1)}`,
+			band: `${Math.round(box.left)}–${Math.round(box.right)} × ${Math.round(y0)}–${Math.round(y1)}（共 ${boxes.length} 塊，此為最大塊）`,
 			core: core.mean,
 			out: out.mean,
 			ratio: out.mean ? core.mean / out.mean : null,
@@ -215,22 +217,25 @@
 				const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
 				return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
 			};
-			const px0 = Math.max(0, Math.round(box.left * dpr));
-			const px1 = Math.min(cv.width, Math.round(box.right * dpr));
-			const py0 = Math.max(0, Math.round(y0 * dpr));
-			const py1 = Math.min(cv.height, Math.round(y1 * dpr));
-			if (px1 <= px0 || py1 <= py0) return {};
-			const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
 			let best = -1;
 			let worstPx = null;
-			for (let i = 0; i < d.length; i += 4) {
-				const a = d[i + 3] / 255;
-				if (!a) continue;
-				const c = [0, 1, 2].map((k) => Math.round(d[i + k] * a + base[k] * (1 - a)));
-				const L = lum(c);
-				if (L > best) {
-					best = L;
-					worstPx = c;
+			// **每一塊都要掃**：票 06 之後文字帶是好幾塊，只掃最大的那塊會漏掉署名後面的字
+			for (const b of boxes) {
+				const px0 = Math.max(0, Math.round(b.left * dpr));
+				const px1 = Math.min(cv.width, Math.round(b.right * dpr));
+				const py0 = Math.max(0, Math.round(Math.max(0, b.top) * dpr));
+				const py1 = Math.min(cv.height, Math.round(Math.min(innerHeight, b.bottom) * dpr));
+				if (px1 <= px0 || py1 <= py0) continue;
+				const d = g.getImageData(px0, py0, px1 - px0, py1 - py0).data;
+				for (let i = 0; i < d.length; i += 4) {
+					const a = d[i + 3] / 255;
+					if (!a) continue;
+					const c = [0, 1, 2].map((k) => Math.round(d[i + k] * a + base[k] * (1 - a)));
+					const L = lum(c);
+					if (L > best) {
+						best = L;
+						worstPx = c;
+					}
 				}
 			}
 			if (!worstPx) return {};
