@@ -1,0 +1,45 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+.claude/
+.scratch/
+# 私有的協作文件全部住在 docs/，它自己是一個獨立的私有備份版本庫。
+docs/
+# CLAUDE.md 與 AGENTS.md 留在根目錄（Claude Code 只讀根目錄那份），但不公開——
+# 它們是內部協作日誌，含決策原話與尚未對外的狀態。2026-08-18 改為不進版控。
+# CONTEXT.md 仍公開，依 DECISIONS.md 2026-07-25 拍板、2026-08-02 補執行。
+/CLAUDE.md
+/AGENTS.md
+# 目視驗收截圖用的外框（.scratch/accent-text-semantics/shoot-acceptance.mjs 要它）
+# 必須放在 public/ 才會同源，iframe 裡才能捲到指定元素；同源限制不能繞
+public/shot-frame.html
+# 元素主色份量的丟棄式比稿（PROTOTYPE，選定後刪）
+public/proto-accent.html
+
+# GitHub 個人頁的 README（xup6m4jo6222/xup6m4jo6222），自己是獨立版本庫
+profile-repo/
+
+# 票 07 的量測讀數落檔（collect.mjs 寫的，每次量都會蓋掉）
+.frame-cost.json

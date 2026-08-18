@@ -1,0 +1,174 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DESIGN_CATEGORIES } from '../../design-items.mjs';
+
+/* 分類頁：一項一張卡，**示範在前、文字在後**（油門二：能演就演）。
+   會動的示範一律「按了才跑」（規格 §4）：自動循環＝常駐動態，會撞紅線。 */
+export function getStaticPaths() {
+	return DESIGN_CATEGORIES.map((c) => ({ params: { category: c.key }, props: { cat: c } }));
+}
+const { cat } = Astro.props;
+const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+---
+
+<BaseLayout
+	title={`展示櫃・${cat.label} | 林郁為`}
+	backLink={{ href: '/design/', label: '← 展示櫃' }}
+	motif="reading"
+>
+	<h1>{cat.label}</h1>
+	<p class="category-label">設計展示櫃</p>
+
+	<div class="dz-grid">
+		{
+			cat.items.map((item) =>
+				item.pending ? (
+					<article class="dz-card">
+						<h3>{item.name}</h3>
+						<p class="st-note">這一項正在重新討論，弄好會放回來。</p>
+					</article>
+				) : (
+					<article class="dz-card" data-reveal>
+						{/* ── 示範區（主角）── */}
+						{item.demo === 'strips' && (
+							<div class="dz-strips" aria-hidden="true">
+								{item.strips.map((s) => (
+									<figure class="dz-strip">
+										<i style={`background: ${s.v}`} />
+										<figcaption class="st-note">{s.t}</figcaption>
+									</figure>
+								))}
+							</div>
+						)}
+						{item.demo === 'ramp' && (
+							<div class="dz-strips dz-strips--slim" aria-hidden="true">
+								{RAMP.map((n) => (
+									<figure class="dz-strip">
+										<i style={`background: var(--n-${n})`} />
+										<figcaption class="st-note">{n}</figcaption>
+									</figure>
+								))}
+							</div>
+						)}
+						{item.demo === 'spec-display' && (
+							<p class="dz-spec-display" aria-hidden="true">永字八法，筆筆有勢</p>
+						)}
+						{item.demo === 'spec-body' && (
+							<p class="dz-spec-body" aria-hidden="true">內文的工作是被長時間閱讀——圓角收筆，不搶不刺。</p>
+						)}
+						{item.demo === 'ladder' && (
+							<div class="dz-ladder" aria-hidden="true">
+								<p class="dz-fs-3">階三</p>
+								<p class="dz-fs-2">階二</p>
+								<p class="dz-fs-1">階一</p>
+								<p class="dz-fs-0">階零（內文）</p>
+								<p class="dz-fs--1">階負一（14px 下限）</p>
+							</div>
+						)}
+						{item.demo === 'baseline' && (
+							<div class="dz-baseline" aria-hidden="true">
+								<p>每一行都落在同一組看不見的橫線上。</p>
+								<p>換了區塊，還是同一組線。</p>
+							</div>
+						)}
+						{item.demo === 'gaps' && (
+							<div class="dz-gaps" aria-hidden="true">
+								{[4, 8, 12, 16].map((g) => (
+									<figure class="dz-gap">
+										<span style={`gap: ${g}px`}>
+											<i />
+											<i />
+										</span>
+										<figcaption class="st-note">{g}px</figcaption>
+									</figure>
+								))}
+							</div>
+						)}
+						{item.demo === 'radius' && (
+							<div class="dz-swatches" aria-hidden="true">
+								<i class="dz-box" />
+								<i class="dz-box dz-box--sharp" />
+							</div>
+						)}
+						{item.demo === 'borders' && (
+							<div class="dz-borders" aria-hidden="true">
+								<figure class="dz-border-sample">
+									<span class="dz-hairline" />
+									<figcaption class="st-note">線：只做分隔</figcaption>
+								</figure>
+								<figure class="dz-border-sample">
+									<span class="dz-framed">框</span>
+									<figcaption class="st-note">框：標示區塊</figcaption>
+								</figure>
+							</div>
+						)}
+						{item.demo === 'race' && (
+							<div class="dz-race">
+								<button type="button" class="home-send" data-demo-race>三檔一起跑</button>
+								<div class="dz-lanes" aria-hidden="true">
+									<figure class="dz-lane"><i class="dz-mover dz-mover--sm" /><figcaption class="st-note">0.15s</figcaption></figure>
+									<figure class="dz-lane"><i class="dz-mover dz-mover--md" /><figcaption class="st-note">0.25s</figcaption></figure>
+									<figure class="dz-lane"><i class="dz-mover dz-mover--lg" /><figcaption class="st-note">0.35s</figcaption></figure>
+								</div>
+							</div>
+						)}
+						{item.demo === 'motion' && (
+							<div class="dz-motion">
+								<button type="button" class="home-send" data-demo-play>播放一次</button>
+								<i class="dz-mover" aria-hidden="true" />
+							</div>
+						)}
+						{item.demo === 'window' && (
+							<figure class="dz-window">
+								<figcaption class="st-note">這扇窗後面沒有東西——就是活的背景本人：顆粒、暈、飄著的點。</figcaption>
+							</figure>
+						)}
+						{/* ── 文字區（配角）── */}
+						<h3>{item.name}</h3>
+						<p class="st-note dz-value">{item.value}</p>
+						{item.why.map((w) => (
+							<p class="dz-why">
+								<span class="home-chip">{w.idea}</span> {w.text}
+							</p>
+						))}
+						{item.links?.map((l) => (
+							<p class="ai-note-exit">
+								<a href={l.href}>{l.label}</a>
+							</p>
+						))}
+					</article>
+				),
+			)
+		}
+	</div>
+</BaseLayout>
+
+<script is:inline>
+	/* 示範按了才跑一次。onclick 指派：換頁重跑不疊處理器。 */
+	(() => {
+		function initDemos() {
+			document.querySelectorAll('[data-demo-play]').forEach((btn) => {
+				btn.onclick = () => {
+					const mover = btn.parentElement.querySelector('.dz-mover');
+					mover.classList.remove('is-run');
+					requestAnimationFrame(() => requestAnimationFrame(() => mover.classList.add('is-run')));
+				};
+			});
+			document.querySelectorAll('[data-demo-race]').forEach((btn) => {
+				btn.onclick = () => {
+					const movers = btn.parentElement.querySelectorAll('.dz-mover');
+					movers.forEach((m) => m.classList.remove('is-run'));
+					requestAnimationFrame(() =>
+						requestAnimationFrame(() => movers.forEach((m) => m.classList.add('is-run'))),
+					);
+				};
+			});
+		}
+		document.addEventListener('astro:page-load', initDemos);
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', initDemos, { once: true });
+		} else {
+			initDemos();
+		}
+	})();
+</script>

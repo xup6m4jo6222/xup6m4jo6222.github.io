@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import { CATEGORIES } from '../categories.mjs';
+
+const path = Astro.url.pathname;
+const isHome = path === '/' || path === '';
+
+interface Props {
+	backLink?: { href: string; label: string };
+}
+const { backLink } = Astro.props;
+
+/* 2026-07-30：「Projects」拆成分類名，讓兩個受眾在導覽列就認出自己的路（零點擊分流）。
+
+   **只列出真的有內容的分類**——`stats` 目前是空的（四篇統計文章封存到 `_parked/`），
+   列一個點進去沒東西的分類違反「沒有就不放，不放佔位」。統計專案 #2 一上線，
+   「統計分析」自己就會回來，這裡不必再改。 */
+const all = await getCollection('projects');
+const categories = CATEGORIES.filter((c) => all.some((p) => p.data.category === c.key));
+
+/* 分類頁還不存在，所以指向列表頁的錨點。等哪天分類各自有頁，改這裡一行即可。 */
+const hrefOf = (key: string) => `/projects/#${key}`;
+const activeCat = (() => {
+	const m = path.match(/^\/projects\/([^/]+)\//);
+	return m ? m[1] : null;
+})();
+---
+
+{/* 「首頁」那一項 2026-07-30 刪掉：它與 `.nav-brand` 指向同一個網址，而左上角品牌
+    回首頁是全世界的慣例——用文字再講一次，是在重複符號已經講完的事（油門二）。
+    品牌因此接手 `aria-current`；`global.css` 的底線規則本來就用 `:not(.nav-brand)`
+    把品牌排除在外，所以它拿到 current 不會多長一條底線。 */}
+<header class="site-nav">
+	<nav>
+		<a class="nav-brand" href="/" aria-current={isHome ? 'page' : undefined}>林郁為</a>
+		{backLink && <a class="nav-back" href={backLink.href}>{backLink.label}</a>}
+		{
+			categories.map((c) => (
+				<a href={hrefOf(c.key)} aria-current={activeCat === c.key ? 'page' : undefined}>
+					{c.label}
+				</a>
+			))
+		}
+	</nav>
+</header>

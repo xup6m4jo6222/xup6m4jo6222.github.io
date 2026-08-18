@@ -1,0 +1,176 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import { categoryIndexes, categoryLabel } from '../../../categories.mjs';
+
+export async function getStaticPaths() {
+	const allProjects = await getCollection('projects');
+	/* 序號在這裡算一次，當成 prop 傳下去。**不把序號塞回 entry 物件**——那個物件等一下
+	   要交給 `render()`，多塞一個欄位進去是在賭 Astro 的內部形狀，賭輸了是建置爆掉。 */
+	const indexes = categoryIndexes(allProjects);
+	return allProjects.map((project) => {
+		const [category, ...slugParts] = project.id.split('/');
+		return {
+			params: { category, slug: slugParts.join('/') },
+			props: { project, index: indexes.get(project.id) },
+		};
+	});
+}
+
+const { project, index } = Astro.props;
+const { Content } = await render(project);
+---
+
+<BaseLayout
+	title={`${project.data.title} | 林郁為`}
+	backLink={{ href: '/projects/', label: '← Projects' }}
+	motif="reading"
+>
+	{/* 與列表卡標題共用換頁接力名（2026-08-08）：點卡進來時標題平滑放大接手。 */}
+	<h1 transition:name={`vt-title-${project.id.replace(/[^a-zA-Z0-9-]/g, '-')}`}>
+		{project.data.title}
+	</h1>
+	{/* 分類名與序號原本是人打在 frontmatter 標題字串裡的（「AI 專案 #1 個人作品頁」），
+	    票 02 把那兩件事收回來由這一行講：名字查單一來源，序號由 collection 依日期算。
+	    標題因此只剩作品名本身。**外觀沒有變**——同一個 `.category-label`、同一個位置。 */}
+	<p class="category-label">{categoryLabel(project.data.category)} #{index}</p>
+	{/* 切換器：一鍵把全頁的就地展開區塊打開。位置由規格釘死在標題正下方、主角之前。
+	    渲染在版型層而不是各自的 .md 裡——統計那一類每一頁都要有它，寫進內容檔等於
+	    每頁抄一次，抄兩次就會有一天不一樣。
+	    `hidden` 是預設值，由腳本拿掉：**沒有 JS 就沒有按鈕**（規格明文），而且腳本
+	    找不到任何 `<details>` 時也不會把它顯示出來，不會出現一個按了沒反應的按鈕。 */}
+	{project.data.category === 'stats' && (
+		<p class="st-expand-row">
+			<button type="button" class="st-expand" data-expand-all aria-pressed="false" hidden>
+				全部展開
+			</button>
+		</p>
+	)}
+	<div class={`content content--${project.data.category}`}>
+		<Content />
+	</div>
+	{
+		project.data.tags && (
+			<ul class="tags">
+				{project.data.tags.map((tag) => (
+					<li>{tag}</li>
+				))}
+			</ul>
+		)
+	}
+	{
+		project.data.links && (
+			<ul class="links">
+				{project.data.links.github && (
+					<li>
+						<a href={project.data.links.github}>GitHub</a>
+					</li>
+				)}
+				{project.data.links.demo && (
+					<li>
+						<a href={project.data.links.demo}>Demo</a>
+					</li>
+				)}
+			</ul>
+		)
+	}
+</BaseLayout>
+
+{/* 聚焦組的觀察器——五個專案內頁共用這一支。原本寫在 portfolio-site.md 的內文腳本裡，
+    與比對器滑桿的設定混在一起；要推廣就得複製四份，那是漂移的開端。
+
+    **`is:inline` 是刻意的，不是忘了讓 Astro 打包。** 聚焦組的基準態是糊的（`.js` 一掛上
+    就 0.18 ＋ blur），所以「這支腳本沒跑」不是沒有效果，是整頁八組永遠停在對比 1.66——
+    那正是 US10「某支 JS 沒載到的讀者，內容照樣看得見」要擋的事。打包成外部 module 會多
+    一個「HTML 到了、那支 js 沒到」的失效面，而搬家之前它是內文腳本、根本沒有這個面。
+    代價是五頁各帶一份約 0.6KB 的內聯腳本——這個站的貨幣是每幀 CPU 與注意力，不是位元組。
+
+    焦點帶＝視窗中央 30%（`-35% 0px -35%`）。實查桌機 900px 視窗下圖組高 480px、
+    文字組高 150–300px，與帶寬 270px 同量級：一組進帶即清晰，且維持一段夠長的捲動距離。 */}
+<script is:inline>
+	/* IIFE：ClientRouter 換頁會把內聯腳本再執行一次，頂層 `let` 會在第二次重新宣告而丟錯。 */
+	(() => {
+		let io = null;
+
+		function initFocusGroups() {
+			const groups = document.querySelectorAll('[data-focus-group]');
+			if (!groups.length) return;
+
+			// 降低動態偏好與沒有 IntersectionObserver 時：全部清晰，機制不啟動
+			if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+				groups.forEach((el) => el.classList.add('is-centered'));
+				return;
+			}
+
+			io ||= new IntersectionObserver(
+				(entries) => entries.forEach((e) => e.target.classList.toggle('is-centered', e.isIntersecting)),
+				{ rootMargin: '-35% 0px -35% 0px' },
+			);
+			// 同一個觀察器重複 observe 同一個元素是 no-op，所以重跑無害，不必記帳
+			groups.forEach((el) => io.observe(el));
+		}
+
+		/* 切換器（票 04）。與聚焦組共用這一支的理由：兩者的掛載時機一模一樣，分成兩個
+		   `<script is:inline>` 的話那段「page-load ＋ readyState 後備」的尾巴要抄第二份。
+
+		   按鈕的預設態是 `hidden`，所以「這支腳本沒跑」的結果是讀者看不到一個按不動的
+		   按鈕，而每個 `<details>` 照樣各自點得開（原生行為，不靠 JS）。 */
+		function initExpandAll() {
+			const btn = document.querySelector('[data-expand-all]');
+			if (!btn) return;
+			const blocks = [...document.querySelectorAll('.content details')];
+			if (!blocks.length) return; // 這一頁沒有就地展開區塊，按鈕維持隱藏
+			btn.hidden = false;
+			/* 用 onclick 指派而不是 addEventListener：ClientRouter 換頁會把這支腳本再
+			   執行一次，指派是覆蓋、不會疊出第二個處理器（疊到第二個就會開了又關）。 */
+			btn.onclick = () => {
+				/* 下一步該做什麼**由畫面上的實況決定**，不由按鈕自己記的狀態決定。
+				   讀者可以逐一點開每一塊（原生行為，這支腳本不知情）——照按鈕的記憶走的話，
+				   那時候按下去會是一次什麼都不動的空點擊。 */
+				const open = !blocks.every((d) => d.open);
+				blocks.forEach((d) => (d.open = open));
+				/* `aria-pressed` 不是 `aria-expanded`：這是一顆開關按鈕，它控制的是別處那幾塊
+				   區域、不是自己底下的內容。用 expanded 的話讀屏會把「已展開」念在按鈕身上。 */
+				btn.setAttribute('aria-pressed', String(open));
+				btn.textContent = open ? '全部收合' : '全部展開';
+			};
+		}
+
+		/* 拖曳比對器。**統計第一頁已經不用它了**——2026-08-04 郁為判定「以統計分析頁來說，
+		   整個互動好像都有點沒必要，直接放對比圖反而還更好」，那一頁的三個演示全部改成靜態。
+		   這一支留著是因為 AI 實作那一頁（目前是 `.md.draft`，下架中）還在用它；那一頁要是
+		   確定不回來，這支連同 `.cs-wipe` 那組 CSS 一起刪掉。
+
+		   讀者拖的是那條蓋滿整張圖的 `input[type=range]`（滑鼠、手指、鍵盤方向鍵都認得，
+		   原生行為，不必自己接指標事件），腳本只把它的值寫成 `--pos`。**事件驅動、
+		   沒有迴圈**：不動就不花任何一幀的 CPU；沒有任何過場動畫，所以「降低動態偏好」
+		   下也沒有東西會自己動。
+
+		   起始位置寫在每個比對器自己的 `--pos` 內聯樣式上。**沒有 JS 時圖就停在那裡**。 */
+		function initWipes() {
+			document.querySelectorAll('.cs-wipe').forEach((wipe) => {
+				const range = wipe.querySelector('input');
+				if (!range) return;
+				const set = () => wipe.style.setProperty('--pos', range.value + '%');
+				/* 指派而不是 addEventListener：換頁會把這支腳本再跑一次，指派是覆蓋。 */
+				range.oninput = set;
+				set();
+			});
+		}
+
+		function runAll() {
+			initFocusGroups();
+			initExpandAll();
+			initWipes();
+		}
+
+		document.addEventListener('astro:page-load', runAll);
+
+		/* 保險：`astro:page-load` 由 ClientRouter 的 bundle 發出，那支 JS 沒載到的話事件永遠不來。 */
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', runAll, { once: true });
+		} else {
+			runAll();
+		}
+	})();
+</script>

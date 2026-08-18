@@ -1,0 +1,291 @@
+---
+import Nav from '../components/Nav.astro';
+import Motif from '../components/Motif.astro';
+import Field from '../components/Field.astro';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+	backLink?: { href: string; label: string };
+	/** 背景設計的模式。不給就沒有背景設計——新頁面要自己選一種，不會靜靜地繼承一個。 */
+	motif?: 'breathe' | 'reading';
+}
+
+const { title, backLink, motif } = Astro.props;
+---
+
+<html lang="zh-Hant" class="no-js">
+	<head>
+		<meta charset="utf-8" />
+		<script>
+			document.documentElement.classList.replace('no-js', 'js');
+			// ClientRouter 換頁會以新頁靜態屬性覆蓋 <html> class，需在每次 swap 後重掛
+			document.addEventListener('astro:after-swap', () => {
+				document.documentElement.classList.replace('no-js', 'js');
+			});
+		</script>
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		{/* 只載入實際用得到的四個字重。標題是霞鶩文楷（楷書，只有 300/400/700，所以襯線的
+		    半粗是 700 不是 600）、內文是昭源圓體（2026-08-04 本人看過對照卡與真實頁面後選定）。
+		    display=fallback 而非 swap：swap 的規格定義是阻擋期 0 秒、交換期無限，
+		    **保證**先用備援字畫一次再換，中文備援與 Noto 的字面度量不同，換的那一刻整頁
+		    重排。fallback 的 100ms 阻擋期低於人眼的瞬間門檻，換掉了那次必然的重排。
+		    不用 optional：首訪在慢網路下會整站落回系統字，襯線標題是設計的載體。 */}
+		<link
+			href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&display=fallback"
+			rel="stylesheet"
+		/>
+		<meta name="description" content="統計背景，正朝資料科學邁進。" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content="統計背景，正朝資料科學邁進。" />
+		<meta property="og:image" content="https://xup6m4jo6222.github.io/images/og-card.png" />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<ClientRouter />
+		<title>{title}</title>
+	</head>
+	<body>
+		{/* 第 2 層（兩道暈）2026-08-08 從 body 背景搬成獨立層，才呼吸得起來——
+		    z-index −2，墊在顆粒（−1）之下，疊序與原本 body 背景時代完全相同。 */}
+		<div class="bloom" aria-hidden="true"></div>
+		{/* 背景層的疊法由 DOM 順序決定：顆粒（body::before）→ 場 → 背景設計 → 內容。
+		    **場 2026-08-05 起有模式參數**——閱讀頁的密度、飄動幅度、柔邊比例與首頁不同
+		    （本人指定）。這推翻了 2026-07-28「兩頁用同一組值、差別全部來自文字帶」那條裁定：
+		    文字帶做不到「更稀、飄得更小、全部柔邊」。 */}
+		{motif && <Field mode={motif} />}
+		{/* **第 5 層只在首頁**（2026-08-05 本人拿掉閱讀頁那一份）。原話：「怎麼有一層不隨
+		    滾動移動、依舊在飄，有一層會隨滾動移動，我只要不隨滾動移動的那層就好。」
+		    第 4 層的畫布釘在視窗上（只飄），第 5 層在閱讀頁是照捲動位置平舖的——
+		    「會隨滾動移動」講的就是它。閱讀頁因此剩四層：底色、兩道暈、顆粒、飄動的小點。
+		    `Motif` 的 reading 模式與它那組參數目前**零用戶**，尚未刪除。 */}
+		{motif === 'breathe' && <Motif mode={motif} />}
+		<Nav backLink={backLink} />
+		{/* 捲動進度角標刻意放在 <header> 外面。`.site-nav` 有 `backdrop-filter`，
+		    而非 none 的 backdrop-filter 會讓該元素變成 position:fixed 子孫的 containing
+		    block——放在裡面的話 `bottom: .9rem` 貼的是導覽列底邊而不是視窗底邊，角標會
+		    跑到導覽列上把選項蓋掉（375px 實測蓋住「Projects」50×30px）。 */}
+		<span class="nav-progress"></span>
+		{/* 頂部 2px 捲動進度線與讀取動畫（2026-08-08，V2 概覽驗收）。
+		    讀取動畫是站上故事的縮影：三顆主色點散開→排成往上的趨勢→再散開，
+		    只在換頁準備超過 150ms 時亮起，快的換頁完全不閃。 */}
+		<span class="progress-line" aria-hidden="true"></span>
+		<span class="loading-sign" aria-hidden="true"><i></i><i></i><i></i></span>
+		<main>
+			<slot />
+		</main>
+		{/* 2026-07-30：聯絡方式從首頁下移到這裡。職責分工——**導覽列回答「我要去哪」，
+		    頁尾回答「怎麼找到你」**。放在頁尾之後它在每一頁都在，讀者在任何一篇專案頁
+		    想聯絡都不必先捲回首頁。
+		    2026-08-02（票 05）：「最後更新」那一欄移除——建置日期對訪客沒有意義，
+		    它回答的是維護者的問題。頁尾剩版權與聯絡兩組。 */}
+		<footer>
+			<div class="footer-inner">
+				<span>&copy; 2026 林郁為</span>
+				<span class="footer-contact">
+					<a href="https://github.com/xup6m4jo6222">GitHub</a>
+					<span aria-hidden="true">·</span>
+					<a href="mailto:xup6m4jo6222@gmail.com">Email</a>
+				</span>
+			</div>
+		</footer>
+		<script>
+			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			const hasIO = 'IntersectionObserver' in window;
+
+			// 進場淡入（每次 page-load 對尚未顯示的元素重跑）。
+			// `.content h2` 也收進來：它不淡入（CSS 只給 [data-reveal] 淡入），
+			// 只拿 `.is-visible` 去觸發標題下那條主色短線的自畫（2026-08-08）。
+			function initReveal() {
+				const targets = document.querySelectorAll(
+					'[data-reveal]:not(.is-visible), .content h2:not(.is-visible)',
+				);
+				if (reduceMotion || !hasIO) {
+					targets.forEach((el) => el.classList.add('is-visible'));
+					return;
+				}
+				const observer = new IntersectionObserver(
+					(entries) => {
+						for (const entry of entries) {
+							if (entry.isIntersecting) {
+								entry.target.classList.add('is-visible');
+								observer.unobserve(entry.target);
+							}
+						}
+					},
+					{ threshold: 0.15 },
+				);
+				targets.forEach((el) => observer.observe(el));
+			}
+
+			// 內文圖片載入後淡入（無 JS 時預設可見）
+			function initImageFade() {
+				document.querySelectorAll('.content img').forEach((img) => {
+					if (img.complete) return;
+					img.classList.add('is-loading');
+					const done = () => img.classList.remove('is-loading');
+					img.addEventListener('load', done, { once: true });
+					img.addEventListener('error', done, { once: true });
+				});
+			}
+
+			// 軸線即進度：.tl 左軸線隨捲動填色 + 導覽列紀元進度小字
+			let progressCleanup = null;
+			function initProgress() {
+				if (progressCleanup) {
+					progressCleanup();
+					progressCleanup = null;
+				}
+				const tl = document.querySelector('.tl');
+				const label = document.querySelector('.nav-progress');
+				if (!tl) {
+					if (label) {
+						label.classList.remove('is-visible');
+						label.textContent = '';
+					}
+					return;
+				}
+
+				let fill = tl.querySelector('.tl-fill');
+				if (!fill) {
+					fill = document.createElement('div');
+					fill.className = 'tl-fill';
+					tl.appendChild(fill);
+				}
+
+				const eras = Array.from(tl.querySelectorAll('.tl-era'));
+				let ticking = false;
+				const update = () => {
+					ticking = false;
+					const mid = window.scrollY + window.innerHeight / 2;
+					const tlTop = tl.getBoundingClientRect().top + window.scrollY;
+					const tlH = tl.offsetHeight;
+					// 視窗中線在 .tl 內走過的比例 → 填色高度
+					const travelled = Math.max(0, Math.min(tlH, mid - tlTop));
+					fill.style.height = travelled + 'px';
+
+					if (label) {
+						const doc = document.documentElement;
+						const max = doc.scrollHeight - doc.clientHeight;
+						const pct = max > 0 ? Math.round((doc.scrollTop / max) * 100) : 0;
+						// 視窗中線目前所在紀元
+						let eraName = '';
+						for (const era of eras) {
+							const eraTop = era.getBoundingClientRect().top + window.scrollY;
+							if (eraTop <= mid) {
+								const h = era.querySelector('h2');
+								eraName = h ? h.textContent || '' : '';
+							}
+						}
+						label.textContent = eraName ? eraName + ' · ' + pct + '%' : pct + '%';
+						const show = window.scrollY > window.innerHeight;
+						label.classList.toggle('is-visible', show);
+					}
+				};
+				const onScroll = () => {
+					if (!ticking) {
+						ticking = true;
+						requestAnimationFrame(update);
+					}
+				};
+				window.addEventListener('scroll', onScroll, { passive: true });
+				window.addEventListener('resize', update);
+				progressCleanup = () => {
+					window.removeEventListener('scroll', onScroll);
+					window.removeEventListener('resize', update);
+				};
+				update();
+			}
+
+			// 頂部 2px 進度線（2026-08-08）。與 initProgress 分開：那支只在有 .tl 的頁跑，
+			// 這條線任何捲得動的頁都要在。transform 縮放，不觸發排版。
+			let lineCleanup = null;
+			function initLine() {
+				if (lineCleanup) {
+					lineCleanup();
+					lineCleanup = null;
+				}
+				const line = document.querySelector('.progress-line');
+				if (!line) return;
+				let ticking = false;
+				const update = () => {
+					ticking = false;
+					const doc = document.documentElement;
+					const max = doc.scrollHeight - doc.clientHeight;
+					line.style.transform = 'scaleX(' + (max > 0 ? doc.scrollTop / max : 0) + ')';
+				};
+				const onScroll = () => {
+					if (!ticking) {
+						ticking = true;
+						requestAnimationFrame(update);
+					}
+				};
+				window.addEventListener('scroll', onScroll, { passive: true });
+				window.addEventListener('resize', update);
+				lineCleanup = () => {
+					window.removeEventListener('scroll', onScroll);
+					window.removeEventListener('resize', update);
+				};
+				update();
+			}
+
+			/* 讀取動畫（2026-08-08 本人指定；同日修）：換頁的準備超過 300ms 才亮起——
+			   150ms 在跨國 CDN 上幾乎每次換頁都閃一下，讀起來像 bug 而不是回饋。
+			   三道保險（page-load／pageshow／8 秒上限）擋「亮了沒人關」：
+			   準備中斷、瀏覽器上一頁快取回放，都不會留下一顆永遠在跑的燈。 */
+			let loadTimer = null;
+			let loadCap = null;
+			const loadSign = (on) => {
+				clearTimeout(loadTimer);
+				clearTimeout(loadCap);
+				document.querySelector('.loading-sign')?.classList.toggle('is-on', on);
+				if (on) loadCap = window.setTimeout(() => loadSign(false), 8000);
+			};
+			document.addEventListener('astro:before-preparation', () => {
+				clearTimeout(loadTimer);
+				loadTimer = window.setTimeout(() => loadSign(true), 300);
+			});
+			document.addEventListener('astro:after-swap', () => loadSign(false));
+			document.addEventListener('astro:page-load', () => loadSign(false));
+			window.addEventListener('pageshow', () => loadSign(false));
+
+			// 游標光暈（V2 概覽驗收）：把游標座標寫進卡片的 --gx/--gy，暈由 CSS 畫
+			function initGlow() {
+				document.querySelectorAll('.card, .dz-card').forEach((el) => {
+					if (el.dataset.glow) return;
+					el.dataset.glow = '1';
+					el.addEventListener('pointermove', (e) => {
+						const r = el.getBoundingClientRect();
+						el.style.setProperty('--gx', e.clientX - r.left + 'px');
+						el.style.setProperty('--gy', e.clientY - r.top + 'px');
+					});
+				});
+			}
+
+			function runAll() {
+				initReveal();
+				initImageFade();
+				initProgress();
+				initLine();
+				initGlow();
+			}
+
+			document.addEventListener('astro:page-load', runAll);
+
+			/* 保險：`astro:page-load` 由 ClientRouter 的 bundle 發出。那支 JS 若沒載到
+			   （網路擋掉、CDN 掛掉、bundle 404），`.js` 已經加上去了但事件永遠不來——
+			   於是每一個 [data-reveal] 都停在 opacity 0，首頁只剩導覽列與頁尾。
+			   完全關掉 JS 反而是對的（`.no-js` 保留、內容照樣看得見），壞的是「JS 開著
+			   但那一個檔沒到」這一支。三個 init 都是冪等的，重跑無害。 */
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', runAll, { once: true });
+			} else {
+				runAll();
+			}
+		</script>
+	</body>
+</html>

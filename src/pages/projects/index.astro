@@ -1,0 +1,66 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { CATEGORIES as categories, categoryIndexes } from '../../categories.mjs';
+
+const allProjects = await getCollection('projects');
+/* 列的大編號＝分類內依日期的真序號（單一來源）。2026-08-08 換版後編號上列，
+   它不是裝飾：順序本身就是「這一類的第幾件」這個資訊。 */
+const indexes = categoryIndexes(allProjects);
+/* 換頁接力的名字：id 含 `/`，不是合法的 CSS 識別字，先洗掉。 */
+const vtName = (id) => `vt-title-${id.replace(/[^a-zA-Z0-9-]/g, '-')}`;
+---
+
+{/* 背景設計模式：**暫行值，本人尚未拍板**（docs/SPEC-background-and-homepage 未定二）。
+    暫行採跟捲，理由是列表有卡片要讀、且點進內頁時背景行為不變不會跳。
+    本人 2026-07-27 給的方向是「列表頁未來可能自成第三種模式」，本輪不為它多做設計。 */}
+<BaseLayout title="Projects | 林郁為" motif="reading">
+	{/* 這一頁刻意沒有總引言（2026-08-08 本人拿掉「這裡放的都是我自己做的小專案」）：
+	    一句話統管兩類，就等於把兩類綁在一起講；分類要分開，就不留跨類的敘述。 */}
+	{
+		categories.map((category) => {
+			const items = allProjects.filter((project) => project.data.category === category.key);
+			/* 空分類不渲染。2026-07-30 起 stats 是空的（四篇統計文章封存到 `_parked/`），
+			   照舊渲染的話列表頁會出現一個只有標題與底線、下面什麼都沒有的「統計分析」區塊。
+			   這與 CLAUDE.md「不放佔位、不寫施工中」是同一條原則的延伸：**空的分類對外不存在**。
+			   分類本身留在 `categories` 陣列裡——丟一篇 .md 進去就自己回來，不必改這裡。 */
+			if (!items.length) return null;
+			return (
+				/* id 是導覽列分類項的錨點落點（2026-07-30 拆分後）。 */
+				<section class="category" id={category.key}>
+					<h2>{category.label}</h2>
+					{/* 接力進場的 stagger 間隔。紅線②「delay + duration 總和 ≤ 1s」在這裡產生
+					    一個可以算出來的上限：(1000 − 350) / 80 ≈ 8，**每類最多 8 張卡**。
+					    第 9 張起必須縮短間隔，否則最後一張要等超過一秒才出現。 */}
+					<div class="cards">
+						{items.map((item, i) => {
+							const slug = item.id.split('/').slice(1).join('/');
+							return (
+								<a
+									class="card"
+									href={`/projects/${category.key}/${slug}/`}
+									data-reveal
+									style={`transition-delay: ${i * 80}ms`}
+								>
+									<span class="card-num" aria-hidden="true">
+										#{indexes.get(item.id)}
+									</span>
+									<span class="card-body">
+										{/* 標題與內頁 h1 共用一個換頁接力名：點列時標題平滑接到內頁大標。 */}
+										<h3 transition:name={vtName(item.id)}>{item.data.title}</h3>
+										<p>{item.data.summary}</p>
+									</span>
+									{item.data.cover && (
+										<span class="card-cover">
+											<img src={item.data.cover} alt="" width="760" height="470" loading="lazy" />
+										</span>
+									)}
+								</a>
+							);
+						})}
+					</div>
+				</section>
+			);
+		})
+	}
+</BaseLayout>

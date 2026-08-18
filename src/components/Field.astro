@@ -1,0 +1,365 @@
+---
+/**
+ * 全站背景第 4 層——**中性色的小點，各自飄**（視覺第 11 版，2026-08-05 定案）。
+ *
+ * 它只做一件事：一片小點，每一顆各自飄各自的，不聚團、不排隊、不參與第 5 層那個事件。
+ * 承載的敘事只有一組——**表面露出的比底下少**，而且**不由這一層獨扛**：
+ * 第 3 層（顆粒）是表面，這一層是底下，故事由兩層的關係承載。
+ *
+ * 為什麼它自己不講第二條故事：第 5 層在聚攏那一刻要排出一條趨勢，
+ * 兩層同時講話會互相吃（`docs/DECISIONS.md` 2026-08-05）。
+ *
+ * **它是常駐動態不是循環動態**——點一直在飄，沒有起訖，所以歸紅線③ 管（≤30 px/s），
+ * 不歸紅線④。峰值由 `drift × 2π × 頻率上界` 算得出解析上界，閘門驗那個上界。
+ *
+ * **值一律由屬性帶進來，這支程式裡不寫值**。`data-field` 是產物端契約：內容必須等於
+ * 判準檔的 `FIELD`，閘門看不到畫布像素，只能比對屬性。
+ *
+ * canvas 是**純加法**：移除它之後頁面回到底色、顆粒與兩道暈，版面不受影響。
+ * 沒有 JavaScript 時就是那個狀態，不需要另外寫退路。
+ */
+import { FIELD, FIELD_CRAFT } from '../../scripts/palette-config.mjs';
+
+interface Props {
+	/** 與背景設計同一個模式名。閱讀頁的三個值不一樣（`FIELD.reading`）。 */
+	mode: 'breathe' | 'reading';
+}
+
+const { mode } = Astro.props;
+---
+
+<canvas
+	class="field"
+	aria-hidden="true"
+	data-field={JSON.stringify(FIELD)}
+	data-field-craft={JSON.stringify(FIELD_CRAFT)}
+	data-field-mode={mode}></canvas>
+
+<style>
+	/* z 層級用既有的 −1（白名單三個位置之一）。DOM 順序決定疊法：
+	   顆粒（body::before）→ 場 → 背景設計 → 內容。 */
+	.field {
+		position: fixed;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -1;
+		pointer-events: none;
+	}
+</style>
+
+<script>
+	import { contentBoxes, falloff } from '../scripts/text-band';
+
+	const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+	/** 目前這一頁的收工函式（換頁與偏好改變時呼叫），沒有場時是 null。 */
+	let teardown: (() => void) | null = null;
+	/** 已經啟動過的那個 canvas。換頁時 ClientRouter 會換掉整個元素，所以比對元素本身。 */
+	let running: HTMLCanvasElement | null = null;
+
+	function start() {
+		const cv = document.querySelector<HTMLCanvasElement>('canvas.field');
+		const main = document.querySelector('main');
+		// 首次載入這支程式會被叫兩次（模組自己一次、ClientRouter 的 astro:page-load 再一次）
+		if (cv && cv === running) return;
+		teardown?.();
+		teardown = null;
+		running = cv;
+		if (!cv || !main || !cv.dataset.field || !cv.dataset.fieldCraft) return;
+
+		const base = JSON.parse(cv.dataset.field);
+		const K = JSON.parse(cv.dataset.fieldCraft);
+		/* 閱讀頁只有三個值不一樣，其餘沿用。**攤平成一組再用**，繪製程式裡就不必到處
+		   問「現在是哪個模式」——那種問法散在十個地方，漏掉一個不會有東西報錯。 */
+		const P = cv.dataset.fieldMode === 'reading' ? { ...base, ...base.reading } : base;
+		const ctx = cv.getContext('2d', { alpha: true });
+		if (!ctx) return;
+
+		/** 色只從判準值來；不透明度接在後面，所以這支程式裡沒有任何色碼字面值。 */
+		const withAlpha = (hex: string, a: number) =>
+			hex +
+			Math.round(Math.min(1, Math.max(0, a)) * 255)
+				.toString(16)
+				.padStart(2, '0');
+
+		/* 種子固定，所以同一個視窗尺寸擲出來的場永遠一樣——重擲不會讓畫面換一張。 */
+		const rng = (seed: number) => {
+			let s = seed >>> 0;
+			return () => {
+				s ^= s << 13;
+				s >>>= 0;
+				s ^= s >> 17;
+				s ^= s << 5;
+				s >>>= 0;
+				return s / 4294967296;
+			};
+		};
+
+		/* 柔邊的點用預繪貼圖，不是每顆現算漸層——現算的話一顆點要建一次 radial gradient，
+		   幾百顆就是幾百次。與第 5 層的柔邊光點同一個作法，值各自獨立。 */
+		const softSprite = (() => {
+			const S = K.softSprite;
+			const c = document.createElement('canvas');
+			c.width = S;
+			c.height = S;
+			const g = c.getContext('2d')!;
+			const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+			rg.addColorStop(0, withAlpha(P.mark, 1));
+			rg.addColorStop(K.softMid[0], withAlpha(P.mark, K.softMid[1]));
+			rg.addColorStop(1, withAlpha(P.mark, 0));
+			g.fillStyle = rg;
+			g.fillRect(0, 0, S, S);
+			return c;
+		})();
+
+		let W = 0;
+		let viewH = 0;
+		let DPR = 1;
+		/** 擲點高度：比視窗高一個容忍幅度，手機網址列收合時底部才不會露白。 */
+		let fieldH = 0;
+		/** 一顆點：位置、半徑、自己的漂移橢圓與相位。**只在視窗尺寸改變時重擲。** */
+		let dots: { x: number; y: number; r: number; soft: boolean; ax: number; ay: number; fx: number; fy: number; ph: number }[] = [];
+
+		/* ── 游標互動與開場（2026-08-08，V2 概覽驗收後收進正站）───────────
+		   游標位置與視差都是輸入回應：不動滑鼠，這一段對畫面零貢獻。 */
+		const cursor = { x: -1e4, y: -1e4 };
+		/** 視差的平滑跟隨（目標值與現值分開，畫面才不會跟著滑鼠跳）。 */
+		const par = { x: 0, y: 0, tx: 0, ty: 0 };
+		/** 開場凝聚的起點（頁面時鐘）。 */
+		const born = performance.now() / 1000;
+		/** 送出鍵的漣漪：一次性回應（0.6 秒收完），沒有的時候是 null。 */
+		let ripple: { x: number; y: number; t0: number } | null = null;
+		const onPointerMove = (e: PointerEvent) => {
+			cursor.x = e.clientX;
+			cursor.y = e.clientY;
+			par.tx = (e.clientX / window.innerWidth) * 2 - 1;
+			par.ty = (e.clientY / window.innerHeight) * 2 - 1;
+		};
+		const onPointerLeave = () => {
+			cursor.x = cursor.y = -1e4;
+			par.tx = par.ty = 0;
+		};
+		const onCardSent = (e: Event) => {
+			const d = (e as CustomEvent).detail;
+			ripple = { x: d.x, y: d.y, t0: performance.now() / 1000 };
+		};
+
+		/**
+		 * 擲出整面。上限隨面積走（`markCap`）是失控防線：位置整面均勻擲，
+		 * 觸頂只會讓密度整面一起變稀，不會造成畫面某一側整片空掉。
+		 */
+		function scatter() {
+			const n = Math.min(K.markCap, Math.round((P.density * W * fieldH) / 1000));
+			const rand = rng(K.seeds[0]);
+			const [r0, r1] = P.dotRadius;
+			const [f0, f1] = K.driftFreq;
+			dots = [];
+			for (let i = 0; i < n; i++) {
+				dots.push({
+					x: rand() * W,
+					y: rand() * fieldH,
+					r: r0 + rand() * (r1 - r0),
+					/* 硬邊與柔邊混著放。**全柔邊會糊成一片霧**，那是另一種東西；
+					   混著才有「有些近、有些遠」的深度，而深度正是這一層在講的事。
+					   閱讀頁的比例是 1（全部柔邊）——那裡的背景本來就該退到最遠。 */
+					soft: rand() < P.softRatio,
+					/* 每顆自己的漂移橢圓。振幅與頻率都各自不同，整面才不會像一起晃——
+					   同一個頻率的話它會變成一次集體位移，那是另一種東西。 */
+					ax: P.drift * (0.4 + rand() * 0.6),
+					ay: P.drift * (0.4 + rand() * 0.6),
+					fx: f0 + rand() * (f1 - f0),
+					fy: f0 + rand() * (f1 - f0),
+					ph: rand() * 2 * Math.PI,
+				});
+			}
+		}
+
+		/* ── 文字帶減光 ────────────────────────────────────────────────────
+		   「哪裡算文字」與「邊緣怎麼遞減」接 `src/scripts/text-band.ts` 這份**單一來源**，
+		   每一層背景用同一份規則（2026-08-04 拍板）。共用的是規則不是畫法：這一層
+		   逐點乘一個係數（點少、算得便宜），點那一層預先烤一張遮罩。
+
+		   **每一幀重量**（`contentBoxes` 只跑三四個元素）。烤進預繪圖的舊作法已推翻——
+		   本人原話：「我的署名都已經移走了，結果那個暗色背景還留在那邊。」 */
+		let boxes: ReturnType<typeof contentBoxes> = [];
+		let feather = 0;
+		const measure = () => {
+			feather = K.textBandFeather;
+			boxes = contentBoxes(main!, main!.getBoundingClientRect().width);
+		};
+		/** 帶外 1、帶內最低 `1 − textDim`，四個邊都照共用的曲線遞減（角落自然跟著圓）。 */
+		const dimAt = (x: number, yView: number) => {
+			const y = yView + scrollY;
+			let d = 1;
+			for (const b of boxes) {
+				const tx = Math.min((x - (b.left - feather)) / feather, (b.right + feather - x) / feather, 1);
+				const ty = Math.min((y - (b.top - feather)) / feather, (b.bottom + feather - y) / feather, 1);
+				if (tx <= 0 || ty <= 0) continue;
+				d = Math.min(d, 1 - P.textDim * falloff(Math.min(tx, ty)));
+			}
+			return d;
+		};
+
+		/**
+		 * 畫一幀。
+		 *
+		 * **降低動態偏好下位移全關**（可及性是硬下限），但點還是照畫——那個偏好要關的是
+		 * 空間位移，不是把畫面清空。
+		 */
+		function draw(sec: number) {
+			const frozen = still.matches;
+			measure();
+			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
+			ctx!.clearRect(0, 0, W, viewH);
+			ctx!.fillStyle = withAlpha(P.mark, P.ink);
+			/* 開場凝聚：頭 `settle` 秒整層由外圍 6% 收攏並淡入。一次性過場，
+			   跑完之後 settle 恆為 1，這一段就不再花任何計算。降低動態偏好直接跳結尾。 */
+			const age = frozen ? 1 : Math.min(1, (sec - born) / P.settle);
+			const settle = 1 - Math.pow(1 - age, 3);
+			const spread = 1 + 0.06 * (1 - settle);
+			/* 視差平滑跟隨。停手之後 par 收斂到目標值，等於零成本。 */
+			par.x += (par.tx - par.x) * 0.06;
+			par.y += (par.ty - par.y) * 0.06;
+			/** 游標星圖的候選：位置與距離在主迴圈裡順手收集，不另掃一遍。 */
+			const near: { x: number; y: number; dist: number }[] = [];
+			for (const d of dots) {
+				let x = frozen ? d.x : d.x + d.ax * Math.sin(2 * Math.PI * d.fx * sec + d.ph);
+				let y = frozen ? d.y : d.y + d.ay * Math.cos(2 * Math.PI * d.fy * sec + d.ph);
+				let glow = 0;
+				if (!frozen) {
+					x = (x - W / 2) * spread + W / 2 + par.x * P.parallax[0];
+					y = (y - viewH / 2) * spread + viewH / 2 + par.y * P.parallax[1];
+					/* 游標重力：讓開的位移有上限（repel px），亮度跟著靠近程度走 */
+					const dx = x - cursor.x;
+					const dy = y - cursor.y;
+					const dist = Math.hypot(dx, dy);
+					if (dist < P.pointer.linkRadius) near.push({ x, y, dist });
+					if (dist < P.pointer.radius && dist > 0.01) {
+						const f = (1 - dist / P.pointer.radius) ** 2;
+						x += (dx / dist) * P.pointer.repel * f;
+						y += (dy / dist) * P.pointer.repel * f;
+						glow = f;
+					}
+					if (ripple) {
+						/* 送出鍵的漣漪：一圈波前掃過整面，0.6 秒收完。一次性回應歸過場管。 */
+						const rAge = sec - ripple.t0;
+						if (rAge < 0.6) {
+							const rr = rAge * 900;
+							const dxr = x - ripple.x;
+							const dyr = y - ripple.y;
+							const dr = Math.hypot(dxr, dyr);
+							const band = Math.exp(-((dr - rr) ** 2) / 4000) * (1 - rAge / 0.6);
+							if (dr > 0.01) {
+								x += (dxr / dr) * 12 * band;
+								y += (dyr / dr) * 12 * band;
+								glow = Math.max(glow, band);
+							}
+						} else {
+							ripple = null;
+						}
+					}
+				}
+				if (d.soft) {
+					/* 柔邊的點要放大才讀得出來：同樣的半徑下，柔邊把墨攤在整個圓上、
+					   一路衰減到 0，不放大只會看起來更淡而不是更模糊。 */
+					const s = d.r * K.softScale * 2;
+					ctx!.globalAlpha = P.ink * dimAt(x, y) * settle * (1 + glow * 0.9);
+					ctx!.drawImage(softSprite, x - s / 2, y - s / 2, s, s);
+					continue;
+				}
+				ctx!.globalAlpha = Math.min(1, dimAt(x, y) * settle * (1 + glow * 0.9));
+				ctx!.beginPath();
+				ctx!.arc(x, y, d.r, 0, 2 * Math.PI);
+				ctx!.fill();
+			}
+			/* 游標星圖：最近的幾顆點連到游標。主色只走線（1px），點本身仍是中性色。 */
+			if (!frozen && near.length) {
+				near.sort((a, b) => a.dist - b.dist);
+				ctx!.lineWidth = 1;
+				ctx!.strokeStyle = P.pointer.linkColor;
+				for (const p of near.slice(0, P.pointer.links)) {
+					ctx!.globalAlpha = (1 - p.dist / P.pointer.linkRadius) * 0.35;
+					ctx!.beginPath();
+					ctx!.moveTo(cursor.x, cursor.y);
+					ctx!.lineTo(p.x, p.y);
+					ctx!.stroke();
+				}
+			}
+			ctx!.globalAlpha = 1;
+		}
+
+		let shape = '';
+		function resize() {
+			DPR = Math.min(window.devicePixelRatio || 1, K.dprCap);
+			W = window.innerWidth;
+			viewH = window.innerHeight;
+			// 版面還沒算出來就先不畫：ResizeObserver 會在算出來時再叫一次
+			if (!W || !viewH) return;
+			cv!.width = Math.round(W * DPR);
+			cv!.height = Math.round(viewH * DPR);
+			/* 重擲**只看視窗寬**與「有沒有長過擲點高度」。文字帶不進簽章——它只影響減光，
+			   而減光是每一幀重算的。**視窗高不原樣進簽章**：手機捲動時網址列收合會讓
+			   `innerHeight` 變動數十 px，原樣進去等於每次上下滑都重擲，讀者會看到背景換一張。 */
+			if (`${W}` !== shape || viewH > fieldH) {
+				fieldH = viewH * (1 + K.heightTolerance);
+				scatter();
+			}
+			shape = `${W}`;
+		}
+
+		let raf = 0;
+		function frame(now: number) {
+			raf = requestAnimationFrame(frame);
+			if (document.hidden) return; // 分頁不可見時不繪製
+			/* **用頁面時鐘，不記自己的起點**——第 5 層也是，兩層因此自然同相。
+			   這一層沒有循環，同相與否對它沒有意義，但兩層用同一個時間基準
+			   是這一輪定下來的規矩，不要在這裡開一個例外。 */
+			draw(now / 1000);
+		}
+
+		/* main 的盒子會在字體換上來之後改變（`display=fallback` 的那一次交換），
+		   resize 要節流：重擲整面是這支程式最貴的一條路，而拖曳視窗邊框會連續密集送事件。 */
+		let sizing = false;
+		const onResize = () => {
+			if (sizing) return;
+			sizing = true;
+			requestAnimationFrame(() => {
+				sizing = false;
+				resize();
+			});
+		};
+		const observer = new ResizeObserver(onResize);
+		observer.observe(main);
+		window.addEventListener('resize', onResize);
+		window.addEventListener('pointermove', onPointerMove, { passive: true });
+		window.addEventListener('pointerleave', onPointerLeave);
+		/* 首頁展示卡送出時發的事件（index.astro）。別頁沒有人發，掛著零成本。 */
+		window.addEventListener('yw:card-sent', onCardSent);
+
+		resize();
+		draw(performance.now() / 1000);
+		raf = requestAnimationFrame(frame);
+
+		teardown = () => {
+			cancelAnimationFrame(raf);
+			observer.disconnect();
+			window.removeEventListener('resize', onResize);
+			window.removeEventListener('pointermove', onPointerMove);
+			window.removeEventListener('pointerleave', onPointerLeave);
+			window.removeEventListener('yw:card-sent', onCardSent);
+		};
+	}
+
+	document.addEventListener('astro:page-load', start);
+	// 偏好改了要真的重來一次（位移的開關在 draw 裡讀，但重掛一次最省事）
+	still.addEventListener('change', () => {
+		running = null;
+		start();
+	});
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', start, { once: true });
+	} else {
+		start();
+	}
+</script>

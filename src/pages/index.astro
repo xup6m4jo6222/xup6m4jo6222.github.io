@@ -1,0 +1,140 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { categoryIndexes, categoryLabel } from '../categories.mjs';
+
+/* 展示卡認的是**這一件作品**，不是「日期最新的那一件」。
+   理由：卡片的機制（模擬對話框）與它演的那張圖是這個專案自己的證物，換一件作品
+   要換的不只是標題——新作品得先選自己的公告機制（DECISIONS 2026-07-30「一個專案
+   選一個機制」）。所以這裡釘的是 id，讓第二件作品上線時是由人決定卡片演什麼，
+   而不是靜靜地換掉標題、留著舊圖說謊。
+   **分類名與序號不在這裡寫死**：兩者都由票 02 的單一來源算，第二篇 AI 實作上線
+   時這張卡自己會變成 #2。 */
+const FEATURED_ID = 'ai/portfolio-site';
+
+const projects = await getCollection('projects');
+const featured = projects.find((p) => p.id === FEATURED_ID);
+const featuredIndex = categoryIndexes(projects).get(FEATURED_ID);
+
+/* 這一則不是文案，是**證物**：2026-07-30 那次實驗真正送出的提示詞，一字未改。
+   改它等於讓下面那張圖說謊。它因此不是第四章的文字槽位。
+   2026-08-08（票 01）：字串收進單一來源 src/prompt.mjs，內頁同步引用。 */
+import { PROMPT } from '../prompt.mjs';
+---
+
+{/* 版面上的文字帶 `data-slot` 的都是**槽位**：語意需求與長度上限由設計定，內容依
+    憲法第四章由本人撰寫。現況全是佔位（沿用本人既有的句子與建議稿）。 */}
+<BaseLayout title="林郁為" motif="breathe">
+	<section class="home">
+		{/* 署名＝名字＋定位句。憲法第一章的第三種角色，不參與注意力讓位——
+		    它的地由字級與右側那條留白劃，不靠把展示卡往下推（本人 2026-07-31 裁定）。 */}
+		<div class="home-id" data-reveal>
+			{/* 個人化身（2026-08-08 本人指定）：先用 GitHub 大頭貼，日後換手繪代表物。
+			    圖存本地不連 GitHub——第三方請求是多一個會壞的相依。圓角用站上唯一值，不做圓形。 */}
+			<img class="home-avatar" src="/images/avatar.jpg" alt="林郁為的頭像" width="240" height="240" />
+			<div>
+				<h1>林郁為</h1>
+				<p class="home-tagline" data-slot="定位句｜我是誰、往哪走">統計背景，正朝資料科學邁進</p>
+			</div>
+		</div>
+
+		{
+			featured && (
+				<article class="home-card" data-reveal data-card>
+					{/* 前導小標「最近專案」2026-08-08 放回來（推翻 7/30「由位置講」）。
+					    本人的理由：卡去框之後它看起來像首頁固定的一部分，十天後換卡
+					    讀者會以為「首頁怎麼改了」——標籤告訴人這一格是會輪替的。 */}
+					<p class="home-recent st-note">最近專案</p>
+					<p class="home-head">
+						<span class="home-chip">{categoryLabel(featured.data.category)}</span>
+						<span class="home-chip">#{featuredIndex}</span>
+						<span class="home-title" data-slot="專案標題">
+							{featured.data.title}
+						</span>
+					</p>
+
+					{/* 問句與提示詞分工，不是兩塊文字疊在一起：
+					      問句 ＝ 對訪客說的話，是鉤子，也是那張圖的**解讀說明書**——
+					             沒有它，圖只是「一個網站」；有了它，同一張圖才是「AI 的標準輸出」。
+					      提示詞 ＝ 對 AI 送出的話，是證物。
+					    所以問句可以短：完整的提示詞就在它正下方，不必再引一次。 */}
+					<p class="home-ask" data-slot="問句｜鉤子，同時是解讀說明書">
+						如果只是下簡單的提示詞，AI 會給你什麼成品？
+					</p>
+
+					<div class="home-msg">
+						<p class="home-msg-text">
+							{PROMPT}<span class="home-caret" aria-hidden="true"></span>
+						</p>
+						{/* 訊息不是 `<input>`：做成假的輸入框會讓鍵盤與螢幕閱讀器使用者聚焦到一個
+						    打不了字的東西。這裡是一則已經寫好的訊息 ＋ 一個真的按鈕，語意與畫面一致。 */}
+						<button type="button" class="home-send" data-send data-slot="送出鍵文字">
+							送出
+						</button>
+					</div>
+
+					{/* 2026-08-08 本人拍板：證物統一用 8/3 那份（本人親跑、汙染檢查零筆）的**真截圖**。
+					    先前掛的深色 ai-baseline.png 與體驗網站對不上，已撤下待查來歷。 */}
+					<figure class="home-shot">
+						<img
+							src="/images/portfolio-site/ai-baseline-2026-08-03.png"
+							alt="只給那一句話時，AI 產出的成品"
+							width="760"
+							height="470"
+						/>
+					</figure>
+
+					<div class="home-foot">
+						<p class="home-note" data-slot="標註｜這張圖是什麼">這是 AI 拿到那句話之後給的成品</p>
+						<a href={`/projects/${featured.id}/`} data-slot="出口文字">
+							那我做了什麼 →
+						</a>
+					</div>
+				</article>
+			)
+		}
+	</section>
+</BaseLayout>
+
+{/* 展示卡的那一次點擊：送出 → 訊息整條讓位 → 圖揭幕 → 出口跟上。
+    **沒有任何網路請求**——圖是 2026-07-30 事先拍好的，這是重演不是生成（本人明確澄清過）。
+
+    `is:inline` 是刻意的，不是忘了讓 Astro 打包：`.js` 一掛上，圖與出口就被 CSS 收起來
+    等這支腳本放行。打包成外部 module 會多一個「HTML 到了、那支 js 沒到」的失效面，
+    而那個面上讀者看到的是一張永遠揭不開的卡。內聯的話 HTML 到了它就到了。
+
+    揭幕的時序全在 CSS（`--dur-lg` 0.35s，出口再延 0.35s ＝ 0.7s），這裡只翻兩個狀態。 */}
+<script is:inline>
+	/* IIFE：ClientRouter 換頁會把內聯腳本再執行一次，頂層宣告會在第二次重新宣告而丟錯。 */
+	(() => {
+		function initHomeCard() {
+			const card = document.querySelector('[data-card]');
+			const btn = card && card.querySelector('[data-send]');
+			if (!btn || btn.dataset.wired) return;
+			btn.dataset.wired = '1';
+			btn.addEventListener('click', () => {
+				/* 背景一起回應（2026-08-08）：第 4 層聽這個事件，從送出鍵掃出一圈漣漪。
+				   先量座標再收合，收合後按鈕就不在原位了。 */
+				const r = btn.getBoundingClientRect();
+				window.dispatchEvent(
+					new CustomEvent('yw:card-sent', {
+						detail: { x: r.x + r.width / 2, y: r.y + r.height / 2 },
+					}),
+				);
+				card.classList.add('is-sent');
+				/* 揭幕要有起點才動得起來：圖是這一刻才從 display:none 出來的，同一幀改兩個
+				   狀態瀏覽器不會過場，所以下一幀才拆掉裁切。降低動態偏好由 CSS 那邊關掉。 */
+				requestAnimationFrame(() => card.classList.add('is-open'));
+			});
+		}
+
+		document.addEventListener('astro:page-load', initHomeCard);
+
+		/* 保險：`astro:page-load` 由 ClientRouter 的 bundle 發出，那支 JS 沒載到的話事件永遠不來。 */
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', initHomeCard, { once: true });
+		} else {
+			initHomeCard();
+		}
+	})();
+</script>

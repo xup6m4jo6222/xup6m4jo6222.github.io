@@ -1,0 +1,2975 @@
+:root {
+	color-scheme: dark;
+
+	/* ── 中性階（primitive，無語義）───────────────────────────────────
+	   L 感知等距 ΔL=8、C 隨 L 線性遞減 .030→.010、H 全階 335（＝背景主色自己的色相）。
+	   兩端沿用凍結／既有字面值，其餘取公式值。推導與對比度表見 docs/SPEC-design-system.md。
+	   說「比邊框深一階」時指的就是這排數字，不要再發明新的語義名。 */
+	--n-50: #20131d;
+	--n-100: #342630;
+	--n-200: #483a45;
+	--n-300: #5d505a;
+	--n-400: #736770;
+	--n-500: #8a7f87;
+	--n-600: #a2979f;
+	--n-700: #bab0b7;
+	--n-800: #d2cad0;
+	--n-900: #ebe5eb;
+
+	/* 圖表色（類別色與連續色帶）不放這裡：它們只被產圖腳本讀，CSS 從來沒有使用者。
+	   放進 :root 只會讓產物多出六個沒有人渲染的顏色，反而把白名單撐鬆。
+	   值的正本在 scripts/palette-config.mjs 與產圖腳本的常數。 */
+
+	/* ── 語義名：一律為階的別名，元件 CSS 不再出現任何色碼字面值 ──── */
+	--color-bg: var(--n-50);
+
+	/* 兩種表面。`--color-bg-alt` 封頂在 n-100 **是有理由的，而且 2026-07-29 又回來了**：
+	   角標卡上有元素主色的小標（`.tl-solo em`，票 04 的「線」落點），而主色疊 n-100
+	   只剩 4.84、提到 n-200 會掉到 3.61（實測。原本這裡註明「含顆粒更低 4.32／3.18」，
+	   2026-07-29 量真的像素後推翻：不透明的元件表面不吃顆粒，這兩個就是真值）。
+	   這段歷史繞了一圈——那些小標 2026-07-28 曾經全數退場、封頂理由一度消失，
+	   票 04 又把角標卡那一個放了回去。**所以要把面板提到 n-200，得先把那個小標的
+	   顏色收回去**，兩件事是綁在一起的，不是各自獨立的決定。 */
+	--color-bg-card: var(--n-200); /* .card ——列表卡 */
+	--color-bg-alt: var(--n-100); /* 決策開關、角標卡 */
+
+	--color-text: var(--n-900);
+	--color-text-muted: var(--n-600);
+
+	/* 兩種邊界。分界是**線還是框**：
+	   線只做分隔，不承載「這是一個獨立區塊／可操作元件」的資訊；
+	   框要標示一個區塊或控制項，依 WCAG 1.4.11 必須對**所有背景狀態**都 ≥3.0。
+	   背景疊了兩道 fixed 漸層，n-400 在藍暈峰值上只有 2.91，所以框取 n-500
+	   （純底 4.66／黑莓暈 4.33／藍暈 4.08）。這個值是量出來的，不是挑的。 */
+	--color-border: var(--n-300); /* 線：分隔線、規則線、表格格線、時間軸軸線 */
+	--color-border-strong: var(--n-500); /* 框：卡片、按鈕、標籤、比對器、決策開關 */
+
+	/* 凍結色與它們的透明度衍生。換色時這幾行是唯一要動的地方。 */
+	--color-accent: #7998c3;
+	--color-accent-fade: #7998c355; /* 捲軸拉桿＝元素主色 33% */
+	--color-accent-bloom: rgba(121, 152, 195, 0.1); /* 背景右上的藍暈 */
+	/* 「面」的淡底＝元素主色 7%。**站在這塊底上的字一律用內文色，不得用主色**——
+	   主色是中明度色，鋪面的同時也在削自己的字對比：7% 淡底上主色字九態最壞只有 4.33
+	   （表頭）與 4.36（比對器），都低於 4.5；掃過一次上限，5% 起就破線（4.45），而 3–4%
+	   看不見。改用內文色是 10.34／10.42，寬鬆得多。理念一壓過份量，這是硬邊界不是偏好。
+	   （數字是票 05 用 `.scratch/accent-weight/measure-05.mjs` 實測的；SPEC 寫的 4.27 與
+	   「上限 3%」是那份規格自己較早的模型，差在第三位數，結論相同。） */
+	--color-accent-tint: rgba(121, 152, 195, 0.07);
+	/* 墨渲染＝背景主色（階 50）55%。**它是「暗」的底，不是主色的底**，兩者的作用相反：
+	   主色淡底鋪在主色字下面會互相抵銷（4.81→4.33），這一層把底壓暗，主色字反而更好讀
+	   （峰值 5.51，最淡處退回沒有底的 4.81）。所以「面上不得有主色字」那條講的是**主色**
+	   鋪的面，不是任何面——鋪暗的面是易讀性的朋友。 */
+	--color-ink-wash: rgba(32, 19, 29, 0.55);
+	/* 第二個強調色（票 03）。**它不是主色的衍生，兩者是平行的兩個色**——所以不叫
+	   `--color-accent-*`，那個前綴在這個檔案裡一律代表「主色的某個透明度」。
+	   誰可以用它、憑什麼可以用，在 `scripts/palette-config.mjs` 的允許清單上；
+	   完整推導鏈也在那裡（不用主色的理由、彩度為什麼不是自由參數、砍掉的三個候選）。 */
+	--color-ask: #c8b7ea;
+	--color-nav-bg: #20131deb; /* 導覽列半透明底＝背景主色 92%。85% 時亮圖捲到導覽列下方，muted 連結掉到 4.41 */
+	/* 背景左下的黑莓暗暈。刻意不上階：它與上面那道藍暈成對，是背景主色的組成，
+	   不是承載層級的表面——上了階會被連帶提亮，那道暈就沒了。 */
+	--color-bloom-dark: #2a1829;
+
+	/* 標題（2026-08-04 換）：霞鶩文楷。**AI 判斷它過不了門檻一、本人推翻**——
+	   憲法那份「手做感 0 處」的盤點數的是形狀語彙（直線、統一圓角、柔邊暈），
+	   字體算不算形狀語彙沒有明文。沿革見 docs/DECISIONS.md。 */
+	--font-display: 'LXGW WenKai TC', 'PingFang TC', 'Microsoft JhengHei', serif;
+	/* 內文（2026-08-04 換）：昭源圓體。圓角收筆，站上本來就有統一圓角這個語彙。 */
+	--font-sans:
+		'Chiron GoRound TC', system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei',
+		sans-serif;
+	/* ── 字級九階 ───────────────────────────────────────────────────
+	   兩套等比尺度，之間線性內插：手機 375px base 1.0rem／r=1.1808，
+	   桌機 1440px base 1.125rem／r=1.2585。r = 5^(1/7)，來源是「主標約內文 5 倍」
+	   走七階，不是外部音階表。比值必須隨螢幕壓縮（手機 3.2 倍、桌機 5.0 倍）——
+	   那是物理限制不是設計選擇：恆為 5 倍會逼出 10.2px 的手機內文。
+	   階 −1 的下限釘死 0.875rem（14px）：易讀是硬下限，優先於等比。 */
+	--fs--1: clamp(0.875rem, 0.868rem + 0.029vw, 0.894rem);
+	--fs-0: clamp(1rem, 0.956rem + 0.188vw, 1.125rem);
+	--fs-1: clamp(1.181rem, 1.098rem + 0.353vw, 1.416rem);
+	--fs-2: clamp(1.394rem, 1.257rem + 0.583vw, 1.782rem);
+	--fs-3: clamp(1.646rem, 1.436rem + 0.895vw, 2.242rem);
+	--fs-4: clamp(1.944rem, 1.635rem + 1.319vw, 2.822rem);
+	--fs-5: clamp(2.295rem, 1.852rem + 1.888vw, 3.552rem);
+	--fs-6: clamp(2.71rem, 2.09rem + 2.644vw, 4.47rem);
+	--fs-7: clamp(3.2rem, 2.346rem + 3.643vw, 5.625rem);
+
+	/* 行高：連續公式 max(1.05, 1.9 − 0.12 × 階)。兩端與現況吻合。 */
+	--lh--1: 2.02;
+	--lh-0: 1.9;
+	--lh-1: 1.78;
+	--lh-2: 1.66;
+	--lh-3: 1.54;
+	--lh-4: 1.42;
+	--lh-5: 1.3;
+	--lh-6: 1.18;
+	--lh-7: 1.06;
+
+	/* ── 版面元件的行高（2026-08-05）───────────────────────────────────
+	   上面那排行高是**內容**的：1.9／2.02 是給連續閱讀的段落用的，讓眼睛換行時
+	   找得到下一行。導覽列與頁尾一行字都沒有要被連續閱讀，套上去等於在單行字的
+	   上下各墊一段沒有人用得到的空白——實測導覽列一個 17px 的字配 32px 的行框、
+	   頁尾 14px 配 28.5px，兩條加起來 156px、佔一個 609 高的視窗 26%。
+
+	   **這不是替型別系統開例外，是補上它缺的一半。**這個站已經有一條軸：
+	   「版面 vs 內容，兩邊適用相反的規則」（圓角、邊框、圖片比例都照它分兩邊，
+	   見 CONTEXT.md），行高只是還沒被放上那條軸。
+
+	   1.4 的來源：字型的行高上界（`normal` 約 1.2–1.35）再往上留一格，
+	   保證單行字不會被自己的行框切到，同時不再墊閱讀用的空白。 */
+	--lh-chrome: 1.4;
+
+	/* 導覽列的高度，由它自己的組成算出來（上下內距 ＋ 一行字 ＋ 下框線）。
+	   **不要寫死一個像素值**：字級是流動的、行高改一次這個數字就過期，
+	   而首頁「頁尾落在第一屏之外」正是拿它去扣的。 */
+	--nav-h: calc(2 * var(--sp-0-5) + var(--fs-0) * var(--lh-chrome) + 1px);
+
+	/* 字距三檔。否決「隨字級遞減」的公式化做法——那是拉丁字的光學修正，對方塊字
+	   無依據；中文無詞間空格，內文加字距會破壞切詞。 */
+	--ls-body: 0;
+	--ls-display: 0.06em; /* 襯線大標 */
+	--ls-label: 0.04em; /* 短標籤 */
+
+	/* 版面寬度：原本在 1440／1920 跳 720→800→860，改為連續。
+	   三個值各加 48px（＝main 的左右 padding 1.5rem×2），讓內文欄實際落在 40em＝720px
+	   上；原本 720px 的容器扣掉 padding 只剩 672px，行長其實是 37 個字，40em 根本沒有
+	   在管事。加上之後，管行長的是 .content 的 40em，容器只負責兩側留白。 */
+	--max-width: clamp(768px, 348px + 29.167vw, 908px);
+
+	/* ── 間距：兩組階梯 ─────────────────────────────────────────────
+	   版面間距受垂直節奏約束，基線＝內文行高 1.9 × 1.125rem = 2.1375rem。
+	   不同區塊的文字因此落在同一組看不見的橫線上。 */
+	--sp-0-5: 1.069rem;
+	--sp-0-75: 1.603rem;
+	--sp-1: 2.138rem;
+	--sp-1-5: 3.206rem;
+	--sp-2: 4.275rem;
+	--sp-3: 6.413rem;
+	--sp-4: 8.55rem;
+	/* 6× 曾經存在，是首頁下緣那格大留白。第 9 版把它收到 4×（那格承載的內容是零），
+	   token 隨之沒有任何使用者——階梯上有 6× 這一階，但站上沒有東西該用到它。 */
+
+	/* 元件內間距（按鈕內距、圖示間隙、標籤 padding）**不受節奏約束**——它們不落在
+	   文字基線上，硬套會讓元件膨脹（最小的節奏階是 17.1px，按鈕會腫）。 */
+	--sp-xs: 4px;
+	--sp-sm: 8px;
+	--sp-md: 12px;
+	--sp-lg: 16px;
+	/* ── 動效 ────────────────────────────────────────────────────────
+	   兩條紅線（判準，不只是這裡的值）：
+	     ① 單一動作時長 ≤ 0.35s ——這個動作有多顯眼
+	     ② delay + duration 總和 ≤ 1s ——使用者等多久
+	   時長三檔：X／X×2⁄3／0.15s。中檔取 0.25 而非公式值 0.233——兩者差 7%，
+	   在時距辨識門檻（約一成）之內屬同一個值，取站上既有值省一處遷移。
+	   小檔 0.15s 是硬下限：低於 100ms 人眼感知為瞬間，色變會變成硬切。 */
+	--dur-lg: 0.35s; /* 進場、時間軸滑入、角標長框 */
+	--dur-md: 0.25s; /* 卡片上浮、封面縮放、換頁淡化 */
+	--dur-sm: 0.15s; /* hover 色變 */
+
+	/* 全站唯一一條曲線（強減速）。站上只有一種動作類型——回應狀態改變的過場——
+	   所以不需要第二條。末段 50% 的時間裡只走 12% 的距離，動作在時長一半處就幾乎
+	   停了，感知到的長度短於實際 0.35s。
+	   **不得有超越量。**這推翻了「微回彈曲線」：現值超越量 5.29%，套在主力進場的
+	   10px 上是 0.53px（次像素，本來就看不見），而 overshoot 的物理語義是「被推了
+	   會彈」，與「捏下去不變形」正面衝突。 */
+	--ease: cubic-bezier(0.2, 0, 0, 1);
+
+	/* 容器圓角唯一值。內文圖片原本的 0.5rem 併入（兩者差 10%，在圓角上屬同一個值）。
+	   不收銳到 4px：柔和是外表，本輪已經在動效層把「硬」做出來了。
+	   兩個功能特例不受此值管，理由寫在各自旁邊：捲軸拉桿 5px、焦點框 2px。 */
+	--radius: 0.55rem;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+
+/* ── 中文排版三件（2026-08-04 新增）─────────────────────────────────────
+   全部是漸進增強：瀏覽器不認得就是現在的樣子，沒有退路要寫。實測值附在各條後面
+   （Chrome 150、內文 18px、`scripts/verify/` 的探針量的，不是估的）。
+
+   ① **標點擠壓：試過，本人否決，刻意不做。** `halt` 可以把全形標點換成半形寬
+      （實測 342.0px → 306.0px，短 10.5%），但被引號框起來的詞會擠到幾乎黏在字上——
+      本人看過對照圖後裁定「那個引號的擠壓看起來像出錯，而不是像刻意的排版」，
+      由煞車一（易讀最優先）拉掉。不要再提案。
+      另外，「兩個標點連在一起」那一半 Chrome **預設就已經在擠了**
+      （實測 `space-all` 324.0、預設與 `trim-start` 都是 306.0，改不動），本來就不必做。
+   ② **中文與英數之間的空隙**。「花了477元」會黏在一起，排版上習慣加約四分之一字寬。
+      實測 354.5px → 361.3px（預設等於 `no-autospace`，所以這一條要明講才會生效）。
+   ③ **標點懸掛**。行尾的句號掛到欄外去，右邊界才是齊的。
+      **Chrome 不支援這條**（實測 `CSS.supports` 回 false），目前只有 Safari 看得到。
+      留著是因為它零成本、而且哪天 Chrome 補上就自動生效。 */
+body {
+	text-autospace: normal;
+	hanging-punctuation: allow-end;
+}
+
+body {
+	background: var(--color-bg);
+	color: var(--color-text);
+	font-family: var(--font-sans);
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+}
+
+/* ── 第 2 層：兩道暈（2026-08-08 從 body 背景搬成獨立層，V2 概覽驗收）────
+   **色與幾何一字未動**，搬家的唯一理由是讓它們呼吸得起來：transform／opacity
+   是合成器動畫，每幀 CPU ≈ 0。呼吸的暗端 0.82、亮端 1.0——**亮端＝今天的靜態值**，
+   所以藍暈峰值沒有變，所有以「藍暈峰值」量出來的對比數字（框線 n-500、nav-bg 92%、
+   主色字允許清單）全部不受影響。
+   **絕對不要在 body 上加任何動畫**：body 一有動畫就變成獨立疊層，顆粒層的
+   soft-light 混不到底色，整頁被未混色的灰噪點洗灰（V2 概覽實測踩到）。
+   同理，這兩個偽元素只動 transform／opacity，不加 will-change（加了同樣會被切層）。 */
+.bloom {
+	position: fixed;
+	inset: 0;
+	z-index: -2;
+	pointer-events: none;
+}
+.bloom::before,
+.bloom::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(60% 42% at 72% 6%, var(--color-accent-bloom) 0%, transparent 64%);
+	animation: bloom-breathe 30s var(--ease) infinite alternate;
+}
+.bloom::after {
+	background: radial-gradient(70% 55% at 12% 80%, var(--color-bloom-dark) 0%, transparent 62%);
+	animation-duration: 42s;
+	animation-delay: -12s;
+}
+@keyframes bloom-breathe {
+	from {
+		transform: scale(1);
+		opacity: 0.82;
+	}
+	to {
+		transform: scale(1.07);
+		opacity: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.bloom::before,
+	.bloom::after {
+		animation: none;
+		opacity: 1;
+	}
+}
+
+a {
+	color: var(--color-accent);
+}
+
+/* ══ 排版樣式 ════════════════════════════════════════════════════════
+   一個樣式＝字級／行高／字距／字重四者一次到位。新增元件時把選擇器加進其中一組，
+   **不要單獨設 font-size**——拆開設正是缺陷的來源（main > h1 現況即因此吃到 body
+   的行高）。驗證腳本會擋下任何設了字級卻沒設行高的規則。
+
+   字重只有三個合法值：Sans 400／500、Serif 600。宣告了但沒載入的字重會被 CSS
+   字體匹配演算法靜默替換成別的字重——站上原本的 Sans 600 實際渲染成 700、
+   Serif 500 實際渲染成 400，兩個方向的 bug 都在本次修掉。
+
+   **字體是第五個屬性，但只有「標籤」那一組收進來**（2026-07-28 合併時）：那一組的
+   襯線是判準的一部分——說明「接下來這一塊是什麼」的短詞一律襯線 600，落點有 11 個，
+   分散宣告就等於 11 個要同步的地方。其餘幾組的 `font-family` 仍留在各自的元件規則裡
+   （`.site-nav .nav-brand`、`.home h1`、`.category h2`、`main > h1`、`.tl-era h2`、
+   `.content h2`），要不要一併收攏是另一個決定，不在合併那張票的範圍。 */
+
+/* 樣式：內文（階 0）。body 設一次，其餘元素繼承。 */
+body,
+.content,
+.cs-lead {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：註記（階 −1）。全站唯一的小字級——現況八個 0.75–0.88rem 的值全部收斂到這裡。 */
+.site-nav a,
+.nav-progress,
+.home-cta a,
+.home-links,
+/* 展示卡裡的提示詞引文。降階不是排版偏好：那是**機器輸入的引文**，不是給人閱讀的
+   正文——卡片有六成高度是它，留在階 0 會讓證物看起來比問句還重要。 */
+.home-msg-text,
+.card p,
+.back-link,
+.category-label,
+.tags li,
+.links a,
+.cs-wipe-invite,
+.cs-wipe-handle::after,
+.cs-wipe-hint,
+.st-tost-legend,
+.st-tost-head,
+.st-tost-axis,
+.st-mkt-head,
+.st-mkt-axis,
+.cs-side,
+.cs-reason,
+.cs-pair,
+.cs-raw,
+.content details summary,
+.content details p,
+.tl-era p,
+.tl-solo,
+.st-table,
+.dmr,
+.st-note,
+footer {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：標籤（階 −1 ／字距 ／襯線 600）。說明「接下來這一塊是什麼」的短詞——
+   表格的欄名列名與卡片的前導小標是同一種東西，2026-07-28 合併（此前是「短標籤」與
+   「表頭」兩組，字級字距相同、只差字重與字體，職責分不出差別）。
+
+   為什麼是 600 不是 400：本人否決的是**字重 400 的細襯線**（「太普通、失去易讀性與
+   高級設計感」），不是襯線本身。600 是站上已證明撐得住的那一檔（段落標題在用）而且
+   已載入——位元組 0、每幀 CPU 0、不新增字體請求。否決「改走 Sans 500」：那會與內文
+   粗體同字重，段內重點字與小標就分不開了。
+
+   襯線在這裡設一次，元件規則不要再各自宣告一遍——那正是兩組樣式分家時的同步成本。 */
+.home-recent,
+.cs-wipe-tag,
+.cs-toggle-name,
+.cs-side em,
+.cs-evi,
+.cs-evi span,
+.cs-pair em,
+.cs-rawchip,
+.tl-solo em,
+.st-sub,
+.st-table thead th,
+.dmr th {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-label);
+	font-family: var(--font-display);
+	/* 700 不是 600：霞鶩文楷在 Google Fonts 上只有 300/400/700。宣告不存在的字重
+	   會被瀏覽器靜默替換（2026-07-25 踩過一次），所以這裡跟著字體走。 */
+	font-weight: 700;
+}
+
+/* 樣式：介面強調（階 0 ／半粗）。導覽列當前頁、卡片標題、表格粗體。
+   這幾處原本宣告 600，但 Sans 只載入 400/500——實際渲染是 700，不是設計時想要的
+   半粗。改用已載入的 500 回到原意，不新增字體請求。
+   （原本還有一項 `.cs-stats b`，隨數字統計列一起刪除，2026-08-02。） */
+.site-nav nav a[aria-current='page'],
+.card h3,
+.dz-card h3,
+.st-table td b,
+.dmr td b {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 500;
+}
+
+/* 樣式：導覽列品牌（階 0 ／襯線） */
+.site-nav .nav-brand {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-label);
+	font-weight: 400;
+}
+
+/* 樣式：段落標題（階 1 ／襯線 700）。三個同級標題字重一致。
+   2026-08-04 由 600 改為 700：換成霞鶩文楷之後 600 不存在。 */
+.category h2,
+.tl-era h2,
+.content h2 {
+	font-size: var(--fs-1);
+	line-height: var(--lh-1);
+	letter-spacing: var(--ls-display);
+	font-weight: 700;
+}
+
+/* 內文裡的粗體。Sans 只載入 400／500，UA 預設的 bold（700）會被靜默替換，
+   所以明講 500——與介面強調同一個半粗。 */
+.content strong,
+.content b {
+	font-weight: 500;
+}
+
+/* 樣式：頁面主標（階 5 ／襯線）。自 1.9rem 提到與首頁同量級——
+   解掉「從首頁點進專案頁像另一個站」。 */
+main > h1 {
+	font-size: var(--fs-4);
+	line-height: var(--lh-4);
+	letter-spacing: var(--ls-display);
+	font-weight: 400;
+}
+
+/* 樣式：署名的定位句（階 0）。票 05 從階 3 降下來：署名旁邊那一句是**說明**不是
+   第二個標題，而名字同時從階 6 降到階 4，兩個大字級並排會互相搶。 */
+.home-tagline {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：展示卡的標註（階 0）。說明剛揭曉的那張圖是什麼，內文語氣的一句話。
+   票 05 前這個類名是首頁的說明句（階 1），署名改版後那個位置由定位句承接。 */
+.home-note {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+
+/* 樣式：展示卡的專案名稱（階 1 ／半粗）。**不得借用「標籤」那一組襯線 600**——
+   那一組的定義是「說明接下來這一塊是什麼」的短詞，專案名稱是內容不是標籤，
+   借用會讓 `CONTEXT.md` 的詞彙定義當場說謊。可用的通道剩字級與字重，取字重 500
+   （介面字體只載入 400／500，700 會被靜默替換）。 */
+.home-title {
+	font-size: var(--fs-1);
+	line-height: var(--lh-1);
+	letter-spacing: var(--ls-body);
+	font-weight: 500;
+}
+
+/* 樣式：署名的名字（階 4 ／襯線）。票 05 從階 6 降下來——主角是展示卡，名字回答的是
+   「這是誰」，兩者不爭同一份注意力預算。階 4 而不是更低：署名不參與讓位之後，
+   「名字不必靠字級去爭」那句話的前提就消失了。 */
+.home h1 {
+	font-size: var(--fs-4);
+	line-height: var(--lh-4);
+	letter-spacing: var(--ls-display);
+	font-weight: 400;
+}
+
+/* 材質：絲絨顆粒（雙層不均勻，soft-light）。
+
+   **用的是 `grain-clipped.png` 不是 `grain.png`**（票 01，2026-08-04）。兩個檔的差別只有
+   亮端：原檔最亮到 224，這個封在 160，被削到的是 11.71% 的像素。削它的理由是對比——
+   顆粒濃度一拉高，材質最亮的那一撮壓在藍暈峰值上就是全站最壞的底，列聯表內容側的
+   灰字在原檔下 18.4% 就破 4.5，**根本到不了「看得出有顆粒」所需要的濃度**。封住亮端之後
+   同一條線撐到 54.7%，畫面平均亮度幾乎沒動（24.1→24.5）。
+
+   **舊檔留著不刪**：`public/process/` 那七頁是標了日期的歷史重演存檔，它們共用這個資產
+   而且各自寫死 `opacity:.17`。直接覆蓋 `grain.png` 會連帶改掉那些凍結的畫面。
+
+   **濃度的正本是 `scripts/palette-config.mjs` 的 `GRAIN.alpha`，不是這一行**——
+   閘門第二類會拿這裡的 `opacity` 去比對判準檔，兩邊不一樣就紅。要調濃淡請改判準檔那個值，
+   順手改這裡會在建置時被抓住（那正是它存在的意義：對比模型算的是判準檔的濃度，
+   畫面上跑的是這一行，兩者一分家，模型就變成虛構）。 */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: url('/textures/grain-clipped.png') repeat;
+	background-size: 320px;
+	mix-blend-mode: soft-light;
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+
+/* **頁尾留在第一屏內**（2026-08-05 本人同日內先選 B、再收回）。
+   一度給 `main` 一個 `min-height: calc(100dvh - var(--nav-h))` 把頁尾推到摺線之外，
+   讓主角屏拿回那一截；他看過之後的判斷是**反而太空**，所以收回。
+   收回的只有 B——A（導覽列與頁尾改用版面行高）留著，所以第一屏被版面吃掉的高度
+   是 114px 不是原本的 156px。
+
+   `body` 是縱向 flex、`main` 是 `flex: 1`，所以內容短的時候頁尾自然被推到視窗底部、
+   整頁剛好一屏。**這件事在所有尺寸都要成立**（本人指定），驗法見下面那條註解。 */
+main {
+	flex: 1;
+	width: 100%;
+	max-width: var(--max-width);
+	margin-inline: auto;
+	padding-inline: var(--sp-0-75);
+	/* 上下留白**跟著視窗高流動**：視窗矮的時候收到階梯最小格，高的時候是原本那兩格。
+	   本人 2026-08-05 指定「全尺寸螢幕都能適用一頁顯示」，而實測 782×404 的版面視窗
+	   會溢出 37px——留白固定 51＋68＝119px，那個高度容不下。
+
+	   **兩端都在版面節奏階梯上**（0.5 與 1.5／2），中間那一段才是流動的，所以間距閘門
+	   照樣過——它驗的是 clamp 的兩端。**用流動不用斷點**：站上的規矩是「只有結構改變
+	   才配得上一個斷點，純尺寸變化一律流動處理」，而這裡改變的只有尺寸。
+	   斜率是解出來的：800px 高時給滿、400px 高時收到最小格。 */
+	padding-top: clamp(var(--sp-0-5), calc(var(--sp-1-5) - (800px - 100dvh) * 0.0855), var(--sp-1-5));
+	padding-bottom: clamp(var(--sp-0-5), calc(var(--sp-2) - (800px - 100dvh) * 0.128), var(--sp-2));
+}
+
+/* 首頁：只改上下留白，容器沿用 --max-width。原本這裡有一個 1200px 的破框開關，
+   它讓首頁的左邊界與導覽列／頁尾差了 190px（1440×900 實測：品牌 361.6、主標題
+   171.3），三者各走各的網格。破框拿掉之後三條左邊界落在同一條線上，而右半邊仍然
+   是空的——留白從此是網格內的空欄，不是容器沒填滿。 */
+main:has(> .home) {
+	/* nav 底 → 標題：3×。**上下都跟著視窗高流動**（2026-08-05，本人指定「全尺寸螢幕
+	   都能適用一頁顯示」）：視窗矮的時候兩邊都收到 1×，高的時候是原本的 3× 與 4×。
+	   實測 782×404 與 682×354 兩個矮視窗原本會溢出 37px 與 84px——首頁的留白固定
+	   102＋137＝239px，那兩個高度容不下。
+	   **兩端都在版面節奏階梯上**（1× 與 3×／4×），所以間距閘門照樣過（它驗 clamp 的兩端）；
+	   **用流動不用斷點**，因為這裡改變的只有尺寸不是結構。 */
+	padding-top: clamp(var(--sp-1), calc(var(--sp-3) - (800px - 100dvh) * 0.171), var(--sp-3));
+	/* 內容 → 頁尾：4×（原 6×）。這是**宣告值**，也是內容夠高時的實際值；首頁內容不
+	   滿一屏，剩下的由 main 的 flex:1 吃掉（頁尾貼底），所以 1440×900 實測的空白是
+	   352px 而不是 136.8px。試過讓首頁不撐開、頁尾就跟在內容後面 4× 的版本：頁尾下方
+	   會空出一整條，讀起來是頁面沒填滿，而且背景設計會被頁尾攔腰切斷。那格空白本來就是
+	   背景設計的位置（票 02），不是版面的破口。 */
+	padding-bottom: clamp(var(--sp-1), calc(var(--sp-4) - (800px - 100dvh) * 0.2565), var(--sp-4));
+}
+
+/* Scroll reveal — quiet, functional, once. Opt-in via .js so content
+   stays visible by default if JS never runs. */
+.js [data-reveal] {
+	opacity: 0;
+	transform: translateY(10px); /* 位移標準檔 */
+	transition:
+		opacity var(--dur-lg) var(--ease),
+		transform var(--dur-lg) var(--ease);
+}
+
+.js [data-reveal].is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* 降低動態偏好：只關空間位移，淡化保留。
+   全部關掉會讓元素硬跳出來，那比淡入更晃——淡化本來就是規範建議用來取代動態的替代方案。 */
+@media (prefers-reduced-motion: reduce) {
+	.js [data-reveal] {
+		transform: none;
+		transition: opacity var(--dur-lg) var(--ease);
+	}
+
+	.js [data-reveal].is-visible {
+		transform: none;
+	}
+}
+
+/* 聚焦組（focus group）——五個專案內頁共用的閱讀節奏機制。
+   標了 data-focus-group 的元素構成一組；落在焦點帶（視窗中央 30%）內的那一組清晰，
+   其餘常駐在糊化降權的狀態。**這是常駐態不是進場起點**：捲離之後回到 0.18，
+   不會變成隱藏（文字仍在 DOM 裡，Ctrl+F 找得到、螢幕閱讀器照讀）。
+
+   標記屬性是這個機制唯一的接縫——腳本、這組 CSS、閘門三方都只認它，彼此不知道對方存在。 */
+.js [data-focus-group] {
+	opacity: 0.18;
+	filter: blur(2.5px);
+	transition:
+		opacity var(--dur-lg) var(--ease),
+		filter var(--dur-lg) var(--ease);
+}
+
+/* 進帶即清晰；組內連結取得鍵盤焦點時同樣清晰——否則 Tab 會落到一個看不見的地方。 */
+.js [data-focus-group].is-centered,
+.js [data-focus-group]:focus-within {
+	opacity: 1;
+	filter: none;
+}
+
+/* 三個逃生口。前兩個在這裡，兩種偏好要的是同一件事（機制關掉、全部清晰），合成一條：
+   **降低動態**——糊化是空間處理，落在「要關掉的是空間位移」那一邊。
+   **增加對比**——非焦點文字在最壞背景上實測對比 1.66，要補到 4.5 得把 opacity 拉到 0.60，
+   那已經幾乎不糊了。**調數值是死路，缺的是逃生口。**
+   第三個逃生口是無 JS：`.js` 沒掛上去，上面整組規則就不生效，讀者拿到一篇正常長文。
+
+   時間軸卡的 36px 側滑不在這裡關——那是 AI 頁的展示內容，與對比無關；
+   降低動態那一半由它自己那條規則負責（見下方 `.tl-item` 段）。 */
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more) {
+	.js [data-focus-group] {
+		opacity: 1;
+		filter: none;
+		transition: none;
+	}
+}
+
+/* Text selection / keyboard focus / scrollbars — site-wide */
+::selection {
+	background: var(--color-accent);
+	color: var(--color-bg);
+}
+
+:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 3px;
+	/* 圓角特例：焦點框不吃 --radius。大圓角會讓框看起來鬆、不貼著元素。 */
+	border-radius: 2px;
+}
+
+html {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-accent-fade) transparent;
+}
+
+::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-accent-fade);
+	/* 圓角特例：拉桿寬度就是 5px，這裡等於做成膠囊，不是漏網之魚。 */
+	border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-accent);
+}
+
+/* 頁面切換：約 var(--dur-md) 交叉淡化 */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: var(--dur-md);
+}
+
+/* Nav */
+/* 底線用**主色線**（票 05）。原本是對比 2.35 的「線」token，導覽列與頁尾因此讀起來
+   「太素、沒有存在感」。這是既有的「線」語彙落點，判準二允許——線不改變字底下那塊底，
+   所以它不會削任何一個字的對比（主色線疊在頁底實測 6.05）。
+   **已登記的缺口**：框線色沒有任何閘門在看（對比檢查只驗文字色），見
+   `docs/REFERENCE-accent-text.md` 那份「刻意不修的」清單。 */
+/* 導覽列與頁尾走**版面**的行高，不走內容的（見 `--lh-chrome`）。
+   寫成獨立一條而不是去改上面那幾組排版樣式：那幾組是照「字級 → 樣式」分的，
+   而這件事是照「版面 vs 內容」分的——兩條軸交叉，硬塞進其中一邊會把另一邊弄糊。 */
+.site-nav nav,
+.site-nav a,
+.site-nav .nav-brand,
+/* **這一條非列不可。**目前所在的那個連結帶 `aria-current="page"`，而它的排版樣式是
+   `.site-nav nav a[aria-current='page']`——屬性選擇器讓權重比 `.site-nav .nav-brand`
+   高一級，不列的話首頁的品牌會**單獨一個**留在閱讀行高上，而導覽列的高度正是被
+   最高的那個孩子撐起來的：實測其餘連結都收到 19.8px 了，導覽列還是 67px 沒動。 */
+.site-nav nav a[aria-current='page'],
+footer,
+.footer-inner,
+.footer-inner a {
+	line-height: var(--lh-chrome);
+}
+
+.site-nav {
+	border-bottom: 1px solid var(--color-accent);
+	position: sticky;
+	top: 0;
+	background: var(--color-nav-bg);
+	backdrop-filter: blur(6px);
+	z-index: 10;
+}
+
+.site-nav nav {
+	max-width: var(--max-width);
+	margin-inline: auto;
+	padding: var(--sp-0-5) var(--sp-0-75);
+	display: flex;
+	align-items: center;
+	gap: var(--sp-0-75);
+}
+
+.site-nav a {
+	color: var(--color-text-muted);
+	text-decoration: none;
+	position: relative;
+}
+
+.site-nav a:hover {
+	color: var(--color-text);
+}
+
+/* 微細節（2026-08-08，V2 概覽驗收）：hover 時 1px 底線從左長出來。
+   只給非當前頁的連結——當前頁已有 2px 實線，兩條疊著會像錯誤。 */
+.site-nav nav a:not(.nav-brand):not([aria-current='page'])::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: -1.1rem;
+	height: 1px;
+	width: 0;
+	background: var(--color-accent);
+	transition: width var(--dur-sm) var(--ease);
+}
+.site-nav nav a:not(.nav-brand):not([aria-current='page']):hover::after {
+	width: 100%;
+}
+
+.site-nav .nav-brand {
+	font-family: var(--font-display);
+	color: var(--color-text);
+	margin-right: var(--sp-xs);
+	transition: color var(--dur-sm) var(--ease);
+}
+
+.site-nav .nav-brand:hover {
+	color: var(--color-accent);
+}
+
+.site-nav nav a[aria-current='page'] {
+	position: relative;
+	color: var(--color-text);
+}
+
+/* 捲動進度：固定於右下角的角標膠囊，不佔導覽列空間（窄螢幕會擠壓選項列） */
+.nav-progress {
+	position: fixed;
+	right: 0.9rem;
+	bottom: 0.9rem;
+	z-index: 20;
+	color: var(--color-text-muted);
+	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-xs) var(--sp-sm);
+	opacity: 0;
+	transition: opacity var(--dur-lg) var(--ease);
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.nav-progress.is-visible {
+	opacity: 1;
+}
+
+/* 捲動進度的第二個出口（2026-08-08，V2 概覽驗收）：頂上一條 2px 主色線。
+   與角標膠囊分工：線給「大概讀到哪」的餘光，膠囊給精確數字與紀元名。 */
+.progress-line {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: var(--color-accent);
+	transform-origin: left;
+	transform: scaleX(0);
+	z-index: 20; /* 與角標膠囊同一格：都是導覽進度 */
+	pointer-events: none;
+}
+
+/* ── 讀取動畫（2026-08-08 本人指定：載入慢的過場要有具設計感的讀取動畫）────
+   造型是站上故事的縮影：三顆主色小點，散開 → 排成一條往上的趨勢 → 再散開。
+   只在換頁準備超過 150ms 時出現（`astro:before-preparation` 起計），快的換頁
+   完全不閃。動的是 transform／opacity，不觸發排版。 */
+.loading-sign {
+	position: fixed;
+	right: 0.9rem;
+	top: 0.9rem;
+	z-index: 20; /* 與角標膠囊同一格：都是導覽進度 */
+	display: none;
+	gap: var(--sp-xs);
+	pointer-events: none;
+}
+.loading-sign.is-on {
+	display: flex;
+}
+.loading-sign i {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--color-accent);
+	animation: loading-gather 0.9s var(--ease) infinite alternate;
+}
+/* 三顆各自的「散開位置 → 趨勢位置」：趨勢＝右邊的比左邊的高一階 */
+.loading-sign i:nth-child(1) {
+	--from: 4px;
+	--to: 5px;
+}
+.loading-sign i:nth-child(2) {
+	--from: -3px;
+	--to: 0px;
+	animation-delay: 0.08s;
+}
+.loading-sign i:nth-child(3) {
+	--from: 2px;
+	--to: -5px;
+	animation-delay: 0.16s;
+}
+@keyframes loading-gather {
+	from {
+		transform: translateY(var(--from));
+		opacity: 0.45;
+	}
+	to {
+		transform: translateY(var(--to));
+		opacity: 1;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.loading-sign i {
+		animation: none;
+	}
+}
+
+/* 反白選取＝主色 33%（捲軸拉桿同一個衍生值，語彙內） */
+::selection {
+	background: var(--color-accent-fade);
+}
+
+.site-nav nav a[aria-current='page']:not(.nav-brand)::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -1.1rem;
+	height: 2px;
+	background: var(--color-accent);
+}
+
+/* 首頁：單欄左對齊，兩塊內容——署名與展示卡。右半邊整片留給背景設計。
+   原本是「左 h1＋副標／右 入口連結」的雙欄，兩欄底部對齊——但那讓按鈕頂端與姓名
+   頂端切齊（實測差 0）而兩者相差七階，量級與位置互相打架。連結改為內容流的一部分。 */
+.home {
+	display: flex;
+	flex-direction: column;
+	/* 署名與卡片之間**維持既有的元件間距檔**。試過拉到 2×／3×，本人看過三檔後裁定
+	   「卡片位置放第一版比較好」——署名的地由字級與右側留白劃，不靠把主角往下推。 */
+	gap: var(--sp-lg);
+}
+
+.home h1 {
+	font-family: var(--font-display);
+	margin: 0;
+}
+
+/* 署名區只收右邊：左邊界維持與導覽列、頁尾同一條線（那個對齊是既有定案，
+   `main` 那個 1200px 破框當初就是為了它拿掉的），收窄出來的右側是背景設計的地。 */
+.home-id {
+	max-width: 62%;
+}
+
+/* 進場兩段：名字先，主角（展示卡）接著（本人 2026-07-30 指定的順序）。
+   沿用既有的 380ms；0.38＋0.35＝0.73s，在紅線②內。 */
+.js .home > .home-card[data-reveal] {
+	transition-delay: 380ms;
+}
+
+.home-tagline {
+	color: var(--color-text-muted);
+	margin: var(--sp-xs) 0 0;
+}
+
+.home-note {
+	color: var(--color-text-muted);
+	margin: 0;
+}
+
+/* ── 最近專案展示卡（首頁主角）─────────────────────────────────────
+   組成順序＝陌生人 30 秒的讀取順序：分類與序號（這是什麼類的第幾件）→ 問句
+   （勾不勾得住我）→ 提示詞與圖（證物）→ 出口。 */
+.home-card {
+	/* 2026-08-11 三改：**框加回來**。2026-08-08 的「去框」是 AI 從「我想要的其實就是
+	   第二版的大膽設計」自行推導出來的子決定，本人 2026-08-11 指明那不是他決定的
+	   （原話「『去框』是 AI 決定的，不是我決定的，直接拿掉這個」），故撤回。
+	   框走 `--color-border-strong`：它承載「這是一個獨立區塊」的辨識資訊，是 CONTEXT
+	   「線 vs 框」那條的框側，與 `.card`／`.dz-card` 同一檔。
+	   兩條否決仍然有效：署名不動、寬度上限 34em（「展示卡太大 完全不行」）。 */
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-md);
+	max-width: 34em;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-0-75);
+}
+
+.home-head {
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--sp-sm);
+}
+
+/* 分類與序號的標籤：7% 主色淡底（「面」語彙的第 4 個實例）＋ 統一圓角（第 12 個）。
+   **字是內文色不是主色**——判準二量出來的硬邊界（主色字在 7% 淡底上只有 4.33／4.36，
+   低於 4.5），判準三也排除獨立成塊的標籤拿主色。這兩件事沒有選擇空間，是算出來的。
+   行高取 1 而不是階 −1 的 2.02：膠囊的高度由 padding 決定，行高在這裡是元件尺寸
+   不是文字節奏。 */
+.home-chip {
+	font-size: var(--fs--1);
+	line-height: 1;
+	letter-spacing: var(--ls-label);
+	font-weight: 400;
+	color: var(--color-text);
+	background: var(--color-accent-tint);
+	border-radius: var(--radius);
+	padding: var(--sp-xs) var(--sp-sm);
+	white-space: nowrap;
+}
+
+/* 問句（樣式票 03 先落地、票 05 掛上 HTML）。
+   字級階 2 不是排版偏好，是**辨識通道**：判準一要求辨識由字重／字體／字級／底線承擔，
+   顏色只負責份量。所以這一行的 font-size 就是允許清單第十條宣稱的那個通道，
+   拿掉它等於那一條的理由消失，第十二類會紅。 */
+.home-ask {
+	color: var(--color-ask);
+	font-size: var(--fs-2);
+	line-height: var(--lh-2);
+	margin: 0;
+}
+
+/* 對話框＝圓角框 ＋ 1px 線，兩個都是站上既有語彙。**不用陰影**（全站 0 處且已設閘門）、
+   **不用等寬字**（src/ 零實例，會是縫合）——所以它不會長得像 ChatGPT，那是刻意的。 */
+.home-msg {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--sp-md);
+	padding: var(--sp-md);
+	/* 2026-08-11：從 `--color-border`（線，2.35）換成 `--color-border-strong`（框，4.66）。
+	   這不是風格調整是**修規則違反**：對話框是一個獨立區塊，依 CONTEXT「線 vs 框」與
+	   WCAG 1.4.11，框對所有背景狀態都得 ≥3.0，而 2.35 沒過。原本的弱線是 2026-08-08
+	   玻璃感那一輪的連帶產物（與同日「去框」同一個來源，那條已於 2026-08-11 撤回）。 */
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	/* 玻璃（2026-08-08，V2 概覽驗收）：主色淡底＋模糊背景場——blur 是導覽列
+	   既有語彙（.site-nav 同值 6px），淡底是「面」語彙第 4 實例，都不是新規則。
+	   底只會更暗不會更亮，站在上面的內文色對比只增不減。 */
+	background: var(--color-accent-tint);
+	backdrop-filter: blur(6px);
+}
+
+/* 微細節（2026-08-08）：訊息尾端一枚還在閃的打字游標——這句話是剛打完的、
+   等著被送出。降低動態偏好下不閃（恆亮）。 */
+.home-caret {
+	display: inline-block;
+	width: 2px;
+	height: 1.05em;
+	background: var(--color-accent);
+	vertical-align: text-bottom;
+	animation: caret-blink 1.1s steps(1) infinite;
+}
+@keyframes caret-blink {
+	50% {
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.home-caret {
+		animation: none;
+	}
+}
+
+.home-msg-text {
+	margin: 0;
+	flex: 1;
+	min-width: 0;
+	color: var(--color-text-muted);
+}
+
+/* 站上唯一一種無框線標籤按鈕（1px 直線的框 ＋ 統一圓角）。首頁的送出鈕與統計閱讀頁的
+   「全部展開」切換器是**同一種按鈕**，所以共用同一條規則而不是各抄一份——抄一份的話
+   兩邊會各自漂移，而「它們是同一種東西」這句話就只剩註解在講（票 04 併入）。 */
+.home-send,
+.st-expand {
+	appearance: none;
+	font: inherit;
+	flex-shrink: 0;
+	color: var(--color-text);
+	background: transparent;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-sm) var(--sp-lg);
+	cursor: pointer;
+	transition: background-color var(--dur-md) var(--ease);
+}
+
+/* hover 往上一階（送出鈕在卡底 n-100 上、切換器在頁底上，兩者都往 n-200 走），
+   不是換一個新顏色。 */
+.home-send:hover,
+.st-expand:hover {
+	background: var(--color-bg-card);
+}
+
+/* 按下的內壓（2026-08-11）。**全站唯一的陰影落點**，在 `SHADOW_ALLOWLIST` 上，
+   閘門第十類只放行清單上的選擇器、而且只放行 `inset`。
+
+   為什麼這裡色階不夠：hover 已經用底色講完「可以按」，`:active` 要講的是**已經按下去**。
+   反白／再亮一階講得出「亮起來」，講不出「壓進去」——凹陷處比較暗是物理不是色票，
+   而那正是本人 2026-08-11 推翻 DECISIONS #200 要換到的東西。
+
+   陰影色用 `var(--color-bg)` 不寫新色碼：陰影不是一個新增色彩的後門，第 1 類白名單
+   因此不必為它破例。 */
+.home-send:active,
+.st-expand:active {
+	background: var(--color-bg-card);
+	box-shadow: inset 0 2px 6px var(--color-bg);
+}
+
+/* 降低動態偏好：按鈕自己那條 hover 色變關掉，`<details>` 的摘要那條也要關——
+   按下切換器時全頁每個摘要的字色都會從 muted 換成內文色，那是**切換造成的過渡**，
+   不是 hover。只關按鈕的話，票 04 那條「切換不做動畫」只做到一半。 */
+@media (prefers-reduced-motion: reduce) {
+	.home-send,
+	.st-expand,
+	.content details summary {
+		transition: none;
+	}
+}
+
+/* 圖用 aspect-ratio ＋ object-fit 取上緣，不用 max-height + overflow。
+   差別：前者「只顯示上面這一段」是宣告出來的，後者是裁到哪算哪。 */
+.home-shot {
+	margin: 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+	aspect-ratio: 760 / 340;
+}
+
+.home-shot img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: top;
+}
+
+.home-foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-sm);
+}
+
+/* ── 那一次點擊（機制 F：訊息讓位，圖佔走它的位置）────────────────────
+   **沒有 JS 的讀者拿到的是一張靜態但完整的卡**：圖、標註、出口都在，只有送出鍵不出現
+   ——按鈕的工作是揭曉，要揭曉的東西已經在畫面上時，那顆按鈕是一句謊。
+   所以三條規則的開關全掛在 `.js` 上，與聚焦組的第三個逃生口同一個作法。 */
+.home-send {
+	display: none;
+}
+
+.js .home-send {
+	display: inline-block;
+}
+
+.js .home-shot,
+.js .home-foot {
+	display: none;
+}
+
+.js .home-card.is-sent .home-msg {
+	display: none;
+}
+
+/* 揭幕：圖從中線往上下掀開。動的是 clip-path，**不碰版面**——不會重排，也不會把
+   下面的文字推來推去。為什麼是揭幕不是淡入：淡入的中間狀態沒有意義（半透明的截圖
+   不代表任何東西），揭幕的中間狀態有——它正在被掀開。
+   時序：圖 0.35s、出口延 0.35s 再淡入 0.35s ＝ 0.7s，兩者各自都在紅線①②內。 */
+.js .home-card.is-sent .home-shot {
+	display: block;
+	clip-path: inset(50% 0 50% 0);
+	transition: clip-path var(--dur-lg) var(--ease);
+}
+
+.js .home-card.is-open .home-shot {
+	clip-path: inset(0 0 0 0);
+}
+
+.js .home-card.is-sent .home-foot {
+	display: flex;
+	opacity: 0;
+	transition: opacity var(--dur-lg) var(--ease) var(--dur-lg);
+}
+
+.js .home-card.is-open .home-foot {
+	opacity: 1;
+}
+
+/* 降低動態偏好：揭幕是空間處理，關掉；淡化與延遲一併省去，按下去就是終態。 */
+@media (prefers-reduced-motion: reduce) {
+	.js .home-card.is-sent .home-shot {
+		clip-path: none;
+		transition: none;
+	}
+
+	.js .home-card.is-sent .home-foot {
+		opacity: 1;
+		transition: none;
+	}
+}
+
+/* 主要行動（履歷）：唯一的有框按鈕，量級與次要連結拉開。
+   **票 05 起首頁沒有任何元素掛這一組**——履歷 PDF 還不存在（已明確擱置），版面改版時
+   把那個不渲染的分支一起收掉了。規則留著的理由與 `.home-links` 相同：它的 hover 是
+   允許清單上認領過的落點，拆掉等於拆掉一條有人審過的判準。檔案有了就掛回來。 */
+.home-cta {
+	margin: var(--sp-1) 0 0; /* 說明 → 主要按鈕：1× */
+}
+
+.home-cta a {
+	display: inline-block;
+	text-decoration: none;
+	color: var(--color-text);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-sm) var(--sp-lg);
+	transition:
+		border-color var(--dur-sm) var(--ease),
+		background-color var(--dur-sm) var(--ease),
+		color var(--dur-sm) var(--ease);
+}
+
+.home-cta a:hover {
+	border-color: var(--color-accent);
+	color: var(--color-accent);
+}
+
+.home-cta a:active {
+	background: var(--color-accent);
+	color: var(--color-bg);
+	border-color: var(--color-accent);
+}
+
+/* 次要連結：底線文字，以間隔點分開。水平排、可換行——版面現在就照五個的容量做，
+   先只放兩個，日後長到五個不需要重新設計。 */
+.home-links {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--sp-md);
+	color: var(--color-text-muted); /* 間隔點吃這個色，連結自己覆蓋回內文色 */
+	margin: var(--sp-0-75) 0 0; /* 按鈕 → 連結列：0.75× */
+}
+
+.home-links a {
+	color: var(--color-text);
+	/* 底線用瀏覽器原生的，不另外做一條 border——線的顏色壓到框色，才不會跟主要
+	   按鈕搶。offset 沿用內文連結的 4px。 */
+	text-decoration-color: var(--color-border-strong);
+	text-underline-offset: 4px;
+	transition: color var(--dur-sm) var(--ease);
+}
+
+.home-links a:hover {
+	color: var(--color-accent);
+}
+
+/* Projects list */
+.intro {
+	color: var(--color-text-muted);
+	margin: 0 0 var(--sp-1);
+}
+
+.category {
+	margin-bottom: var(--sp-1-5);
+}
+
+.category h2 {
+	font-family: var(--font-display);
+	margin: 0 0 var(--sp-0-75);
+	padding-bottom: var(--sp-sm);
+	border-bottom: 1px solid var(--color-border);
+}
+
+/* ── 列表：編輯檯式橫列（2026-08-08 換版，V2 概覽驗收）──────────────
+   一列＝大編號（楷書）→ 標題與摘要 → 封面縮圖。編號不是裝飾：它就是站上
+   「分類內依日期的真序號」（categories.mjs 單一來源），把它放大是讓結構自己講話。 */
+.cards {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--sp-0-75);
+}
+
+.card {
+	display: grid;
+	grid-template-columns: auto 1fr 17.5em;
+	align-items: center;
+	gap: var(--sp-0-75);
+	text-decoration: none;
+	color: inherit;
+	background: var(--color-bg-card);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-0-75);
+	transition: border-color var(--dur-sm) var(--ease);
+}
+
+.card:hover {
+	border-color: var(--color-accent);
+}
+
+/* 排版樣式：列表大編號（階 5、版面行高）。楷書 700。
+   **顏色不用主色**：主色疊卡底 n-200 只有 3.61（判準檔量過的既有數字），
+   底色同 .card p 的理由取 n-700（5.08），hover 亮到內文色——辨識通道本來就是
+   字級與字重，顏色只負責亮一下。 */
+.card-num {
+	font-family: var(--font-display);
+	font-size: var(--fs-5);
+	line-height: var(--lh-chrome);
+	font-weight: 700;
+	letter-spacing: 0;
+	color: var(--n-700);
+	min-width: 1.6em;
+	transition: color var(--dur-md) var(--ease);
+}
+
+.card:hover .card-num {
+	color: var(--color-text);
+}
+
+.card-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-sm);
+	min-width: 0;
+}
+
+.card-cover {
+	position: relative;
+	display: block;
+	border: 1px solid var(--color-border);
+	border-radius: calc(var(--radius) - 2px);
+	background: var(--color-bg);
+	overflow: hidden;
+}
+
+@media (max-width: 700px) {
+	.card {
+		grid-template-columns: auto 1fr;
+	}
+
+	.card-cover {
+		grid-column: 1 / -1;
+	}
+}
+
+.card-cover img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.card-cover img {
+	transition: transform var(--dur-md) var(--ease);
+}
+
+.card:hover .card-cover img {
+	transform: scale(1.03); /* 位移微檔（與下方的 3px 成對） */
+}
+
+.card {
+	transition:
+		border-color var(--dur-sm) var(--ease),
+		transform var(--dur-md) var(--ease);
+}
+
+.card:hover {
+	transform: translateY(-3px); /* 位移微檔 */
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.card,
+	.card-cover img {
+		transition: none;
+	}
+
+	.card:hover,
+	.card:hover .card-cover img {
+		transform: none;
+	}
+}
+
+.card h3 {
+	margin: 0;
+}
+
+.card p {
+	margin: 0;
+	/* 卡底提到 n-200 之後 n-600 只剩 3.79，改用 n-700（5.08）。 */
+	color: var(--n-700);
+	/* 摘要寫成多行時保留斷行（單行摘要不受影響） */
+	white-space: pre-line;
+}
+
+/* Project detail */
+.back-link {
+	display: inline-block;
+	margin-bottom: var(--sp-0-75);
+	color: var(--color-text-muted);
+	text-decoration: none;
+	transition: color var(--dur-sm) var(--ease);
+}
+
+.back-link:hover {
+	color: var(--color-text);
+}
+
+main > h1 {
+	font-family: var(--font-display);
+	margin: 0 0 var(--sp-0-5);
+}
+
+.category-label {
+	color: var(--color-text-muted);
+	margin: 0 0 var(--sp-1);
+}
+
+/* 行長：40em ＝ 40 個漢字（漢字為全角，一字剛好 1em）。不用 ch——那是數字 0 的
+   寬度，中文字體裡不到 1em，算出來會歪。40em 在 18px base 下等於 720px，與現況等價，
+   但行長從此由文字自己負責，不再是容器寬度的副作用。 */
+.content {
+	max-width: 40em;
+}
+
+.content :is(h2, h3) {
+	margin-top: var(--sp-1);
+}
+
+.content a {
+	text-decoration: underline dotted;
+	text-underline-offset: 4px;
+}
+
+/* 圖表外面那層連結只是「點開看原圖」的載體，不是行文裡的連結 */
+.content a:has(> img) {
+	text-decoration: none;
+	display: block;
+}
+
+.content img {
+	max-width: 100%;
+	border-radius: var(--radius);
+	transition: opacity var(--dur-lg) var(--ease);
+}
+
+.content img.is-loading {
+	opacity: 0;
+}
+
+/* 預格式化區塊（正式報告的模型式子）。一行式子有多長由內容決定，不能讓它把整頁推寬——
+   理由與 `.st-table` 那條橫向捲動同一條。 */
+.content pre {
+	overflow-x: auto;
+}
+
+.tags {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-sm) var(--sp-lg);
+	margin: var(--sp-1) 0 0;
+	padding: var(--sp-0-75) 0 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.tags li {
+	color: var(--color-text-muted);
+}
+
+.tags li::before {
+	/* 裝飾性字元也是字。n-500 在純底上有 4.66，但疊上藍暈與顆粒層只剩 3.83——
+	   量的是渲染值不是宣告值，所以取 muted 同階。 */
+	content: '#';
+	color: var(--color-text-muted);
+	margin-right: var(--sp-xs);
+}
+
+.links {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-md);
+	margin: var(--sp-0-75) 0 0;
+	padding: 0;
+}
+
+.links a {
+	text-decoration: none;
+	color: var(--color-text);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-sm) var(--sp-lg);
+	transition:
+		border-color var(--dur-sm) var(--ease),
+		background-color var(--dur-sm) var(--ease),
+		color var(--dur-sm) var(--ease);
+}
+
+.links a:hover {
+	border-color: var(--color-accent);
+	color: var(--color-accent);
+}
+
+.links a:active {
+	background: var(--color-accent);
+	color: var(--color-bg);
+	border-color: var(--color-accent);
+}
+
+/* Case study（專案頁的證據版面） */
+.cs-lead {
+	margin: 0 0 var(--sp-1);
+}
+
+/* `.cs-stats`（關鍵決策N·頁面版本N·修改紀錄N 那種數字統計列）2026-08-02 全站禁用並
+   刪除樣式。禁令與理由在 CLAUDE.md，不要因為 `/process/` 存檔頁還有一份就把它加回來。 */
+
+.cs-wipe-invite {
+	color: var(--color-text-muted);
+	margin: 0 0 var(--sp-sm);
+}
+
+/* 拖曳比對器 */
+.cs-wipe {
+	position: relative;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	overflow: hidden;
+	touch-action: none;
+	--pos: 50%;
+}
+
+.cs-wipe img {
+	display: block;
+	width: 100%;
+	height: auto;
+	user-select: none;
+	pointer-events: none;
+}
+
+.cs-wipe-top {
+	position: absolute;
+	inset: 0;
+	clip-path: inset(0 calc(100% - var(--pos)) 0 0);
+}
+
+/* 底下那張也要裁，各自只畫自己那一側。**兩張都是透明底的圖表時，這一條是必要的**：
+   上層蓋不住底下那張（透明的地方看得到），兩張的軸標會疊在一起變成一團亂碼——
+   統計專案第一頁實測過，1,026 那張的軸標與 477 那張疊成看不懂的字。**截圖才看得到，
+   讀程式看不出來**——執行期探針量的是命中測試，那一項照樣全綠。
+   AI 專案頁那兩個比對器是不透明的截圖，加上這條之後畫面完全一樣（上層本來就蓋住左半）。 */
+.cs-wipe > img {
+	clip-path: inset(0 0 0 var(--pos));
+}
+
+.cs-wipe-handle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: var(--pos);
+	width: 1px;
+	background: var(--color-accent);
+	pointer-events: none;
+}
+
+.cs-wipe-handle::after {
+	content: '↔';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 2rem;
+	height: 2rem;
+	display: grid;
+	place-items: center;
+	background: var(--color-bg);
+	border: 1px solid var(--color-accent);
+	border-radius: 50%;
+	color: var(--color-accent);
+}
+
+.cs-wipe input[type='range'] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: ew-resize;
+	margin: 0;
+}
+
+.cs-wipe input[type='range']:focus-visible ~ .cs-wipe-handle::after {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+/* 兩個角標各自貼著一邊，所以**它們的寬度和不能超過容器**，否則就疊在一起。
+   2026-07-29 實測：375 寬下兩個角標合計 366px、容器只有約 324px，早在標籤樣式合併之前
+   就已經重疊（合併讓它多疊 6.6px，不是元凶）。
+
+   **不用斷點修**：斷點只補得到量過的那一格，而這個缺陷的成因是「文字長度 × 容器寬度」
+   的關係，不是某個特定寬度。上限釘在容器一半（扣掉兩側 0.6rem 內縮與中間 0.6rem 間隙），
+   兩個角標就在**任何**寬度都碰不到彼此——日後有人寫更長的版本標籤也一樣。
+   放不下時角標自己折行往下長；它是絕對定位，不會推動任何東西。 */
+.cs-wipe-tag {
+	position: absolute;
+	top: 0.6rem;
+	max-width: calc(50% - 0.9rem);
+	padding: var(--sp-xs) var(--sp-sm);
+	background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	color: var(--color-text-muted);
+	pointer-events: none;
+}
+
+.cs-wipe-tag--old {
+	left: 0.6rem;
+}
+
+/* 框留主色、字回內文色：標籤底是 --color-bg 82% 疊在截圖上，取兩張截圖最亮的像素
+   當最壞情況，主色當字實測 3.71（已違規），內文色 8.87。「這是最終版」的訊號改由框
+   承擔——那是非文字通道，不受落點規則約束。**但閘門看不到這個框**（對比檢查只驗
+   文字色），已登記為已知殘餘風險：`CLAUDE.md`「元素主色當文字色」那節。最壞值是
+   `rejected-v1.png` 的金色角落對主色框 1.322，只因標籤落在另一側才沒事。 */
+.cs-wipe-tag--new {
+	right: 0.6rem;
+	color: var(--color-text);
+	border-color: var(--color-accent);
+}
+
+.cs-wipe-hint {
+	color: var(--color-text-muted);
+	margin: var(--sp-sm) 0 var(--sp-1);
+}
+
+.cs-wipe--embed {
+	margin-top: var(--sp-md);
+}
+
+/* 決策開關 */
+.cs-toggles {
+	list-style: none;
+	margin: var(--sp-0-75) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-0-75);
+}
+
+.cs-toggle-name {
+	color: var(--color-text-muted);
+	margin-bottom: var(--sp-sm);
+}
+
+.cs-track {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	background: var(--color-bg-alt);
+	overflow: hidden;
+}
+
+.cs-track:hover .cs-side {
+	color: var(--color-text);
+}
+
+.cs-side {
+	padding: var(--sp-md) var(--sp-lg);
+	transition: color var(--dur-lg) var(--ease);
+}
+
+/* 兩側的小標都用內文色，不是只有本人側——只提亮一側的話，AI 側反而變成比較暗的那個，
+   讀者會把「暗」讀成「次要」，而這兩側要比的是內容不是位階。身分歸屬由本人側那塊
+   淡底承擔，完全不動文字。 */
+.cs-side em {
+	display: block;
+	font-style: normal;
+	color: var(--color-text);
+	margin-bottom: var(--sp-xs);
+}
+
+/* AI 側降權：用色階，不用 opacity。原本 color 宣告 #a79aa5（對卡底 5.82）加
+   opacity .65，實際渲染是 #7d6f7a、對比只有 3.30——宣告值與渲染值不一致，
+   讀色碼的檢查抓不到。差主側三階已經降得夠，而且量得到。 */
+.cs-track .cs-side--ai {
+	color: var(--color-text-muted);
+}
+
+/* 「面」的落點（比稿 D 版）：本人側鋪 7% 主色淡底。**身分歸屬改由一整塊區域承擔，
+   完全不動文字**——這正是上一輪目視驗收第一題（「分不出誰說的」）的處置：那時身分只剩
+   「AI 側 muted、本人側內文色」一層色階，而 :hover 會把兩側一起提到 n-900，色階等於只在
+   靜止態成立。面不會被 hover 洗掉。
+
+   字維持內文色，不跟著變主色——面與字同色會互相抵銷（見 `--color-accent-tint` 那段的
+   實測數字）。 */
+.cs-track .cs-side--me {
+	color: var(--color-text);
+	background: var(--color-accent-tint);
+}
+
+.cs-reason {
+	margin: var(--sp-sm) 0 0;
+	color: var(--color-text-muted);
+}
+
+/* 證據列：把過程原件接進時間軸卡 */
+.cs-evi {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sp-sm);
+	margin-top: var(--sp-sm);
+}
+
+.cs-evi span {
+	color: var(--color-text-muted);
+}
+
+/* 文字所有權卡的內嵌對質。與 `.cs-track` 同族，所以比照辦理：本人側鋪淡底、兩側小標
+   內文色。**內距從容器移到兩半身上**——淡底要有呼吸空間，貼著字的底看起來是螢光筆
+   不是區塊。 */
+.cs-pair {
+	border-top: 1px solid var(--color-border);
+	margin-top: var(--sp-md);
+	display: grid;
+	gap: var(--sp-md);
+}
+
+.cs-pair em {
+	display: block;
+	font-style: normal;
+	color: var(--color-text);
+	margin-bottom: var(--sp-xs);
+}
+
+.cs-pair-ai,
+.cs-pair-me {
+	padding: var(--sp-md) var(--sp-lg);
+}
+
+.cs-pair-ai {
+	color: var(--color-text-muted);
+}
+
+/* 前一輪登記在案的缺陷：這條選擇器在內容檔裡存在（`.cs-pair-me`），CSS 裡卻選不到
+   任何樣式——那一側等於從來沒有被設計過。這張票順手補上，形式與 `.cs-side--me` 一致。 */
+.cs-pair-me {
+	color: var(--color-text);
+	background: var(--color-accent-tint);
+}
+
+/* 頁尾原件附錄 */
+.cs-raw {
+	color: var(--color-text-muted);
+}
+
+.cs-rawchip {
+	display: inline-block;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: 0 var(--sp-sm);
+	margin-right: var(--sp-sm);
+}
+
+.content details {
+	margin-top: var(--sp-1);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	padding: var(--sp-md) var(--sp-lg);
+}
+
+.content details summary {
+	cursor: pointer;
+	color: var(--color-text-muted);
+	transition: color var(--dur-sm) var(--ease);
+}
+
+.content details summary:hover {
+	color: var(--color-text);
+}
+
+.content details[open] summary {
+	color: var(--color-text);
+	margin-bottom: var(--sp-sm);
+}
+
+.content details p {
+	color: var(--color-text-muted);
+	margin: var(--sp-sm) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cs-side {
+		transition: none;
+	}
+}
+
+/* 決策時間軸 */
+.tl {
+	list-style: none;
+	margin: var(--sp-0-75) 0 0;
+	padding: 0 0 0 var(--sp-0-75);
+	border-left: 1px solid var(--color-border);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	position: relative;
+}
+
+/* 軸線即進度：左軸線隨捲動填色（高度由 JS 設定） */
+.tl-fill {
+	position: absolute;
+	left: -1px;
+	top: 0;
+	width: 2px;
+	height: 0;
+	background: var(--color-accent);
+	pointer-events: none;
+}
+
+.tl-era {
+	position: relative;
+	margin: var(--sp-sm) 0 calc(-1 * var(--sp-sm));
+}
+
+.tl-era::before {
+	content: '';
+	position: absolute;
+	left: calc(-1 * var(--sp-0-75) - 4px);
+	top: 50%;
+	transform: translateY(-50%);
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--color-bg);
+	border: 1px solid var(--color-accent);
+}
+
+.tl-era h2 {
+	font-family: var(--font-display);
+	margin: 0;
+}
+
+.tl-era p {
+	margin: var(--sp-xs) 0 0;
+	color: var(--color-text-muted);
+}
+
+.tl-item {
+	position: relative;
+}
+
+.tl-item::before {
+	content: '';
+	position: absolute;
+	left: calc(-1 * var(--sp-0-75) - 4px);
+	top: 0.5rem;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--color-bg);
+	border: 1px solid var(--color-accent);
+}
+
+/* 糊化與淡化由聚焦組那一段負責（時間軸卡也標了 data-focus-group）。
+   這裡只剩位移強調檔——全站只有時間軸卡用，那個動效本身就是作品的展示內容。
+   統計頁刻意不帶位移：內文水平移動妨礙閱讀，眼睛跳回下一行開頭靠的是穩定的左邊界。 */
+.js .tl-item {
+	transform: translateX(-36px);
+	transition: transform var(--dur-lg) var(--ease);
+}
+
+.js .tl-item.is-centered,
+.js .tl-item:focus-within {
+	transform: translateX(0);
+}
+
+/* 角標卡：無整圈邊框，左上／右下各一 L 形角標；hover 時角標長成整框並有墨線下掃 */
+.tl-solo {
+	position: relative;
+	overflow: hidden;
+	background:
+		linear-gradient(var(--color-accent), var(--color-accent)) top left / 2px 0 no-repeat,
+		var(--color-bg-alt);
+	border-radius: var(--radius);
+	padding: var(--sp-lg);
+	color: var(--color-text);
+	transition: background-size var(--dur-md) var(--ease) 0.1s;
+}
+
+.tl-solo::before,
+.tl-solo::after {
+	content: '';
+	position: absolute;
+	width: 12px;
+	height: 12px;
+	pointer-events: none;
+	transition:
+		width var(--dur-md) var(--ease),
+		height var(--dur-md) var(--ease);
+}
+
+.tl-solo::before {
+	top: 0;
+	left: 0;
+	border-top: 1px solid var(--color-accent);
+	border-left: 1px solid var(--color-accent);
+	border-top-left-radius: var(--radius);
+}
+
+.tl-solo::after {
+	right: 0;
+	bottom: 0;
+	border-right: 1px solid var(--color-accent);
+	border-bottom: 1px solid var(--color-accent);
+	border-bottom-right-radius: var(--radius);
+}
+
+/* hover：角標長成整框＋墨線下掃。底色與文字色不變——這張卡的內文已在 n-900，
+   中性階之上沒有更亮的字色可以換，所以回饋整個交給形狀。 */
+.tl-solo:hover {
+	background-size: 2px 100%, auto;
+}
+
+.tl-solo:hover::before,
+.tl-solo:hover::after {
+	width: 100%;
+	height: 100%;
+	/* 2026-08-11 修 bug（本人回報「邊框不太對稱」，實測確認）：兩個角標各自只宣告了
+	   自己負責的那一個圓角，長成整框之後**右上與左下是直角**，被卡片的
+	   `overflow: hidden` ＋ `border-radius` 削掉——量到那兩處各缺一塊約 6×6px 的線
+	   （上緣在距右緣 6px 處就斷、右緣要再往下 5px 才開始）。補上另外兩個圓角才接得起來。
+
+	   **只寫在 hover 上**：靜止狀態的角標是 12×12，四個半徑相加（8.8×2＝17.6）超過
+	   邊長 12，瀏覽器會依 CSS 規範等比縮小全部半徑，反而把角標本來的弧度改掉。 */
+	border-top-right-radius: var(--radius);
+	border-bottom-left-radius: var(--radius);
+}
+
+/* 「線」的落點（D 版，出處同 `.dmr th` 那條註解）：這張卡的主色本來就只以線的形式存在——四個角標與 hover
+   的墨線——底（`--color-bg-alt`）沒有被鋪亮，所以前導小標的字可以拿主色，量得 4.84。
+
+   辨識仍然不靠顏色：襯線 600 由「標籤」樣式給，把它與下面那段 Sans 的內文分開，
+   字距 0.04em 本來就有。顏色接手的是份量——上一輪只有襯線、沒有顏色的樣子被本人否決
+   （「太普通、失去易讀性與高級設計感」）。 */
+.tl-solo em {
+	display: block;
+	font-style: normal;
+	color: var(--color-accent);
+	margin-bottom: var(--sp-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.js .tl-item {
+		transform: none;
+		transition: none;
+	}
+
+	.tl-solo:hover {
+		background-size: 2px 0, auto;
+	}
+
+	.tl-solo::before,
+	.tl-solo::after {
+		transition: none;
+	}
+
+	.tl-solo:hover::before,
+	.tl-solo:hover::after {
+		width: 12px;
+		height: 12px;
+	}
+}
+
+/* 統計專案頁：統計圖。內文欄是 40em（桌機 720px），圖不能貼滿它——圖是點陣圖，
+   為了手機讀得到字而放大過，貼滿整欄的話圖上的字會長到內文的兩倍大。
+   504px 是製圖模組 `site_chart.save()` 為這一組圖印出的顯示寬度上限中最小的一個
+   （定義是「圖上最大的字剛好等於排版尺度階 1 的桌機值」），兩端因此都由網站自己的尺度夾住。
+
+   選擇器要帶 `.content img`：上面那條 `.content img { max-width: 100% }` 的權重比單一個
+   class 高，只寫 `.st-fig` 的話上限會被它吃掉，圖照樣貼滿整欄（實測過，圖量到 720px）。
+
+   **上限要包住 `100%`**：贏過那條之後，`100%` 這個保護也一起被贏掉了，於是欄比 504px
+   窄的時候圖不縮、整頁往旁邊捲。窄視窗實測（欄寬 449px）圖照樣 504px、頁面橫向溢出
+   30px；票 06 量拖曳比對器的寬度時撞到，一併修掉。 */
+.content img.st-fig {
+	display: block;
+	max-width: min(504px, 100%);
+	height: auto;
+	margin: var(--sp-1) auto;
+}
+
+/* ── 統計專案頁：等效檢定的界線 ──────────────────────────────────────
+   原本界線是可以拖的（票 07，容器與滑桿沿用 `.cs-wipe`）。2026-08-04 郁為判定統計頁
+   不要互動，滑桿與把手一起刪掉，界線定死在事前指定的正負 1%——那本來就是「沒有 JS 時
+   看到的那一態」，是一張正確的圖。容器的框與圓角原本從 `.cs-wipe` 繼承，現在自己寫。
+
+   **整張圖只由一個變數驅動：`--pos`（界線落在圖寬的百分之幾，`70%` 寫在 HTML 上）。**
+   零釘在正中央，所以另一側的界線是 `100% - var(--pos)`，等效帶就是兩者之間那一塊。
+   資料點的位置由 `--sc`（每 1 個百分點的效果佔圖寬的多少）算，**信賴區間的端點以
+   原始數值寫在 HTML 上，百分比由 calc 算**——手算成 84.32% 那種數字錯了看不出來。
+
+   容器**不能有左右內距**：等效帶是絕對定位（百分比對的是內距框），區間條是普通區塊
+   （對的是內容框），有內距的話兩者的 0% 就不在同一個地方，界線會與資料錯開。 */
+.st-tost {
+	--sc: 20; /* 效果每 1 個百分點 ＝ 圖寬的 20%。`--pos: 70%` 因此是界線正負 1% */
+	position: relative;
+	max-width: min(560px, 100%);
+	margin: var(--sp-1) auto;
+	padding: var(--sp-1) 0 var(--sp-sm);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+/* 那塊底是什麼，要在圖上講一次——只看圖的讀者不會回頭去讀下面那句話。
+   放在把手的軌道那一條空白裡（靠左，把手最左只到中央，兩者碰不到），
+   所以它不佔任何一列資料的空間，也不會被拖曳蓋掉。 */
+.st-tost-legend {
+	position: absolute;
+	top: 0;
+	left: var(--sp-sm);
+	margin: 0;
+	color: var(--color-text-muted);
+}
+
+.st-tost-rows {
+	position: relative;
+}
+
+/* 等效界線之間那一塊。左右兩緣對稱於正中央的零，所以只要 `--pos` 一個變數。
+
+   **它要跨過兩列的整個高度，不是只鋪在資料條那一條細帶上。**細帶版本實測（第一版
+   截圖）長得跟資料條一模一樣粗，讀者會把界線當成第三、第四條資料。整片鋪過去才讀得出
+   「這是一個區域」。
+
+   底用面板底而不是主色淡底：主色淡底是「面」，面上不得站主色的字，而這塊底上正好要
+   畫主色的區間條；而且列名會坐在這塊底上（muted 對面板底實測 5.10，判準另記一條）。 */
+.st-tost-band {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: calc(100% - var(--pos));
+	right: calc(100% - var(--pos));
+	background: var(--color-bg-alt);
+	/* 兩側各一條 1px 中性線＝界線本身。原本左側是 `.st-tost-edge`、右側是可拖曳的主色
+	   把手；把手拆掉之後那一側就沒有線了，所以改由這塊底自己長兩條，兩邊對稱。
+	   用中性線色不用主色：這張圖沒有東西可以拖，主色留給資料。 */
+	border-left: 1px solid var(--color-border-strong);
+	border-right: 1px solid var(--color-border-strong);
+}
+
+/* 定位過的元素才照 DOM 順序疊在絕對定位的等效帶上面——沒有這一條，資料會被底蓋掉。 */
+.st-tost-row {
+	position: relative;
+}
+
+.st-tost-row + .st-tost-row {
+	margin-top: var(--sp-0-5);
+}
+
+/* ── 效果與信賴區間的畫法：兩個演示共用同一組規則 ────────────────────
+   等效檢定（票 07）與六個市場（票 08）畫的是同一種東西——一個點估計加一段區間——
+   所以它們只有一種長相。**兩者唯一的差別是零在哪**：等效檢定的零釘在圖的正中央
+   （`--zero: 50`，區間可以往左跨過零），市場那張的零在最左邊（`--zero: 0`，效果
+   全部是正的，把零放中間等於浪費一半的圖寬）。
+
+   `var(--zero, 50)` 留後備值，是為了讓票 07 那張圖不必去改自己的 HTML。 */
+.st-tost-head,
+.st-mkt-head {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--sp-sm);
+	margin: 0 0 var(--sp-xs);
+	padding: 0 var(--sp-sm);
+	color: var(--color-text-muted);
+}
+
+.st-tost-verdict,
+.st-mkt-val {
+	color: var(--color-text);
+	font-weight: 500;
+}
+
+.st-tost-track,
+.st-mkt-track {
+	position: relative;
+	height: 1.1rem;
+	margin: 0;
+}
+
+.st-tost-ci,
+.st-mkt-ci {
+	position: absolute;
+	top: calc(50% - 1px);
+	left: calc((var(--zero, 50) + var(--sc) * var(--lo)) * 1%);
+	width: calc(var(--sc) * (var(--hi) - var(--lo)) * 1%);
+	height: 2px;
+	background: var(--color-accent);
+}
+
+.st-tost-pt,
+.st-mkt-pt {
+	position: absolute;
+	top: 50%;
+	left: calc((var(--zero, 50) + var(--sc) * var(--pt)) * 1%);
+	width: 10px;
+	height: 10px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	background: var(--color-accent);
+}
+
+/* 軸線沿用站上的 1px 分隔線，刻度自己標單位，與另外三張圖同一套。 */
+.st-tost-axis,
+.st-mkt-axis {
+	position: relative;
+	height: 1.9rem;
+	margin: var(--sp-xs) 0 0;
+	border-top: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+}
+
+.st-tost-axis span,
+.st-mkt-axis span {
+	position: absolute;
+	top: var(--sp-xs);
+	left: calc((var(--zero, 50) + var(--sc) * var(--v)) * 1%);
+	transform: translateX(-50%);
+}
+
+/* 最左邊那個刻度貼著零線對齊。置中的話「0」會有一半跑到圖的左邊界外面去——
+   等效檢定那張沒有這個問題（它最左的刻度在圖寬的 10% 處）。 */
+.st-mkt-axis span:first-child {
+	transform: none;
+}
+
+/* ── 統計專案頁：六個市場並列 ──────────────────────────────────────
+   原本是可以點的膠囊切換（票 08）。2026-08-04 郁為判定統計頁不要互動，膠囊、選取態
+   與建它們的腳本一起刪掉；留下來的是六條並列的靜態圖，那本來就是「沒有 JS 時看到的
+   那一態」，也就是說這一節現在只剩「圖畫什麼」。資料點與區間的畫法見上一節。 */
+.st-mkt {
+	/* 效果每 1 個百分點 ＝ 圖寬的 0.9%。最長的區間上界 94.1%，畫到圖寬的 84.7%，
+	   右邊留下來的空間給軸的「100%」那個刻度。 */
+	--sc: 0.9;
+	--zero: 0;
+	max-width: min(560px, 100%);
+	margin: var(--sp-1) auto;
+}
+
+.st-mkt-rows {
+	position: relative;
+}
+
+/* 定位過的元素才疊得到絕對定位的零線之下、自己那塊底之上——與等效帶那條同一個道理。 */
+.st-mkt-row {
+	position: relative;
+	padding: var(--sp-xs) 0;
+}
+
+/* 零線。**這張圖要讀者看見的就是它**：六條區間全部落在它的右邊，一條都沒有跨過去。
+   排在六列後面（DOM 順序）。用中性的線色而不是主色：主色留給資料。 */
+.st-mkt-zero {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 1px;
+	background: var(--color-border-strong);
+	pointer-events: none;
+}
+
+/* 統計專案頁：結構化表格（st-table＝總覽/摘要矩陣，dmr＝結論|決策|方法） */
+
+/* `display: block` ＋ `overflow-x: auto` 原本只在 560px 以下才生效。改成一律生效，
+   理由是欄數由內容決定不由視窗決定：正式報告原件頁有五欄的表，它在 700px 的視窗一樣
+   放不下，而 560px 那條線量的是視窗。表格自己捲，整頁就不會橫向捲動。
+   （改的時候 `.st-table` 全站零實例，所以沒有既有頁面會因此變樣。） */
+.st-table {
+	display: block;
+	overflow-x: auto;
+	width: 100%;
+	border-collapse: collapse;
+	margin: var(--sp-sm) 0 var(--sp-sm);
+}
+
+.st-table th,
+.st-table td {
+	border: 1px solid var(--color-border);
+	padding: var(--sp-sm) var(--sp-md);
+	text-align: left;
+	vertical-align: top;
+}
+
+/* 「面」的落點（比稿 D 版）：表頭列鋪 7% 主色淡底，字維持內文色。
+   這是這張表「被設計過」的來源——靜止態原本一點主色都沒有，主色只在 hover 出現。
+   字不跟著變主色的理由與比對器同一條，數字見 `--color-accent-tint`。 */
+.st-table thead th {
+	color: var(--color-text);
+	background: var(--color-accent-tint);
+	white-space: nowrap;
+}
+
+.st-table td {
+	color: var(--color-text-muted);
+}
+
+.st-table td b {
+	color: var(--color-text);
+}
+
+.st-table a {
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.st-table a:hover {
+	color: var(--color-accent);
+}
+
+.st-table tbody tr {
+	transition: background-color var(--dur-sm) var(--ease);
+}
+
+.st-table tbody tr:hover {
+	background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+}
+
+/* 墨渲染：一道暗的、兩軸都收尾的暈，落在行標那一直行後面（2026-07-29 本人要的
+   「像毛筆畫一撇過去」）。
+
+   **為什麼畫在 `.dmr` 而不是 `.dmr th` 上**：每個 `th` 各自畫一次底的話，縱向的筆勢會
+   在每一列重新開始，變成一列一段的橫紋。畫在表格身上才是一道跨過所有列的筆。
+   儲存格的底（內容側那層淡底）畫在表格底之上，所以兩者不打架。
+
+   **為什麼用橢圓而不是有角度的方塊**：筆畫沒有硬邊。橢圓兩軸都是漸層，錨在左緣，
+   所以窄螢幕行標欄變窄時也不會露出邊界——那正是「量不到、只能看」的部分要買的保險。
+   形狀語彙沿用首頁背景那兩道暈（`radial-gradient(60% 42% at …)`），不是新發明的東西。 */
+.dmr {
+	width: 100%;
+	border-collapse: collapse;
+	margin: var(--sp-sm) 0 var(--sp-md);
+	background: radial-gradient(2.6rem 58% at 1.5rem 50%, var(--color-ink-wash), transparent 76%) no-repeat;
+}
+
+/* 「線」的落點（2026-07-28 本人從四個變體挑定的 D 版，比稿原始材料在 throwaway
+   branch `proto/accent-weight`；docs/SPEC-accent-weight「落點」那張表是它的正本）：
+   主色以左緣那條 2px 的線存在，**線不改變字底下那塊底**，
+   所以行標的字可以一起拿主色——九態最壞 4.81，過 4.5。
+
+   辨識不靠顏色：襯線 600 由「標籤」樣式給，那才是行標與內容分得開的原因。顏色只負責
+   份量。**代價是量得到的**：主色對 muted 的可辨識度 ΔEok 只有 0.058（門檻 0.185），
+   色盲模擬下更低——這是刻意接受的，不是沒看到。 */
+.dmr th {
+	color: var(--color-accent);
+	white-space: nowrap;
+	width: 3.6rem;
+	border: 0;
+	/* 2026-08-11：2px → 1px。全站主色線 18 處，改前 16 處 1px、只有這裡與 `.ai-note`
+	   是 2px。站上明文「邊框寬度只有 1px 一檔」，理由可驗證：加粗不改變量得到的對比值，
+	   粗線只是量不到的補償。而這條 2px 的理由（AI 編的「孤線要比格線粗才撐得住」）
+	   已於 DECISIONS #207 被本人推翻，至今沒有替代理由。 */
+	border-left: 1px solid var(--color-accent);
+	padding: var(--sp-xs) var(--sp-md) var(--sp-xs) var(--sp-sm);
+	text-align: left;
+	vertical-align: top;
+}
+
+/* 淡底鋪在**內容側**，不鋪在行標下面（2026-07-29 本人選的）。理由是量出來的：行標是
+   主色字，底一被鋪亮它自己就破線（7% 上只剩 4.33，門檻 4.5）；鋪在內容側則是 muted 字，
+   7% 上實測 4.56 過，而行標底下沒有底，維持 4.81。整張表有被鋪過的感覺，判準二不用動。
+
+   **橫向漸層不是縱向**：每個 `td` 各自畫一次底，縱向漸層會變成一列一段的橫紋；橫向的
+   每列長得一樣，疊起來才是一條連續的欄。方向從左緣往右淡出——左緣正是那條分隔線，
+   等於暈從線滲進內容，與行標左緣那條 2px 主色線是同一個語彙。 */
+.dmr td {
+	border: 0;
+	border-left: 2px solid var(--color-border);
+	padding: var(--sp-xs) 0 var(--sp-xs) var(--sp-md);
+	color: var(--color-text-muted);
+	background: linear-gradient(to right, var(--color-accent-tint), transparent);
+}
+
+.dmr td b {
+	color: var(--color-text);
+}
+
+.content h2 {
+	font-family: var(--font-display);
+	position: relative;
+	padding-bottom: var(--sp-sm);
+}
+
+/* 微細節（2026-08-08，V2 概覽驗收）：小標題下的主色短線在捲到時自己畫出來
+   （0 → 2.6em，時長走大檔）。主色走線，語彙內；`.is-visible` 由 BaseLayout 的
+   進場觀察器掛上，無 JS 時線恆在（規則寫成預設全長、`.js` 才收起）。 */
+.content h2::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 1px;
+	width: 2.6em;
+	background: var(--color-accent);
+}
+.js .content h2:not(.is-visible)::after {
+	width: 0;
+}
+.js .content h2.is-visible::after {
+	width: 2.6em;
+	transition: width var(--dur-lg) var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+	.js .content h2:not(.is-visible)::after {
+		width: 2.6em;
+	}
+}
+
+/* 導覽列是 sticky 的，跳過去的標題要自己讓開那一段，否則會被蓋住。
+   原本只掛在 h2 上；正式報告原件頁的目次有 38 條指向 h3（3.5.2 那一層），
+   少了這一條就是點下去看不到標題。 */
+.content :is(h2, h3, h4) {
+	scroll-margin-top: 5rem;
+}
+
+.st-note {
+	color: var(--color-text-muted);
+	margin: var(--sp-xs) 0 0;
+}
+
+/* ── AI 實作內頁：三層對話（票 01–03，2026-08-08）──────────────────
+   層一＝問句 → 提示詞 → 送出 → 3 秒進度條 → 圖 → 想玩再點 → 滿版體驗。
+   文字色全部沿用既有類（st-ask／st-note／home-send），這裡不新宣告任何文字色。 */
+.ai-run {
+	margin: 0 0 var(--sp-1-5);
+	display: grid;
+	gap: var(--sp-0-5);
+	justify-items: start;
+}
+.ai-msg {
+	display: flex;
+	align-items: flex-end;
+	gap: var(--sp-md);
+	padding: var(--sp-md);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-accent-tint);
+	backdrop-filter: blur(6px); /* 玻璃：blur 是導覽列既有語彙 */
+	max-width: 40em;
+}
+.ai-msg-text {
+	margin: 0;
+}
+.ai-status {
+	max-width: 40em;
+}
+/* ── 等待劇場「AI 製作中」（2026-08-08 重做）────────────────────────
+   三件事同時發生，全在 3 秒內：狀態字三拍輪替、線框版面自己搭起來
+   （每根骨架 0.35s 長出，錯開登場）、底下一條主色進度線跑滿。
+   語彙全部既有：直線、統一圓角、主色走線。 */
+.ai-making {
+	display: none;
+	width: 100%;
+	max-width: 40em;
+}
+.ai-run.is-waiting .ai-making {
+	display: grid;
+	gap: var(--sp-sm);
+}
+.ai-making-label {
+	margin: 0;
+}
+/* 狀態字：三句各佔一秒，前一句淡出下一句接手。
+   **用 inline-grid 疊放，不用絕對定位**——絕對定位的字撐不起行高，
+   標籤行會塌成零高、字被下面的線框蓋掉（2026-08-08 實測踩到的 bug）。 */
+.ai-stage {
+	display: inline-grid;
+	vertical-align: bottom;
+}
+.ai-stage span {
+	grid-area: 1 / 1;
+	white-space: nowrap;
+	opacity: 0;
+}
+.ai-run.is-waiting .ai-stage span {
+	animation: ai-stage-turn 1s linear forwards;
+}
+.ai-run.is-waiting .ai-stage span:nth-child(2) {
+	animation-delay: 1s;
+}
+.ai-run.is-waiting .ai-stage span:nth-child(3) {
+	animation-delay: 2s;
+}
+@keyframes ai-stage-turn {
+	0% {
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	88% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+/* 線框：導覽條、標題塊、兩行文字、兩張卡——一個版面被搭出來的縮影 */
+.ai-frame {
+	position: relative;
+	aspect-ratio: 760 / 470;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	background: var(--color-bg-alt);
+	overflow: hidden;
+}
+.ai-frame i {
+	position: absolute;
+	border: 1px solid var(--color-accent);
+	border-radius: 3px;
+	opacity: 0;
+}
+.ai-run.is-waiting .ai-frame i {
+	animation: ai-frame-in var(--dur-lg) var(--ease) forwards;
+}
+.ai-run.is-waiting .ai-frame i:nth-child(2) {
+	animation-delay: 0.5s;
+}
+.ai-run.is-waiting .ai-frame i:nth-child(3) {
+	animation-delay: 1s;
+}
+.ai-run.is-waiting .ai-frame i:nth-child(4) {
+	animation-delay: 1.4s;
+}
+.ai-run.is-waiting .ai-frame i:nth-child(5) {
+	animation-delay: 1.9s;
+}
+.ai-run.is-waiting .ai-frame i:nth-child(6) {
+	animation-delay: 2.3s;
+}
+@keyframes ai-frame-in {
+	from {
+		opacity: 0;
+		transform: scaleX(0);
+		transform-origin: left;
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+/* 層二的六條理念（票 06，2026-08-08）。外框沿用 .ai-msg——它與層一那則提示詞是
+   同一種東西（我交給 AI 的東西），同一種東西只有一種長相，那正是門檻一要的融合。
+   這裡只交代內部排版。flex:1 是必要的：.ai-msg 是 flex，item 不給彈性會縮成內容寬，
+   右邊的送出鈕就會被擠到貼著文字。
+   （層二的幽靈線框 .ai-frame--ghost 隨真素材上線一併刪除，站上已無用處。） */
+.ai-creed {
+	display: grid;
+	gap: var(--sp-sm);
+	flex: 1;
+}
+.ai-creed p {
+	margin: 0;
+}
+/* 序號寫在文字裡（「一、」），不用 list-style——本人的原文就長這樣，而且中文序號
+   靠 list-style-type 產不出「一、」這個形狀（cjk-ideographic 給的是「一.」）。
+   ol 的語意留著，marker 關掉，縮排因此不需要，也就不必為它挑一個節奏外的 padding。 */
+.ai-creed ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: var(--sp-xs);
+}
+/* ── 層二的等待劇場：5 秒四拍（2026-08-08 本人指定）─────────────────────
+   層一是 3 秒三拍。這一層的指令更長，所以第一拍佔滿前兩秒、先交代「為什麼比較久」，
+   第 3／4／5 秒才接上層一原本那三拍——同一台機器做同一件事，只是這次要想比較久。
+   進度條不必在這裡改：它的長度讀 --wait，由 JS 依 data-wait 設定。 */
+.ai-run--slow.is-waiting .ai-stage span {
+	animation-duration: 2s;
+}
+.ai-run--slow.is-waiting .ai-stage span:nth-child(2) {
+	animation-duration: 1s;
+	animation-delay: 2s;
+}
+.ai-run--slow.is-waiting .ai-stage span:nth-child(3) {
+	animation-duration: 1s;
+	animation-delay: 3s;
+}
+.ai-run--slow.is-waiting .ai-stage span:nth-child(4) {
+	animation-duration: 1s;
+	animation-delay: 4s;
+}
+/* 線框骨架的登場間隔按 5/3 拉長。不拉的話它 2.3 秒就搭完，後面 2.7 秒畫面靜止像卡住。 */
+.ai-run--slow.is-waiting .ai-frame i:nth-child(2) {
+	animation-delay: 0.8s;
+}
+.ai-run--slow.is-waiting .ai-frame i:nth-child(3) {
+	animation-delay: 1.7s;
+}
+.ai-run--slow.is-waiting .ai-frame i:nth-child(4) {
+	animation-delay: 2.4s;
+}
+.ai-run--slow.is-waiting .ai-frame i:nth-child(5) {
+	animation-delay: 3.2s;
+}
+.ai-run--slow.is-waiting .ai-frame i:nth-child(6) {
+	animation-delay: 3.9s;
+}
+.ai-progress {
+	height: 2px;
+	background: var(--color-accent);
+	width: 100%;
+	transform-origin: left;
+	transform: scaleX(0);
+}
+.ai-run.is-waiting .ai-progress {
+	transform: scaleX(1);
+	transition: transform var(--wait, 3s) linear;
+}
+/* JS 到了才進入「按了才揭曉」的劇本；沒 JS 時圖與 noscript 連結直接可見。 */
+.js .ai-run.is-staged .ai-shot,
+.js .ai-run.is-staged .ai-invite {
+	display: none;
+}
+.js .ai-run.is-shown .ai-shot,
+.js .ai-run.is-shown .ai-invite {
+	display: block;
+}
+.ai-shot {
+	margin: 0;
+	width: 100%;
+	max-width: 40em;
+	position: relative;
+}
+.ai-shot img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+/* 揭曉：圖淡入上浮，一條 1px 主色掃描線從上而下走過整張圖（一次性過場） */
+.js .ai-run.is-shown .ai-shot {
+	animation: ai-shot-in var(--dur-lg) var(--ease);
+}
+/* 掃描線畫在圖的上方：偽元素在 DOM 順序上晚於 img，同層自然蓋過，不必動 z。 */
+.ai-shot::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 1px;
+	background: var(--color-accent);
+	opacity: 0;
+	pointer-events: none;
+}
+.js .ai-run.is-shown .ai-shot::after {
+	animation: ai-scan var(--dur-lg) var(--ease) forwards;
+}
+@keyframes ai-shot-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+}
+@keyframes ai-scan {
+	0% {
+		opacity: 1;
+		top: 0;
+	}
+	85% {
+		opacity: 1;
+	}
+	100% {
+		top: calc(100% - 1px);
+		opacity: 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.js .ai-run.is-shown .ai-shot,
+	.js .ai-run.is-shown .ai-shot::after,
+	.ai-run.is-waiting .ai-frame i,
+	.ai-run.is-waiting .ai-stage span {
+		animation: none;
+	}
+	.ai-run.is-waiting .ai-frame i {
+		opacity: 1;
+	}
+	.ai-run.is-waiting .ai-stage span:first-child {
+		opacity: 1;
+	}
+}
+.ai-invite {
+	margin: 0;
+}
+/* 層三的推導框：主色走「線」（左側 1px），不鋪面。
+   2026-08-11：2px → 1px，與 `.dmr th` 同一輪、同一個理由（全站主色線統一一檔）。 */
+.ai-note {
+	border-left: 1px solid var(--color-accent);
+	padding-left: var(--sp-0-75);
+	max-width: 40em;
+	display: grid;
+	gap: var(--sp-sm);
+}
+.ai-note p {
+	margin: 0;
+}
+/* 滿版體驗（票 02）：原地長大。z 30＝全螢幕模態，蓋住導覽（10）與進度（20）
+   是它的職責，已登記於 Z_LAYERS。幾何用 top/left/width/height 過場——
+   它是單一元素、一次性動作（0.35s），付得起這一次排版。 */
+.ai-overlay {
+	position: fixed;
+	z-index: 30;
+	background: var(--color-bg);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	transition:
+		top var(--dur-lg) var(--ease),
+		left var(--dur-lg) var(--ease),
+		width var(--dur-lg) var(--ease),
+		height var(--dur-lg) var(--ease),
+		border-radius var(--dur-lg) var(--ease);
+}
+.ai-overlay[hidden] {
+	display: none;
+}
+.ai-overlay.is-full {
+	top: 0 !important;
+	left: 0 !important;
+	width: 100vw !important;
+	height: 100dvh !important;
+	border-radius: 0;
+}
+.ai-overlay-bar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--sp-md);
+	padding: var(--sp-sm) var(--sp-0-75);
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-bg-alt);
+	line-height: var(--lh-chrome);
+}
+.ai-overlay-note {
+	margin: 0;
+}
+.ai-overlay iframe {
+	flex: 1;
+	width: 100%;
+	border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ai-overlay {
+		transition: none;
+	}
+	.ai-run.is-waiting .ai-progress {
+		transition: transform var(--wait, 1s) linear;
+	}
+}
+
+/* 統計閱讀頁的主角：反直覺問句（階 2）＋緊跟一行答案（階 0 內文色）。
+   顏色與字級都與首頁展示卡的問句同一組——**同一種東西只有一種長相**，那正是門檻一
+   要的融合。差別只有底：這裡坐在頁面九態上（實測 9.74），首頁那一條坐在面板底上
+   （7.79），所以允許清單上是兩條、各自量自己的底。
+   辨識通道是字級：這一頁其餘的字是階 0（正文與答案）與階 −1（就地展開），
+   問句在階 2。顏色只負責份量，拿掉 font-size 那一條的理由就不成立、閘門會紅。 */
+.st-ask {
+	color: var(--color-ask);
+	font-size: var(--fs-2);
+	line-height: var(--lh-2);
+	margin: 0;
+}
+
+/* 答案那一行不給 class：它就是一段內文，只有「緊跟」這件事要交代。用 muted 試過一版，
+   3 秒的讀者只看得到問句、看不到答案——那正是「同屏答案」要擋的事，所以維持內文色。 */
+.st-ask + p {
+	margin-top: var(--sp-xs);
+}
+
+/* 全部展開的切換器。**外觀完全來自 `.home-send`**（見上方那一條的選擇器清單），
+   這裡只交代位置：規格把它釘在標題正下方、主角之前。
+   自己抄一份九個屬性的版本寫過又拆掉——註解寫著「與送出鈕同一種按鈕」而實作是複製，
+   那不是同一種按鈕，是兩種長得一樣的按鈕，改一邊就會漂移。 */
+.category-label:has(+ .st-expand-row) {
+	margin-bottom: var(--sp-sm); /* 標籤與切換器之間收成半格，1× 的留白改由切換器付 */
+}
+
+.st-expand-row {
+	margin: 0 0 var(--sp-1);
+}
+
+.st-sub {
+	color: var(--color-text-muted);
+}
+
+/* 統計專案頁：易讀行寬只套在文字元素上，表格與圖表用滿版面寬度。
+   （不用負邊界，因為那在視窗介於 561–720px 時會把表格推出左邊界。） */
+.content--stats {
+	max-width: none;
+}
+
+.content--stats > p,
+.content--stats > ul,
+.content--stats > ol,
+.content--stats > h2,
+.content--stats > h3,
+.content--stats > h4,
+.content--stats > details,
+.content--stats > blockquote {
+	max-width: 40em;
+}
+
+/* 窄螢幕：表頭改成可斷行、內距收窄，先把表格擠進畫面；擠不進去才輪到自己橫向捲動
+   （捲動已移到 `.st-table` 基底，一律生效，不再只在這個斷點） */
+@media (max-width: 560px) {
+	.st-table thead th {
+		white-space: normal;
+	}
+	.st-table th,
+	.st-table td {
+		padding: var(--sp-sm) var(--sp-sm);
+	}
+	.dmr th {
+		width: auto;
+		padding-right: var(--sp-sm);
+	}
+}
+
+/* Footer */
+/* 頂線與導覽列底線成對，同樣換成主色線（票 05）。理由與缺口見 `.site-nav` 那一段。 */
+footer {
+	color: var(--color-text-muted);
+	border-top: 1px solid var(--color-accent);
+	/* 2026-08-11：與導覽列**同一個半透明底，但刻意不加 blur**。毛玻璃要成立必須有東西
+	   從背後經過——導覽列是 sticky、內容真的從它底下捲過去；頁尾是文件最後一塊，背後
+	   只有背景場與顆粒層（`body::before`，soft-light）。模糊一個平滑漸層等於沒動，
+	   但**會把那塊的絲絨顆粒磨平**，讀起來比不做更平。
+	   所以規則是：兩者同材質，只有導覽列多一層模糊，因為只有它底下真的有東西在動。 */
+	background: var(--color-nav-bg);
+}
+
+/* 上下的內距 2026-08-05 從 0.75／1 收到 0.5／0.5（本人：「導覽列跟頁尾佔的比例有點
+   太大了」）。**0.5 是版面節奏階梯的最小一格**，導覽列本來就在那一格上，所以頁尾收到
+   同一格之後兩者對齊，再往下就得離開階梯。
+   短視窗上差很多：1229×609 實測兩者合計 156px（26% 的視窗）→ 130px（21%）。 */
+.footer-inner {
+	max-width: var(--max-width);
+	margin-inline: auto;
+	padding: var(--sp-0-5) var(--sp-0-75) var(--sp-0-5);
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: var(--sp-sm) var(--sp-lg);
+}
+
+/* 2026-07-30：聯絡方式移進頁尾（導覽列回答「去哪」，頁尾回答「怎麼找到你」）。
+   間隔點用 `gap` 而不是 `::after` 的 content——那個點是 `aria-hidden` 的真元素，
+   讓 flex 的 gap 統一管間距，不必為分隔符另外算一組值。 */
+.footer-contact {
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-sm);
+}
+
+/* 1440／1920 兩個斷點整塊砍除：斷點只用於版面結構必須改變時（欄數變化、元素換排列
+   方式），純尺寸變化一律 clamp() 流動處理——讀者的螢幕不會在 1441px 突然變成另一種
+   裝置。原本那兩塊各做兩件事：html 的 font-size（改由九階 clamp 承擔）與 --max-width
+   （改成下方的 clamp）。900px 那個斷點也在第 9 版隨首頁雙欄一起消失（單欄不需要塌）。
+   全站自此只剩 560px 一個斷點，對應表格的橫向捲動。 */
+
+/* ── 設計展示櫃（/design/，2026-08-08 首版）──────────────────────────
+   卡片文字全部沿用既有類（st-note、home-chip），零新文字色宣告。 */
+.dz-grid {
+	display: grid;
+	gap: var(--sp-0-75);
+}
+.dz-card {
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	/* 玻璃面：面板色 88% ＋ 模糊背景場。往暗混，站上面的字對比只增不減。 */
+	background: color-mix(in srgb, var(--color-bg-alt) 88%, transparent);
+	backdrop-filter: blur(6px);
+	padding: var(--sp-0-75);
+	display: grid;
+	gap: var(--sp-sm);
+	justify-items: start;
+	position: relative;
+}
+.dz-card h3 {
+	margin: 0;
+}
+.dz-value,
+.dz-why {
+	margin: 0;
+	max-width: 40em;
+}
+.dz-swatches {
+	display: flex;
+	gap: var(--sp-xs);
+}
+.dz-swatches i {
+	width: 2rem;
+	height: 2rem;
+	border-radius: 3px;
+	border: 1px solid var(--color-border);
+}
+.dz-box {
+	border-radius: var(--radius);
+	background: var(--color-bg-card);
+	width: 3rem;
+	height: 3rem;
+}
+.dz-box--sharp {
+	border-radius: 0;
+}
+.dz-motion {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-0-5);
+}
+.dz-mover {
+	width: 1.2rem;
+	height: 1.2rem;
+	border-radius: 3px;
+	background: var(--color-accent);
+	display: inline-block;
+}
+/* 示範按了才跑一次（規格 §4：不得自動循環） */
+.dz-mover.is-run {
+	transform: translateX(6rem);
+	transition: transform var(--dur-lg) var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+	.dz-mover.is-run {
+		transition: none;
+	}
+}
+
+/* ── 游標光暈（V2 概覽驗收，2026-08-08 收進正站）────────────────────
+   hover 時一團柔邊主色暈跟著游標走——柔邊 radial 暈是站上第三種形狀語彙。
+   只掛在卡片類容器上；不支援 hover 的裝置整組自然不生效。 */
+.card,
+.dz-card {
+	position: relative;
+}
+.card::after,
+.dz-card::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	/* 濃度沿用既有的藍暈值（主色 10%），不開第四個主色透明度 */
+	background: radial-gradient(200px circle at var(--gx, 50%) var(--gy, 50%), var(--color-accent-bloom), transparent 70%);
+	opacity: 0;
+	transition: opacity var(--dur-md) var(--ease);
+	pointer-events: none;
+}
+.card:hover::after,
+.dz-card:hover::after {
+	opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+	.card::after,
+	.dz-card::after {
+		transition: none;
+	}
+}
+
+/* ── 展示櫃的示範元件（2026-08-08 二版：演示勝於敘述）─────────────── */
+/* 試香紙卡式色票：直式長條、色鋪滿、名字在腳 */
+.dz-strips {
+	display: flex;
+	gap: var(--sp-sm);
+	flex-wrap: wrap;
+}
+.dz-strip {
+	margin: 0;
+	display: grid;
+	gap: var(--sp-xs);
+	justify-items: center;
+}
+.dz-strip i {
+	display: block;
+	width: 3.4rem;
+	height: 8rem;
+	border-radius: 3px;
+	border: 1px solid var(--color-border);
+}
+.dz-strips--slim .dz-strip i {
+	width: 2.1rem;
+	height: 6rem;
+}
+.dz-strip figcaption {
+	margin: 0;
+}
+/* 排版樣式：字樣大樣（階 3／襯線） */
+.dz-spec-display {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: var(--fs-3);
+	line-height: var(--lh-3);
+	letter-spacing: var(--ls-display);
+	font-weight: 700;
+}
+.dz-spec-body {
+	margin: 0;
+	max-width: 26em;
+}
+/* 排版樣式：字級階梯的五格（各帶齊四件） */
+.dz-ladder {
+	display: grid;
+	gap: var(--sp-xs);
+}
+.dz-ladder p {
+	margin: 0;
+}
+.dz-fs-3 {
+	font-family: var(--font-display);
+	font-size: var(--fs-3);
+	line-height: var(--lh-3);
+	letter-spacing: var(--ls-display);
+	font-weight: 700;
+}
+.dz-fs-2 {
+	font-family: var(--font-display);
+	font-size: var(--fs-2);
+	line-height: var(--lh-2);
+	letter-spacing: var(--ls-display);
+	font-weight: 700;
+}
+.dz-fs-1 {
+	font-family: var(--font-display);
+	font-size: var(--fs-1);
+	line-height: var(--lh-1);
+	letter-spacing: var(--ls-display);
+	font-weight: 400;
+}
+.dz-fs-0 {
+	font-size: var(--fs-0);
+	line-height: var(--lh-0);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+.dz-fs--1 {
+	font-size: var(--fs--1);
+	line-height: var(--lh--1);
+	letter-spacing: var(--ls-body);
+	font-weight: 400;
+}
+/* 基線尺：文字躺在真的節奏線上 */
+.dz-baseline {
+	width: 100%;
+	max-width: 26em;
+	padding: 0 var(--sp-sm);
+	border: 1px solid var(--color-border);
+	border-radius: 3px;
+	background: repeating-linear-gradient(
+		to bottom,
+		transparent 0,
+		transparent calc(2.1375rem - 1px),
+		var(--color-border) calc(2.1375rem - 1px),
+		var(--color-border) 2.1375rem
+	);
+}
+.dz-baseline p {
+	margin: 0;
+}
+/* 元件內間距四檔：兩塊磚之間就是那個值 */
+.dz-gaps {
+	display: flex;
+	gap: var(--sp-0-5);
+	flex-wrap: wrap;
+}
+.dz-gap {
+	margin: 0;
+	display: grid;
+	gap: var(--sp-xs);
+	justify-items: center;
+}
+.dz-gap span {
+	display: inline-flex;
+}
+.dz-gap i {
+	display: block;
+	width: 1rem;
+	height: 1rem;
+	border-radius: 3px;
+	background: var(--color-border-strong);
+}
+/* 線 vs 框 */
+.dz-borders {
+	display: flex;
+	gap: var(--sp-1);
+	align-items: flex-end;
+	flex-wrap: wrap;
+}
+.dz-border-sample {
+	margin: 0;
+	display: grid;
+	gap: var(--sp-xs);
+	justify-items: center;
+}
+.dz-hairline {
+	display: block;
+	width: 7rem;
+	border-top: 1px solid var(--color-border);
+}
+.dz-framed {
+	display: inline-block;
+	border: 1px solid var(--color-border-strong);
+	border-radius: 3px;
+	padding: var(--sp-xs) var(--sp-md);
+}
+/* 三檔賽跑：一顆鍵，三條 lane 一起出發，親眼看差多少 */
+.dz-race {
+	display: grid;
+	gap: var(--sp-sm);
+	width: 100%;
+	max-width: 24em;
+	justify-items: start;
+}
+.dz-lanes {
+	display: grid;
+	gap: var(--sp-xs);
+	width: 100%;
+}
+.dz-lane {
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-sm);
+}
+.dz-mover--sm.is-run {
+	transition-duration: var(--dur-sm);
+}
+.dz-mover--md.is-run {
+	transition-duration: var(--dur-md);
+}
+/* 一扇窗：後面就是活的背景，材質自己演自己 */
+.dz-window {
+	margin: 0;
+	width: 100%;
+	max-width: 26em;
+	min-height: 9rem;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius);
+	display: flex;
+	align-items: flex-end;
+	padding: var(--sp-sm);
+}
+.dz-window figcaption {
+	margin: 0;
+}
+
+/* ── 署名區的個人化身（2026-08-08）───────────────────────────────── */
+.home-id {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-0-75);
+}
+.home-avatar {
+	display: block;
+	width: 5rem;
+	height: 5rem;
+	border-radius: var(--radius);
+	border: 1px solid var(--color-border);
+}
+.home-recent {
+	margin: 0;
+}

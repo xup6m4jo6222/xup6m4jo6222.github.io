@@ -1,0 +1,482 @@
+---
+/**
+ * 全站背景設計（視覺第 9 版，票 02／03）。
+ *
+ * **只在首頁**。散點在「全散」與「排出一條指數往上的趨勢」之間循環（2026-08-05）。
+ * **趨勢是點自己排出來的，沒有一條被畫出來的線**——那條線的故事改由聚攏那一刻承載。
+ * 循環與第 4 層共用（`src/scripts/cycle.ts`）。
+ *
+ * **值一律由屬性帶進來，這支程式裡不寫值**（docs/SPEC-background-and-homepage
+ * 「背景設計參數的判準與檔位」）。`data-motif` 是票 01 定的產物端契約：內容必須等於
+ * 判準檔的 `MOTIF`，閘門第七類就是照它驗的。技法常數走 `data-motif-craft`。
+ *
+ * canvas 是**純加法**：移除它之後頁面回到現行的三層背景，版面不受影響。
+ * 沒有 JavaScript 時就是那個狀態，不需要另外寫退路。
+ */
+import { MOTIF, MOTIF_CRAFT, CYCLE } from '../../scripts/palette-config.mjs';
+
+/* **2026-08-05 起這個元件只有一種模式。** 閱讀頁的第 5 層整層被拿掉（本人：「我只要
+   不隨滾動移動的那層就好」），reading 模式因此零用戶，連同它的磚、平舖、淨空半徑
+   一起刪。`BaseLayout` 只在首頁渲染它，所以 `mode` prop 也沒有存在的理由了。 */
+---
+
+<canvas
+	class="motif"
+	aria-hidden="true"
+	data-motif={JSON.stringify(MOTIF)}
+	data-motif-craft={JSON.stringify(MOTIF_CRAFT)}
+	{/* 循環走**自己的屬性**，不塞進 `data-motif`：它是第 4 層與第 5 層共用的，
+	    塞進其中一層的參數包等於宣告它屬於那一層。閘門照同一條契約驗它。 */}
+	data-cycle={JSON.stringify(CYCLE)}
+></canvas>
+
+<style>
+	/* z 層級用既有的 −1（與顆粒層同層）。canvas 在 body::before 之後，
+	   所以背景設計畫在顆粒之上、內容之下——內容一律在 z-index auto 的常規流裡。 */
+	.motif {
+		position: fixed;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -1;
+		pointer-events: none;
+	}
+</style>
+
+<script>
+	import { contentBoxes, featherStops } from '../scripts/text-band';
+	import type { Box } from '../scripts/text-band';
+	import { cyclePhase } from '../scripts/cycle';
+
+	const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+	/** 目前這一頁的收工函式（換頁與偏好改變時呼叫），沒有背景設計時是 null。 */
+	let teardown: (() => void) | null = null;
+	/** 已經啟動過的那個 canvas。換頁時 ClientRouter 會換掉整個元素，所以比對元素本身。 */
+	let running: HTMLCanvasElement | null = null;
+
+	function start() {
+		const cv = document.querySelector<HTMLCanvasElement>('canvas.motif');
+		const main = document.querySelector('main');
+		/* 首次載入時這支程式會被叫兩次（模組自己叫一次、ClientRouter 的 astro:page-load
+		   再叫一次）。不擋掉的話點會重擲一輪——實測就是讀者在 100ms 時看到背景整片換掉，
+		   那等於一次自發動態。 */
+		if (cv && cv === running) return;
+		teardown?.();
+		teardown = null;
+		running = cv;
+		if (!cv || !main || !cv.dataset.motif || !cv.dataset.motifCraft || !cv.dataset.cycle) return;
+
+		const M = JSON.parse(cv.dataset.motif);
+		const K = JSON.parse(cv.dataset.motifCraft);
+		/** 兩層共用的循環（週期與聚攏端的停留）。 */
+		const CY = JSON.parse(cv.dataset.cycle);
+		const L = K.layout;
+		const ctx = cv.getContext('2d', { alpha: true });
+		if (!ctx) return;
+
+		/** 色只從判準值來；不透明度接在後面，所以這支程式裡沒有任何色碼字面值。 */
+		const withAlpha = (hex: string, a: number) =>
+			hex +
+			Math.round(Math.min(1, Math.max(0, a)) * 255)
+				.toString(16)
+				.padStart(2, '0');
+
+		/* ── 離散度：點的分布與線的實度共用這一個函式 ──────────────────────
+		   兩處各寫一組數字必然不同步，那正是「趨勢線讀起來像裝飾框線」的成因。
+
+		   實度是「相對於最散那一端收斂了多少」。**不要正規化成 0–1**——
+		   第一版寫成 (spread(0)−spread(u))/(spread(0)−spread(1))，代數上恆等於 u，
+		   `spreadEnds` 被整個約掉：點散得再開，線也照樣畫到全實。那是形式上共用、
+		   實際上沒接上。現在端點比 3.83 直接決定線最實處只到 0.739。 */
+		const spreadAt = (u: number) => M.spreadEnds[0] + (M.spreadEnds[1] - M.spreadEnds[0]) * u;
+		const solidity = (u: number) => 1 - spreadAt(u) / spreadAt(0);
+
+		// 指數成長：終點斜率是起點的 trendSlopeRatio 倍 → k = ln(ratio)
+		const k = Math.log(M.trendSlopeRatio);
+		const expT = (u: number) => (Math.exp(k * u) - 1) / (Math.exp(k) - 1);
+
+		/* 背景設計走向上的座標。**只有這一份**——點的位置與線的位置各寫一份的話，
+		   哪天改了構圖常數就會分家，那正是「共用同一個離散度函式」在防的同一件事。
+		   （W／viewH 是 let，所以寫成函式而不是在 resize 時算好。） */
+		const px = (u: number) => W * (L.xInset + u * (1 - 2 * L.xInset));
+		const trendY = (u: number) => layoutH * (L.trendBand[0] + (L.trendBand[1] - L.trendBand[0]) * expT(u));
+
+		/** 等距的漸層節點：判準檔給幾個顏色就分幾段，位置不另外寫一組數字。 */
+		const evenStops = (n: number) => Array.from({ length: n }, (_, i) => i / (n - 1));
+
+		/**
+		 * 循環：0（最散）–1（最聚，也就是排出趨勢的那一刻）。
+		 *
+		 * **2026-08-05 換掉了三個 φ² 正弦相加那一版。** 那一版的目標是「合成回到同一個
+		 * 畫面的時間最長，所以不像一個迴圈」；這一輪要的正好相反——要一個**認得出來的
+		 * 節奏**，因為看不出是迴圈的東西也就看不出「那一刻發生了一件事」。
+		 *
+		 * 相位接 `src/scripts/cycle.ts` 這份**單一來源**，第 4 層接同一份。
+		 * **同步不需要對時機制**：兩層都用頁面時鐘與同一個週期，就自然同相。
+		 */
+		const breath = (t: number) => cyclePhase(t, CY.period, CY.hold);
+
+		/* ── 視差與開場（2026-08-08，V2 概覽驗收後收進正站）──────────────
+		   輸入回應不是自發動態：不動滑鼠，視差對畫面零貢獻。 */
+		const par = { x: 0, y: 0, tx: 0, ty: 0 };
+		const born = performance.now() / 1000;
+		const onPointerMove = (e: PointerEvent) => {
+			par.tx = (e.clientX / window.innerWidth) * 2 - 1;
+			par.ty = (e.clientY / window.innerHeight) * 2 - 1;
+		};
+		const onPointerLeave = () => {
+			par.tx = par.ty = 0;
+		};
+
+		let W = 0;
+		let viewH = 0;
+		/** 構圖高度。**不是**即時視窗高——手機的視窗高會隨網址列收合而跳動，
+		    整個構圖（點、趨勢線、漸層、遠景層）一律錨在這個值上，才不會拆成兩半。 */
+		let layoutH = 0;
+		let DPR = 1;
+		let col = 0;
+		let pts: any[] = [];
+		let bandMask: HTMLCanvasElement | null = null;
+		/** 文字帶遮罩的高度＝整份文件（遮罩綁文字、跟著捲動）。 */
+		let bandH = 0;
+		/** 整層的顏色。2026-08-05 從水平漸層改成單一色（見判準檔 `MOTIF.tint`）。 */
+		let tint: string | null = null;
+		let fade: CanvasGradient | null = null;
+		let raf = 0;
+		let queued = false;
+
+		/** 預繪的柔邊光點。每幀替幾百個點各畫一次徑向漸層會很燙，這一步是為了讓它涼。
+		    顏色在這裡無關緊要——整團點稍後由 source-in 重新上色，這張圖只提供不透明度。 */
+		function makeSprite() {
+			const S = K.spriteSize;
+			const c = document.createElement('canvas');
+			c.width = S;
+			c.height = S;
+			const g = c.getContext('2d')!;
+			const rg = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+			rg.addColorStop(0, withAlpha(M.tint, 1));
+			rg.addColorStop(L.spriteMid[0], withAlpha(M.tint, L.spriteMid[1]));
+			rg.addColorStop(1, withAlpha(M.tint, 0));
+			g.fillStyle = rg;
+			g.fillRect(0, 0, S, S);
+			return c;
+		}
+		const sprite = makeSprite();
+
+		/* blit 2026-08-08 內聯進 draw：開場凝聚要在同一個地方乘 settle，
+		   分兩處各自設 globalAlpha 反而是漂移的開端。 */
+
+		/** 每千平方像素幾個點——不是絕對數量，不同裝置上密度才會一樣。 */
+		const countFor = (area: number, density: number) =>
+			Math.min(K.pointCap, Math.round((area / 1000) * density));
+
+		// ── 首頁：散開位置、聚攏位置、各自的漂移 ──────────────────────────
+		function buildBreathe() {
+			pts = [];
+			const n = countFor(W * layoutH, M.density);
+			for (let i = 0; i < n; i++) {
+				const u = Math.random();
+				const layer = i % M.depthRadius.length; // 景深各層平分
+				const outlier = Math.random() < M.outlierRatio;
+				// 往上（冒險成功）：往下（冒險失敗）＝ 3：1。往上的會出現在姓名那一帶。
+				const dir = Math.random() < M.outlierUpRatio ? -1 : 1;
+				const off = outlier
+					? dir * (L.outlierOffset[0] + Math.random() * (L.outlierOffset[1] - L.outlierOffset[0]))
+					: Math.random() * 2 - 1;
+				const scatter = off * spreadAt(u) * layoutH * L.scatterHeight;
+				// 行程（散開位置→聚攏位置）。離群值收得少，呼吸時不會被收回去。
+				// 走不到整段行程的點就走到趨勢線為止，不會穿過去——實際行程只會更短，
+				// 所以紅線③ 的上界照樣成立。
+				const travel = outlier ? M.travel.outlier : M.travel.normal;
+				pts.push({
+					x: px(u),
+					base: trendY(u) + scatter,
+					pull: Math.sign(scatter) * Math.min(travel, Math.abs(scatter)),
+					r: M.depthRadius[layer],
+					a: M.depthAlpha[layer],
+					// 呼吸曲線上的時間偏移。範圍只有一個週期的 1/8——**錯開不是打散**：
+					// 整團仍要一起散→聚→散，偏移大了整團的呼吸就被平均掉了（見判準檔）。
+					t0: Math.random() * CY.period * L.breathDesync,
+					// 每組漂移的起始相位各自隨機——組數由判準檔的振幅表決定，不另外寫一個 3
+					px3: M.driftAmplitude.map(() => Math.random() * 2 * Math.PI),
+					py3: M.driftAmplitude.map(() => Math.random() * 2 * Math.PI),
+				});
+			}
+		}
+
+		/**
+		 * 文字帶的減光遮罩。背景設計在文字可能出現的區域內，合成後的不透明度封頂在
+		 * `textBandMaxAlpha`（＝既有藍暈峰值）——元素主色對內文只有 2.39 的對比，
+		 * 一顆近景光點落在姓名後面就會讓那一帶掉到門檻以下。
+		 * **點還在，只是在文字帶內淡下來**：本人指定的是離群值的位置，不是亮度。
+		 *
+		 * 每一塊用可分離的兩道 ramp（水平 × 垂直）做，不是模糊——邊緣化開的寬度才算得準，
+		 * 而且不必每次重建都跑一次濾鏡。
+		 *
+		 * **多塊先疊成「覆蓋率」再一次乘上減光量，不是每塊各自帶著減光量疊。**
+		 * 後者在左右邊界相近的兩塊上會出事：兩份 0.9 疊起來夾成 1.0，`destination-out`
+		 * 就把整條挖光，上限變成全清。code review 抓到、瀏覽器實測確認（欄內非零像素 0 個）。
+		 *
+		 * **遮罩的高度是整份文件，不是一個視窗**（2026-08-04 修）。舊版把遮罩畫進一張只有
+		 * 視窗那麼高的圖、捲動時整張平移，於是畫面 y 大於「視窗高 − 捲動距離」的那一段
+		 * 完全沒有遮罩資料——減光在那條線上戛然而止，而那條線隨著捲動往上爬。
+		 * 三種視窗高度各量一次，跳動每次都落在預測位置（比值 1.2 → 5.8，中間沒有過渡）；
+		 * 那就是本人 2026-08-02 說的「像一片會移動的透明遮罩」。
+		 * 代價是首頁的離屏畫布跟著整頁高走——首頁憲法上就是「約一屏，不死守」，有界。
+		 * **閱讀頁維持視窗高**：那裡不收垂直方向，遮罩的內容不隨捲動改變，畫多高都一樣。
+		 */
+		function makeBandMask(boxes: Box[]) {
+			const sized = () => {
+				const c = document.createElement('canvas');
+				c.width = cv!.width;
+				c.height = Math.round(bandH * DPR);
+				const g2 = c.getContext('2d')!;
+				g2.setTransform(DPR, 0, 0, DPR, 0, 0);
+				return [c, g2] as const;
+			};
+			const [m, g] = sized();
+			const [coverage, cover] = sized();
+			const [scratch, s] = sized();
+			const fw = col * L.textBandFeather;
+			const stops = featherStops();
+
+			/**
+			 * 一道兩側化開的 ramp：外緣 0、內側整段滿。
+			 * **化開段照 `featherStops()` 的曲線鋪節點，不是一條直線**——直線的兩端各有一個
+			 * 轉折，而轉折就是會被看成一條線的地方（2026-08-04 拍板的規則：值與斜率都要連續）。
+			 */
+			const ramp = (a: number, b: number, vertical: boolean) => {
+				const grad = vertical
+					? s.createLinearGradient(0, a - fw, 0, b + fw)
+					: s.createLinearGradient(a - fw, 0, b + fw, 0);
+				const stop = fw / Math.max(1, b - a + 2 * fw);
+				/* 這兩道只當遮罩用（`destination-out` 只吃 alpha），色相不影響結果。 */
+				for (const [t, v] of stops) grad.addColorStop(stop * t, withAlpha(M.tint, v));
+				for (const [t, v] of stops) grad.addColorStop(1 - stop * t, withAlpha(M.tint, v));
+				return grad;
+			};
+
+			for (const box of boxes) {
+				s.globalCompositeOperation = 'source-over';
+				s.clearRect(0, 0, W, bandH);
+				s.fillStyle = ramp(box.left, box.right, false);
+				s.fillRect(0, 0, W, bandH);
+				// 首頁的文字只佔一塊，垂直方向也要收
+				s.globalCompositeOperation = 'destination-in';
+				s.fillStyle = ramp(box.top, box.bottom, true);
+				s.fillRect(0, 0, W, bandH);
+				cover.drawImage(scratch, 0, 0, W, bandH);
+			}
+			// 覆蓋率 × 減光量：挖掉這麼多，剩下的就是上限 textBandMaxAlpha
+			g.globalAlpha = 1 - M.textBandMaxAlpha;
+			g.drawImage(coverage, 0, 0, W, bandH);
+			return m;
+		}
+
+		let shape = '';
+		function resize() {
+			DPR = Math.min(window.devicePixelRatio || 1, K.dprCap);
+			W = window.innerWidth;
+			viewH = window.innerHeight;
+			col = main!.getBoundingClientRect().width;
+			// 版面還沒算出來（或 main 是空的）就先不畫：ResizeObserver 會在算出來時再叫一次。
+			if (!W || !viewH || !col) return;
+			/* 點只在「畫布真的變了」時重擲。內文變高（圖載完、字體換上來）會讓
+			   ResizeObserver 叫這裡，但那些跟畫布無關——每次都重擲的話，讀者會看到
+			   背景在讀到一半時整片換掉，那就成了自發動態。實測抓到的就是這一個。
+
+			   **視窗高不能原樣進簽章**（2026-07-28 抗辯第一輪紅隊提出、真 iPhone 實測確認）：
+			   手機捲動時網址列收合會讓 `innerHeight` 真的變動數十 px（本站實測同一台
+			   iPhone 上首頁 684、閱讀頁 744），舊寫法一變就重擲，讀者每次上下滑都看到
+			   背景整片重洗——與上面那一段要防的是同一個症狀，只是來源不是 ResizeObserver
+			   的假警報，而是真的 resize 事件。無頭環境驗不出來（resize 送不進去），
+			   所以它一路活到發佈前才被抓到。
+
+			   閱讀頁的點**完全不吃 viewH**（位置只有 x 比例與磚內 y，磚高綁欄寬），所以直接不看；
+			   首頁的點吃 viewH（散開半幅與趨勢線高度都乘 viewH），但網址列那種幅度（約一成）
+			   不值得重擲。真正需要重擲的是換裝置或轉向，而那必然連 W 也一起變。 */
+			const now = `${W}@${DPR}／${Math.round(col)}`;
+			/* 構圖高度 layoutH 只在版面真的變了時才跟上。第一版修法是「點不重擲、但別的照舊」，
+			   抗辯第二輪三個鏡頭一致抓到那樣會把構圖拆成兩半：趨勢線與漸層每次都用即時 viewH
+			   重算，點卻凍在舊 viewH，於是「點收斂到趨勢線」這個核心視覺會錯位；遠景層更慘，
+			   它是照建立當時的畫布尺寸做的一張圖，畫的時候被拉伸成新高度。
+			   正解是把**整個構圖**錨在同一個高度上，而不是只凍住其中一半。 */
+			const heightMoved = Math.abs(viewH - layoutH) > layoutH * L.heightTolerance;
+			if (heightMoved) layoutH = viewH;
+			// 點要不要重擲：閱讀頁的點不吃構圖高（位置只有 x 比例與磚內 y），首頁的吃
+			const reshape = now !== shape || heightMoved;
+			shape = now;
+			cv!.width = Math.round(W * DPR);
+			cv!.height = Math.round(viewH * DPR);
+			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+			/* **整層一個色。** 舊版是左灰右亮的水平漸層，而右端的中性階 700 正好就是
+			   第 4 層那些點的顏色——兩層都是點之後，那道漸層等於把「顏色」這個唯一
+			   分得開的通道也拆掉了（判準檔 `MOTIF.tint` 有完整理由）。 */
+			tint = M.tint;
+
+			const cx = W * L.fadeCenter[0];
+			const cy = layoutH * L.fadeCenter[1];
+			fade = ctx!.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, layoutH));
+			evenStops(L.fadeStops.length).forEach((at, i) =>
+				// 四周化開只當遮罩用（`destination-out`），色相不影響結果
+				fade!.addColorStop(at, withAlpha(M.tint, L.fadeStops[i])),
+			);
+
+			if (reshape) {
+				buildBreathe();
+			}
+			/* 遮罩高度要在建之前決定。首頁綁整頁高：遮罩是文件座標的東西，只畫一個視窗
+			   的話捲下去就沒有資料可貼了（那就是硬邊）。閱讀頁不收垂直方向，內容不隨捲動變，
+			   維持視窗高即可——長文的整頁高可以到上萬 px，照畫會炸掉記憶體。 */
+			bandH = document.documentElement.scrollHeight;
+			const boxes = contentBoxes(main!, col);
+			bandMask = boxes.length ? makeBandMask(boxes) : null;
+			draw(0);
+		}
+
+		/** 遠景固定，不參與動畫——它只畫一次，之後每幀貼上去。 */
+		/* **遠景層 2026-08-05 拆掉。** 它原本把最遠那一層的點預先烤成一張圖、每幀只貼上去，
+		   理由是那一層有幾百顆、每幀重畫太貴。代價是**那一層從頭到尾不呼吸也不飄**，
+		   而本人一眼看出來了：「呼吸集中時依舊清晰可見的、離超遠的藍點，甚至他任何時候
+		   還不怎麼飄。」把它調亮（0.66→0.85）之後更明顯——最靜止的那一批點變成最亮的。
+
+		   拆掉的成本現在很小：密度從 0.9 砍到 0.2 之後，整層只剩一百多顆，全部每幀畫
+		   跟只畫三分之二沒有量級差別。**這是密度變小之後才付得起的簡化，不是原本就該這樣。** */
+
+		function draw(sec: number) {
+			ctx!.setTransform(DPR, 0, 0, DPR, 0, 0);
+			ctx!.clearRect(0, 0, W, viewH);
+			ctx!.globalCompositeOperation = 'source-over';
+
+			const frozen = still.matches;
+			/* 開場凝聚與視差（輸入回應）。凝聚跑完 settle 恆為 1，不再花計算。 */
+			const age = frozen ? 1 : Math.min(1, (sec - born) / M.settle);
+			const settle = 1 - Math.pow(1 - age, 3);
+			par.x += (par.tx - par.x) * 0.06;
+			par.y += (par.ty - par.y) * 0.06;
+			for (const p of pts) {
+				let dx = par.x * M.parallax[0];
+				let dy = par.y * M.parallax[1];
+				if (!frozen) {
+					M.driftAmplitude.forEach((amp: number, i: number) => {
+						const w = 2 * Math.PI * M.driftFrequency[i] * sec;
+						dx += amp * Math.sin(w + p.px3[i]);
+						dy += amp * Math.sin(w + p.py3[i]);
+					});
+				}
+				// 每個點在呼吸曲線上取一個時間偏移，整團才不會像一個東西在脈動。
+				// 偏移的是時間不是振幅，所以峰值速度與閘門算的上界一致。
+				const g = breath(frozen ? 0 : sec + p.t0);
+				ctx!.globalAlpha = p.a * settle;
+				ctx!.drawImage(sprite, p.x + dx - p.r, p.base - p.pull * g + dy - p.r, p.r * 2, p.r * 2);
+			}
+
+			// 整團點是同一張圖，這一步把顏色蓋上去
+			ctx!.globalAlpha = 1;
+			ctx!.globalCompositeOperation = 'source-in';
+			ctx!.fillStyle = tint!;
+			ctx!.fillRect(0, 0, W, viewH);
+			ctx!.globalCompositeOperation = 'source-over';
+
+			/* **畫出來的趨勢線 2026-08-05 退場。** 那條線的故事（「不管點怎麼亂跑，
+			   我都還是筆直地往上爬」）沒有丟——**改由點自己在聚攏那一刻排出來承載**。
+			   本人的原話是「第五層藍色點也會剛好形成一個明確的趨勢線」；點排得出來還
+			   另外描一條，等於同一件事講兩次，而且會把「散點圖」讀成「圖表」。
+			   `trendY()` 本身留著——它現在是點的目標位置，不是一條被畫出來的線。 */
+
+			// 四周化開：讓背景設計有重心，不是均勻鋪滿被視窗切斷
+			ctx!.globalAlpha = 1;
+			ctx!.globalCompositeOperation = 'destination-out';
+			ctx!.fillStyle = fade!;
+			ctx!.fillRect(0, 0, W, viewH);
+			// 文字帶減光。首頁的遮罩隨頁面走（它綁在文字上，不是綁在視窗上）
+			if (bandMask) ctx!.drawImage(bandMask, 0, -scrollY, W, bandH);
+			ctx!.globalCompositeOperation = 'source-over';
+		}
+
+		/* **時間基準是頁面時鐘，不是元件自己的起點。** 這一支先前記了一個 `t0`
+		   （元件啟動的那一刻）再拿 `now − t0` 當時間——那會讓第 4 層與第 5 層**不同相**：
+		   第 4 層用的是頁面時鐘，而 `t0` 在 ClientRouter 換頁之後可以是幾分鐘。
+		   兩層同步就是靠「兩邊都不要各自記一個起點」（`src/scripts/cycle.ts`）。 */
+		let last = 0;
+		function frame(now: number) {
+			raf = requestAnimationFrame(frame);
+			if (document.hidden) return; // 分頁不可見時不繪製
+			if (now - last < 1000 / M.fpsCap) return; // 幀率上限
+			last = now;
+			draw(now / 1000);
+		}
+
+		/* 只有**降低動態偏好**那條路沒有逐幀迴圈（位移全關），這時捲動要自己補一次重畫，
+		   因為閱讀頁的圖案是照捲動位置平舖的。
+
+		   **時間一定要傳當下的，不能傳 0。** 先前這裡寫死 `draw(0)`，而逐幀迴圈傳的是
+		   真正的時間——2026-08-05 閱讀頁的點開始會飄之後，每一次捲動事件就把整層瞬間
+		   拉回 t=0 的位置、下一幀再彈回去。本人回報的「一個穩定飄、一個隨著滾動會中斷式
+		   的瞬間移動」就是這個。 */
+		function onScroll() {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame((now) => {
+				queued = false;
+				draw(now / 1000);
+			});
+		}
+
+		/* main 的盒子會在字體換上來之後改變（`display=fallback` 的那一次交換），
+		   文字帶的位置跟著它走，所以觀察的是 main 而不是只聽 window resize。
+		   視窗高度變了但 main 沒變（長文頁）的情況由 resize 事件補上，兩個都要。 */
+		/* resize 要節流。它每次都重建三張整面離屏畫布（文字帶遮罩）＋兩個漸層，
+		   是這支程式最貴的一條路；而拖曳視窗邊框時瀏覽器會連續密集送事件。
+		   捲動那條路一開始就有 rAF 節流，這條漏了（抗辯第二輪實測：單次 resize()
+		   在 1440×900@DPR2 要 444ms、3440×1440@DPR2 要 1689ms，拖曳時分頁會卡住）。 */
+		let sizing = false;
+		const onResize = () => {
+			if (sizing) return;
+			sizing = true;
+			requestAnimationFrame(() => {
+				sizing = false;
+				resize();
+			});
+		};
+		const observer = new ResizeObserver(onResize);
+		observer.observe(main);
+		window.addEventListener('resize', onResize);
+		window.addEventListener('pointermove', onPointerMove, { passive: true });
+		window.addEventListener('pointerleave', onPointerLeave);
+		// 呼吸模式在降低動態偏好下不跑迴圈，但捲動時文字帶要跟著移動，所以照樣聽捲動
+		/* 逐幀迴圈在跑的時候**不要再掛捲動重畫**：那是同一件事做兩次，而且兩邊的時間
+		   只要有一點差，畫面就會在捲動時抖一下。只有沒有迴圈的那條路（降低動態偏好）
+		   需要它。 */
+		if (still.matches) window.addEventListener('scroll', onScroll, { passive: true });
+
+		resize();
+		/* 降低動態偏好時仍然畫，只是不動——要關的是空間位移，不是把畫面清空。
+		   **閱讀頁 2026-08-05 起也要逐幀**：它的點現在會飄，只靠捲動重畫的話，
+		   讀者停下來不動時整層就凍住了，而「飄」正是他要的那件事。 */
+		if (!still.matches) raf = requestAnimationFrame(frame);
+
+		teardown = () => {
+			cancelAnimationFrame(raf);
+			observer.disconnect();
+			window.removeEventListener('resize', onResize);
+			window.removeEventListener('scroll', onScroll);
+			window.removeEventListener('pointermove', onPointerMove);
+			window.removeEventListener('pointerleave', onPointerLeave);
+		};
+	}
+
+	document.addEventListener('astro:page-load', start);
+	// 偏好改了要真的重來一次（動態的開關在 start 裡決定），所以先把「已啟動」清掉
+	still.addEventListener('change', () => {
+		running = null;
+		start();
+	});
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', start, { once: true });
+	} else {
+		start();
+	}
+</script>

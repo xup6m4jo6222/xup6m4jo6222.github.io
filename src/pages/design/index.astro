@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DESIGN_CATEGORIES, designCount } from '../../design-items.mjs';
+
+/* 展示櫃目錄（SPEC-design-showcase）：六類，只列有貨的。
+   導覽列不加「設計」——它是 AI#1 的內部細節，入口在那一頁（本人拍板）。 */
+const cats = DESIGN_CATEGORIES.filter((c) => c.items.some((i) => !i.pending));
+---
+
+<BaseLayout
+	title="設計展示櫃 | 林郁為"
+	backLink={{ href: '/projects/ai/portfolio-site/', label: '← AI 實作 #1' }}
+	motif="reading"
+>
+	<h1>設計展示櫃</h1>
+	<p class="category-label">現行 {designCount()} 項設計決定，按維度分類</p>
+	<p class="intro">這裡陳列的是「現在」：每個元素長什麼樣、為什麼是這樣。當時怎麼走過來的，在 AI 實作 #1 的時間軸。</p>
+
+	<div class="cards">
+		{
+			cats.map((c) => {
+				const live = c.items.filter((i) => !i.pending).length;
+				return (
+					<a class="card" href={`/design/${c.key}/`} data-reveal>
+						<span class="card-num" aria-hidden="true">
+							{live}
+						</span>
+						<span class="card-body">
+							<h3>{c.label}</h3>
+							<p>{c.items.filter((i) => !i.pending).map((i) => i.name.split('：')[0]).join('、')}</p>
+						</span>
+					</a>
+				);
+			})
+		}
+	</div>
+</BaseLayout>
