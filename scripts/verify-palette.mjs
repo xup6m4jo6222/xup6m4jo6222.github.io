@@ -145,7 +145,14 @@ function walk(dir, acc = []) {
 	return acc;
 }
 
-const isProcessPage = (f) => relative(DIST, f).split(sep)[0] === 'process';
+/* 自成一套視覺、不套本站設計系統的頁面：過程頁（process/），以及 2026-09-25 起當首頁的
+   3D 房間（首頁 index.html 與 room/ 底下的檔案；房間的配色與圖層由它自己的渲染管線決定，
+   正本在 .scratch/room-v30/，發布腳本 publish-room.mjs）。 */
+const isRoomFile = (f) => {
+	const r = relative(DIST, f);
+	return r.split(sep)[0] === 'room' || r === 'index.html';
+};
+const isProcessPage = (f) => relative(DIST, f).split(sep)[0] === 'process' || isRoomFile(f);
 
 // ---------------------------------------------------------------------------
 // 極簡 CSS 解析：夠用就好，只要能拿到「選擇器 → 宣告」與 at-rule 脈絡。
@@ -2004,7 +2011,7 @@ function main() {
 	const allFiles = walk(DIST);
 
 	// 票 01：`.js` 進來了。背景設計的色碼寫在腳本裡，不掃 JS 等於留一條白名單看不見的路。
-	const textFiles = allFiles.filter((f) => /\.(html|css|svg|js)$/i.test(f));
+	const textFiles = allFiles.filter((f) => /\.(html|css|svg|js)$/i.test(f) && !isRoomFile(f));   // 房間（含 three.js）整包不掃，見 isRoomFile
 	const siteCssFiles = textFiles.filter((f) => f.endsWith('.css') && !isProcessPage(f));
 
 	const allowedCss = new Set(

@@ -1,0 +1,413 @@
+{
+ "exposure": 0.3,
+ "saturation": 0.97,
+ "shadowTint": "#2a2040",
+ "shadowLift": 0.006,
+ "vignette": 0.3,
+ "groups": {
+  "lamp": {
+   "gain": 1.45,
+   "tint": "#ffe9d2"
+  },
+  "caseL": {
+   "gain": 1.3,
+   "tint": "#ffffff"
+  },
+  "caseR": {
+   "gain": 1.3,
+   "tint": "#ffffff"
+  },
+  "skill": {
+   "gain": 1.15,
+   "tint": "#ffffff"
+  },
+  "bed": {
+   "gain": 1.0,
+   "tint": "#fff1e4"
+  },
+  "fill": {
+   "gain": 0.3,
+   "tint": "#e8e2f2"
+  },
+  "moon": {
+   "gain": 0.85,
+   "tint": "#c9c2de"
+  },
+  "screen": {
+   "gain": 0.5,
+   "tint": "#ffffff"
+  },
+  "aroma": {
+   "gain": 1.1,
+   "tint": "#ffffff"
+  },
+  "track": {
+   "gain": 1.5,
+   "tint": "#ffdcb4"
+  },
+  "cove": {
+   "gain": 0.2,
+   "tint": "#f3c8b0"
+  },
+  "trackDesk": {
+   "gain": 1.5,
+   "tint": "#ffdcb4"
+  },
+  "trackBed": {
+   "gain": 4.5,
+   "tint": "#ffdcb4"
+  },
+  "trackArt": {
+   "gain": 1.5,
+   "tint": "#ffdcb4"
+  },
+  "ceil": {
+   "gain": 0.6,
+   "tint": "#ffe6cc"
+  },
+  "floorRead": {
+   "gain": 1.0,
+   "tint": "#fff1e4"
+  },
+  "floorDesk": {
+   "gain": 1.0,
+   "tint": "#ffe2c0"
+  },
+  "sky": {
+   "gain": 0.06,
+   "tint": "#8fa0d8"
+  },
+  "shelf": {
+   "gain": 1.3,
+   "tint": "#ffffff"
+  }
+ },
+ "books": {
+  "strip": 6,
+  "ambient": 0.6,
+  "env": 0.12,
+  "reading": 9
+ },
+ "clock": {
+  "w": 0.13,
+  "h": 0.057,
+  "out": 0.053,
+  "dz": 0.012,
+  "shift": 0.04
+ },
+ "moods": [
+  {
+   "name": "cedar",
+   "swatch": "#b98a5a",
+   "mist": "#fff0e0",
+   "groups": {}
+  },
+  {
+   "name": "lavender",
+   "swatch": "#a48fd0",
+   "mist": "#efe6ff",
+   "groups": {
+    "lamp": {
+     "tint": "#ffe6f4"
+    },
+    "fill": {
+     "tint": "#e8dcff",
+     "gain": 0.9
+    },
+    "moon": {
+     "tint": "#e6d8ff",
+     "gain": 1.05
+    },
+    "aroma": {
+     "tint": "#c9b0ff"
+    },
+    "cove": {
+     "tint": "#f1ebf6",
+     "gain": 0.8
+    },
+    "track": {
+     "gain": 0.9
+    }
+   },
+   "saturation": 1.05
+  },
+  {
+   "name": "orange",
+   "swatch": "#e59a4c",
+   "mist": "#fff0dc",
+   "groups": {
+    "lamp": {
+     "gain": 1.25,
+     "tint": "#ffd6aa"
+    },
+    "fill": {
+     "tint": "#ffe6c8",
+     "gain": 1.15
+    },
+    "caseL": {
+     "gain": 1.1,
+     "tint": "#ffe2c2"
+    },
+    "caseR": {
+     "gain": 1.1,
+     "tint": "#ffe2c2"
+    },
+    "skill": {
+     "tint": "#ffe2c2"
+    },
+    "aroma": {
+     "tint": "#ffb070"
+    },
+    "cove": {
+     "tint": "#ffd9b0",
+     "gain": 1.2
+    },
+    "track": {
+     "gain": 1.1,
+     "tint": "#fff0dd"
+    }
+   },
+   "exposure": 0.15,
+   "saturation": 1.1
+  },
+  {
+   "name": "eucalyptus",
+   "swatch": "#8fc4b8",
+   "mist": "#eefcff",
+   "groups": {
+    "lamp": {
+     "tint": "#e6efff",
+     "gain": 0.85
+    },
+    "fill": {
+     "tint": "#cddfff",
+     "gain": 0.95
+    },
+    "moon": {
+     "tint": "#c8ecff",
+     "gain": 1.9
+    },
+    "caseL": {
+     "tint": "#fff2e6"
+    },
+    "caseR": {
+     "tint": "#fff2e6"
+    },
+    "skill": {
+     "tint": "#fff2e6"
+    },
+    "aroma": {
+     "tint": "#a8e6ff"
+    },
+    "cove": {
+     "tint": "#d5f0ec",
+     "gain": 0.9
+    },
+    "track": {
+     "gain": 0.95,
+     "tint": "#f4f8ff"
+    }
+   },
+   "saturation": 0.9,
+   "exposure": 0.05
+  },
+  {
+   "name": "sandalwood",
+   "swatch": "#8a5a3c",
+   "mist": "#ffe8d0",
+   "groups": {
+    "fill": {
+     "gain": 0.35
+    },
+    "moon": {
+     "gain": 0.6
+    },
+    "bed": {
+     "gain": 0.6
+    },
+    "screen": {
+     "gain": 0.6
+    },
+    "lamp": {
+     "gain": 1.1,
+     "tint": "#ffe0c0"
+    },
+    "cove": {
+     "gain": 0.5
+    },
+    "track": {
+     "gain": 1.15,
+     "tint": "#ffe8cc"
+    }
+   },
+   "exposure": -0.25
+  },
+  {
+   "name": "bergamot",
+   "swatch": "#c9c46a",
+   "mist": "#fbffe8",
+   "groups": {
+    "lamp": {
+     "tint": "#fdffe8"
+    },
+    "fill": {
+     "tint": "#fbfff0",
+     "gain": 1.1
+    },
+    "caseL": {
+     "tint": "#fffcea"
+    },
+    "caseR": {
+     "tint": "#fffcea"
+    },
+    "skill": {
+     "tint": "#fffcea"
+    },
+    "moon": {
+     "tint": "#f4fff4",
+     "gain": 1.15
+    },
+    "aroma": {
+     "tint": "#e2ff96"
+    },
+    "cove": {
+     "tint": "#fff6d8",
+     "gain": 1.1
+    },
+    "track": {
+     "tint": "#fffbee"
+    }
+   },
+   "exposure": 0.1,
+   "saturation": 1.0
+  }
+ ],
+ "bloom": {
+  "strength": 0.6,
+  "threshold": 1.2,
+  "knee": 0.6,
+  "spread": 1.35
+ },
+ "dust": 1.1,
+ "art": 0.42,
+ "ceilModes": [
+  {
+   "gain": 1.0,
+   "tint": "#ffe6cc"
+  },
+  {
+   "gain": 0.42,
+   "tint": "#ffd6b0"
+  },
+  {
+   "gain": 0.5,
+   "tint": "#b8a4dc"
+  }
+ ],
+ "times": {
+  "night": {
+   "groups": {
+    "sky": {
+     "gain": 0.05,
+     "tint": "#8fa0d8"
+    }
+   },
+   "city": {
+    "gain": 1.0,
+    "tint": "#ffffff"
+   },
+   "exposure": 0,
+   "defaults": {
+    "ceil": 0,
+    "track": true,
+    "amb": true,
+    "curtain": 1
+   }
+  },
+  "dusk": {
+   "groups": {
+    "sky": {
+     "gain": 1.1,
+     "tint": "#ffb48a"
+    },
+    "moon": {
+     "gain": 0.6,
+     "tint": "#ffffff"
+    }
+   },
+   "city": {
+    "gain": 1.0,
+    "tint": "#ffffff"
+   },
+   "exposure": 0,
+   "defaults": {
+    "ceil": 0,
+    "track": true,
+    "amb": true,
+    "curtain": 1
+   }
+  },
+  "dawn": {
+   "groups": {
+    "sky": {
+     "gain": 2.2,
+     "tint": "#ffd2b8"
+    },
+    "moon": {
+     "gain": 0.5,
+     "tint": "#ffffff"
+    },
+    "fill": {
+     "gain": 1.8,
+     "tint": "#f6e2d6"
+    }
+   },
+   "city": {
+    "gain": 1.0,
+    "tint": "#ffffff"
+   },
+   "exposure": 0,
+   "defaults": {
+    "ceil": 0,
+    "track": false,
+    "amb": false,
+    "curtain": 1
+   },
+   "bloom": 0.7
+  },
+  "day": {
+   "groups": {
+    "sky": {
+     "gain": 3.0,
+     "tint": "#ffe2bf"
+    },
+    "moon": {
+     "gain": 0.4,
+     "tint": "#ffffff"
+    },
+    "fill": {
+     "gain": 3.2,
+     "tint": "#f4ece2"
+    }
+   },
+   "city": {
+    "gain": 1.0,
+    "tint": "#ffffff"
+   },
+   "exposure": 0.0,
+   "defaults": {
+    "ceil": 0,
+    "track": false,
+    "amb": false,
+    "curtain": 1
+   },
+   "bloom": 0.35
+  }
+ },
+ "cityMap": [
+  0.2758,
+  0.5655,
+  0.5286,
+  0.4398
+ ]
+}

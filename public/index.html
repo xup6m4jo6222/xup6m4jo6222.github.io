@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<base href="/room/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>林郁為｜作品</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&family=Cormorant+Garamond:wght@500;600&display=fallback" rel="stylesheet">
+<link rel="stylesheet" href="room.css">
+<script>
+// JS 錯誤浮上檯面：放在 head、不加 defer，讓後面任何錯誤都看得到
+window.__errors = [];
+function __showError(msg) {
+  window.__errors.push(msg);
+  var bar = document.getElementById('errbar');
+  if (!bar) return;
+  bar.hidden = false;
+  bar.querySelector('.msg').textContent = window.__errors.slice(-3).join('\n');
+}
+window.addEventListener('error', function (e) { __showError((e.message || '錯誤') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '')); });
+window.addEventListener('unhandledrejection', function (e) { __showError('Promise: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); });
+</script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
+</script>
+</head>
+<body>
+<canvas id="stage" aria-label="林郁為的房間"></canvas>
+
+<header class="topbar">
+  <div class="brand"><span data-copy="brand">林郁為</span><span class="sub" data-copy="subtitle"></span></div>
+  <div class="topright">
+    <button type="button" id="soundbtn" class="direct soundbtn" aria-pressed="true"><span data-copy="sound-on">聲音：開</span></button>
+    <a class="direct" href="/projects/" data-copy="direct-read">直接看作品列表</a>
+  </div>
+</header>
+
+<div id="hotspots" aria-label="房間裡可以點的地方"></div>
+
+<button id="back" class="chip back fx" hidden><span aria-hidden="true">←</span> <span data-copy="back">回到房間</span></button>
+
+<p id="hint" class="hint fx" hidden></p>
+<p id="booktip" class="booktip" hidden></p>
+
+<div id="bookui" class="bookui fx" hidden>
+  <button id="bookread" class="chip primary" data-copy="book-read">閱讀全文</button>
+  <button id="bookreturn" class="chip" data-copy="book-return">放回書櫃</button>
+</div>
+
+<section id="reader" class="reader fx" hidden aria-modal="true" role="dialog">
+  <div class="reader-bar"><span id="readertitle"></span><button id="readerclose" class="chip" data-copy="reader-close">闔上</button></div>
+  <iframe id="readerframe" title="作品全文"></iframe>
+</section>
+
+<div id="screen" class="screen" hidden>
+  <div class="screen-inner">
+    <div class="win-bar"><i></i><i></i><i></i><span data-copy="screen-title">AI 實作展示</span></div>
+    <div class="win-body">
+      <h2 data-copy="screen-title">AI 實作展示</h2>
+      <p data-copy="screen-status"></p>
+      <h3 data-copy="screen-apps">現在可以看的</h3>
+      <ul id="screenapps"></ul>
+    </div>
+  </div>
+</div>
+
+
+<aside id="aroma" class="aroma fx" hidden>
+  <h2 data-copy="aroma-title">選一瓶精油</h2>
+  <p class="aroma-hint" data-copy="aroma-hint"></p>
+  <ul id="oillist"></ul>
+  <button id="aromaoff" class="chip small" data-copy="aroma-off">關掉香氛機</button>
+</aside>
+
+<div id="lightpanel" class="lightpanel fx" hidden role="group" aria-label="燈光開關">
+  <p class="lp-title" data-copy="lightpanel-title">燈光</p>
+  <button id="sw-ceil" class="sw"><span data-copy="sw-ceil">天花板燈</span><small></small></button>
+  <button id="sw-track" class="sw"><span data-copy="sw-track">軌道燈</span><small></small></button>
+  <button id="sw-amb" class="sw"><span data-copy="sw-amb">環繞燈</span><small></small></button>
+</div>
+
+<nav id="mobilenav" class="mobilenav fx" hidden></nav>
+
+<div id="loading" class="loading" style="--p:0">
+  <img class="ld-lines" src="intro-lines.jpg" alt="" aria-hidden="true">
+  <img class="ld-color" alt="" aria-hidden="true">
+  <div class="ld-name"><h1 data-copy="intro-name">林郁為</h1><p data-copy="intro-line">歡迎來我的房間坐坐</p></div>
+  <div class="ld-choice" id="ldchoice" hidden>
+    <button type="button" class="ld-go" id="enterroom" data-copy="entry-room">進房間看看</button>
+    <a class="ld-list" href="/projects/" data-copy="entry-list">直接看作品</a>
+  </div>
+  <div class="ld-bar" aria-hidden="true"><i></i></div>
+  <span class="sr-only" data-copy="loading">點燈中</span>
+</div>
+<script src="js/intro-draw.js"></script>
+
+<div id="errbar" class="errbar" hidden><pre class="msg"></pre><button onclick="navigator.clipboard.writeText(window.__errors.join('\n'))">複製錯誤</button></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

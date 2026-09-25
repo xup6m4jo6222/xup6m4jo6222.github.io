@@ -74,8 +74,8 @@ const channelEnv = (entries) => (entries ? { VERIFY_CHANNEL_EXTRA: JSON.stringif
 /** 在首頁塞一個帶 data-motif 的 canvas——背景設計上線後產物就長這樣。 */
 const injectMotif = (dir, params) =>
 	writeFileSync(
-		join(dir, 'index.html'),
-		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+		join(dir, 'home', 'index.html'),
+		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-motif='${JSON.stringify(params)}'></canvas></body>`,
 		),
@@ -84,8 +84,8 @@ const injectMotif = (dir, params) =>
 /** 在首頁塞一個帶 data-field-craft 的 canvas（票 05 抗辯後補：技法也要驗）。 */
 const injectCraft = (dir, craft) =>
 	writeFileSync(
-		join(dir, 'index.html'),
-		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+		join(dir, 'home', 'index.html'),
+		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-field-craft='${JSON.stringify(craft)}'></canvas></body>`,
 		),
@@ -94,8 +94,8 @@ const injectCraft = (dir, craft) =>
 /** 在首頁塞一個帶 data-field 的 canvas——場上線後產物就長這樣（票 03）。 */
 const injectField = (dir, params) =>
 	writeFileSync(
-		join(dir, 'index.html'),
-		readFileSync(join(dir, 'index.html'), 'utf8').replace(
+		join(dir, 'home', 'index.html'),
+		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-field='${JSON.stringify(params)}'></canvas></body>`,
 		),
@@ -534,8 +534,8 @@ const cases = [
 		expectPass: false,
 		mutate: (_f, dir) =>
 			writeFileSync(
-				join(dir, 'index.html'),
-				readFileSync(join(dir, 'index.html'), 'utf8').replace(
+				join(dir, 'home', 'index.html'),
+				readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
 					'</head>',
 					'<style>.fake-z-inline{position:fixed;z-index:999}</style></head>',
 				),
