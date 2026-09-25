@@ -304,7 +304,7 @@ async function buildArt() {
   if (artMesh) { scene.remove(artMesh); artMesh = null; }
   const q = S.data.art; if (!q) return;
   for (const ext of ['jpg', 'png', 'webp']) {
-    const url = `art/wall-art.${ext}?t=${Date.now()}`;
+    const url = `art/wall-art.${ext}` + (location.port === '4330' ? `?t=${Date.now()}` : '');   // 本機預覽才強制重抓（換圖即時生效）；正式網站要能快取
     const tex = await new Promise(res => new THREE.TextureLoader().load(url, res, undefined, () => res(null)));
     if (!tex) continue;
     tex.colorSpace = THREE.NoColorSpace; tex.anisotropy = 8; artMat.uniforms.uTex.value = tex;
@@ -986,11 +986,12 @@ async function boot() {
   const fontsIn = await kit.ready();
   // 字型晚到：等它到了、而且沒有書被拿在手上時，重畫書脊的燙金書名
   if (!fontsIn) kit.fontsDone.then(function redo() { if (S.focus) return setTimeout(redo, 1500); buildBooks(); });
-  buildShelfLights(); buildBooks(); buildEffects(); buildCertificates(); buildClock(); tick(); buildArt();
+  buildShelfLights(); buildBooks(); buildEffects(); buildCertificates(); buildClock(); tick();
   if (!S.aromaOn) mist.target = 0;
   computeTargets(); stepLights(0, true);
   let got = 0; const total = GROUPS.length + 1;
   await ensureView('room', () => { got++; setLoad(0.15 + 0.75 * got / total); });
+  buildArt(); kit.loadTextures();   // 掛畫（400 KB）與書本布紋紙張（1.1 MB）等房間主圖下載完才抓，不跟它搶頻寬
   await ldFinish();
   await entryChoice();
   renderScreenApps();

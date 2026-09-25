@@ -16,18 +16,25 @@ const lum = hex => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) * 0
 
 export class BookKit {
   constructor() {
-    const L = new THREE.TextureLoader();
+    // 布紋與紙張貼圖（約 1.1 MB）不在這裡下載：等房間主圖到齊、main.js 呼叫 loadTextures() 才抓，不跟開場搶頻寬。
+    // 先放空的貼圖物件給材質引用，圖到了再把影像填進去；書的封面畫布則由 fontsDone 觸發重畫。
     const rep = (t, r) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(r, r); t.anisotropy = 8; return t; };
-    this.linenNormal = rep(L.load('tex/linen-normal.webp'), 3);
-    this.linenDetail = L.load('tex/linen-detail.webp');
-    this.paper = L.load('tex/paper.webp'); this.paper.colorSpace = THREE.SRGBColorSpace;
-    this.linenImg = new Image(); this.linenImg.src = 'tex/linen-detail.webp';
-    this.paperImg = new Image(); this.paperImg.src = 'tex/paper.webp';
+    const flat = rgb => { const c = document.createElement('canvas'); c.width = c.height = 4; const x = c.getContext('2d'); x.fillStyle = rgb; x.fillRect(0, 0, 4, 4); const t = new THREE.Texture(c); t.needsUpdate = true; return t; };
+    // 暫代：各貼圖的平均色（布紋 196 灰、法線 128/128/248、紙 241/229/209），晚到的那幾秒書看起來只是少了紋理
+    this.linenNormal = rep(flat('rgb(128,128,248)'), 3);
+    this.linenDetail = flat('rgb(196,196,196)');
+    this.paper = flat('rgb(241,229,209)'); this.paper.colorSpace = THREE.SRGBColorSpace;
+    this.linenImg = new Image(); this.paperImg = new Image(); this.normalImg = new Image();
+    this.texDone = new Promise(r => { this._texGo = r; }).then(() => {
+      const pairs = [[this.normalImg, 'tex/linen-normal.webp', this.linenNormal], [this.linenImg, 'tex/linen-detail.webp', this.linenDetail], [this.paperImg, 'tex/paper.webp', this.paper]];
+      return Promise.all(pairs.map(([img, src, tex]) => { img.src = src; return img.decode().then(() => { tex.dispose(); tex.image = img; tex.needsUpdate = true; }).catch(() => {}); }));
+    });
     this.edgeTex = this.makeEdgeTexture();
   }
-  // 字型最多等 ms 毫秒（中文字型從 Google 下載可能要好幾秒，不能讓開場乾等）；回傳 true 表示字型都到了
+  loadTextures() { this._texGo(); }
+  // 字型最多等 ms 毫秒（中文字型從 Google 下載可能要好幾秒，不能讓開場乾等）；回傳 true 表示字型與貼圖都到了
   async ready(ms = 1200) {
-    const all = Promise.all([this.linenImg.decode().catch(() => {}), this.paperImg.decode().catch(() => {}),
+    const all = Promise.all([this.texDone,
       document.fonts.load('700 40px "LXGW WenKai TC"'), document.fonts.load('400 40px "LXGW WenKai TC"'),
       document.fonts.load('600 40px "Cormorant Garamond"'), document.fonts.load('400 30px "Chiron GoRound TC"')].map(p => Promise.resolve(p).catch(() => {})));
     this.fontsDone = all.then(() => true);

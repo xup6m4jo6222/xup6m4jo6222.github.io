@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&family=Cormorant+Garamond:wght@500;600&display=fallback" rel="stylesheet">
 <link rel="stylesheet" href="room.css">
+<!-- 下載順序：開場描線的兩張圖最先要 -->
+<link rel="preload" href="intro-lines.jpg" as="image" fetchpriority="high">
+<link rel="preload" href="intro-order.png" as="image" fetchpriority="high">
+<link rel="preload" href="js/intro-draw.js" as="script" fetchpriority="high">
 <script>
 // JS 錯誤浮上檯面：放在 head、不加 defer，讓後面任何錯誤都看得到
 window.__errors = [];
@@ -25,6 +29,17 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
 </script>
+<!-- 程式整串一開始就同時抓（要放在 importmap 後面，否則 "three" 對不到檔案） -->
+<link rel="modulepreload" href="vendor/three.module.js" fetchpriority="low">
+<link rel="modulepreload" href="vendor/three.core.js" fetchpriority="low">
+<link rel="modulepreload" href="js/main.js" fetchpriority="low">
+<link rel="modulepreload" href="js/stage.js" fetchpriority="low">
+<link rel="modulepreload" href="js/books.js" fetchpriority="low">
+<link rel="modulepreload" href="js/effects.js" fetchpriority="low">
+<link rel="modulepreload" href="js/sfx.js" fetchpriority="low">
+<link rel="modulepreload" href="vendor/RoomEnvironment.js" fetchpriority="low">
+<link rel="modulepreload" href="vendor/lights/RectAreaLightUniformsLib.js" fetchpriority="low">
+<link rel="modulepreload" href="vendor/lights/RectAreaLightTexturesLib.js" fetchpriority="low">
 </head>
 <body>
 <canvas id="stage" aria-label="林郁為的房間"></canvas>
