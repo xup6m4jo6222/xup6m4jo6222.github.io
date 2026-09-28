@@ -1,4 +1,5 @@
 ---
+import { t } from '../text.mjs';
 import Nav from '../components/Nav.astro';
 import Motif from '../components/Motif.astro';
 import Field from '../components/Field.astro';
@@ -40,9 +41,9 @@ const { title, backLink, motif } = Astro.props;
 			href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&display=fallback"
 			rel="stylesheet"
 		/>
-		<meta name="description" content="統計背景，正朝資料科學邁進。" />
+		<meta name="description" content={t('site.description')} />
 		<meta property="og:title" content={title} />
-		<meta property="og:description" content="統計背景，正朝資料科學邁進。" />
+		<meta property="og:description" content={t('site.description')} />
 		<meta property="og:image" content="https://xup6m4jo6222.github.io/images/og-card.png" />
 		<meta property="og:type" content="website" />
 		<meta name="twitter:card" content="summary_large_image" />
@@ -85,11 +86,11 @@ const { title, backLink, motif } = Astro.props;
 		    它回答的是維護者的問題。頁尾剩版權與聯絡兩組。 */}
 		<footer>
 			<div class="footer-inner">
-				<span>&copy; 2026 林郁為</span>
+				<span>{t('footer.copyright')}</span>
 				<span class="footer-contact">
-					<a href="https://github.com/xup6m4jo6222">GitHub</a>
+					<a href="https://github.com/xup6m4jo6222">{t('footer.github')}</a>
 					<span aria-hidden="true">·</span>
-					<a href="mailto:xup6m4jo6222@gmail.com">Email</a>
+					<a href="mailto:xup6m4jo6222@gmail.com">{t('footer.email')}</a>
 				</span>
 			</div>
 		</footer>

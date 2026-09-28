@@ -1,4 +1,5 @@
 ---
+import { t } from '../text.mjs';
 import { getCollection } from 'astro:content';
 import { CATEGORIES } from '../categories.mjs';
 
@@ -32,7 +33,7 @@ const activeCat = (() => {
     把品牌排除在外，所以它拿到 current 不會多長一條底線。 */}
 <header class="site-nav">
 	<nav>
-		<a class="nav-brand" href="/" aria-current={isHome ? 'page' : undefined}>林郁為</a>
+		<a class="nav-brand" href="/" aria-current={isHome ? 'page' : undefined}>{t('site.name')}</a>
 		{backLink && <a class="nav-back" href={backLink.href}>{backLink.label}</a>}
 		{
 			categories.map((c) => (

@@ -1,4 +1,5 @@
 ---
+import { t } from '../../text.mjs';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import { CATEGORIES as categories, categoryIndexes } from '../../categories.mjs';
@@ -14,7 +15,7 @@ const vtName = (id) => `vt-title-${id.replace(/[^a-zA-Z0-9-]/g, '-')}`;
 {/* 背景設計模式：**暫行值，本人尚未拍板**（docs/SPEC-background-and-homepage 未定二）。
     暫行採跟捲，理由是列表有卡片要讀、且點進內頁時背景行為不變不會跳。
     本人 2026-07-27 給的方向是「列表頁未來可能自成第三種模式」，本輪不為它多做設計。 */}
-<BaseLayout title="Projects | 林郁為" motif="reading">
+<BaseLayout title={t('site.title_format', { title: t('projects.title') })} motif="reading">
 	{/* 這一頁刻意沒有總引言（2026-08-08 本人拿掉「這裡放的都是我自己做的小專案」）：
 	    一句話統管兩類，就等於把兩類綁在一起講；分類要分開，就不留跨類的敘述。 */}
 	{

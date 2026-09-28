@@ -1,4 +1,5 @@
 ---
+import { t } from '../../text.mjs';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { DESIGN_CATEGORIES } from '../../design-items.mjs';
 
@@ -12,12 +13,12 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 ---
 
 <BaseLayout
-	title={`展示櫃・${cat.label} | 林郁為`}
-	backLink={{ href: '/design/', label: '← 展示櫃' }}
+	title={t('site.title_format', { title: t('design.cat.title', { label: cat.label }) })}
+	backLink={{ href: '/design/', label: t('design.cat.back') }}
 	motif="reading"
 >
 	<h1>{cat.label}</h1>
-	<p class="category-label">設計展示櫃</p>
+	<p class="category-label">{t('design.cat.kicker')}</p>
 
 	<div class="dz-grid">
 		{
@@ -25,7 +26,7 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 				item.pending ? (
 					<article class="dz-card">
 						<h3>{item.name}</h3>
-						<p class="st-note">這一項正在重新討論，弄好會放回來。</p>
+						<p class="st-note">{t('design.cat.pending')}</p>
 					</article>
 				) : (
 					<article class="dz-card" data-reveal>
@@ -51,24 +52,24 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 							</div>
 						)}
 						{item.demo === 'spec-display' && (
-							<p class="dz-spec-display" aria-hidden="true">永字八法，筆筆有勢</p>
+							<p class="dz-spec-display" aria-hidden="true">{t('design.demo.display')}</p>
 						)}
 						{item.demo === 'spec-body' && (
-							<p class="dz-spec-body" aria-hidden="true">內文的工作是被長時間閱讀——圓角收筆，不搶不刺。</p>
+							<p class="dz-spec-body" aria-hidden="true">{t('design.demo.body')}</p>
 						)}
 						{item.demo === 'ladder' && (
 							<div class="dz-ladder" aria-hidden="true">
-								<p class="dz-fs-3">階三</p>
-								<p class="dz-fs-2">階二</p>
-								<p class="dz-fs-1">階一</p>
-								<p class="dz-fs-0">階零（內文）</p>
-								<p class="dz-fs--1">階負一（14px 下限）</p>
+								<p class="dz-fs-3">{t('design.demo.fs3')}</p>
+								<p class="dz-fs-2">{t('design.demo.fs2')}</p>
+								<p class="dz-fs-1">{t('design.demo.fs1')}</p>
+								<p class="dz-fs-0">{t('design.demo.fs0')}</p>
+								<p class="dz-fs--1">{t('design.demo.fsm1')}</p>
 							</div>
 						)}
 						{item.demo === 'baseline' && (
 							<div class="dz-baseline" aria-hidden="true">
-								<p>每一行都落在同一組看不見的橫線上。</p>
-								<p>換了區塊，還是同一組線。</p>
+								<p>{t('design.demo.rhythm1')}</p>
+								<p>{t('design.demo.rhythm2')}</p>
 							</div>
 						)}
 						{item.demo === 'gaps' && (
@@ -94,17 +95,17 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 							<div class="dz-borders" aria-hidden="true">
 								<figure class="dz-border-sample">
 									<span class="dz-hairline" />
-									<figcaption class="st-note">線：只做分隔</figcaption>
+									<figcaption class="st-note">{t('design.demo.line')}</figcaption>
 								</figure>
 								<figure class="dz-border-sample">
-									<span class="dz-framed">框</span>
-									<figcaption class="st-note">框：標示區塊</figcaption>
+									<span class="dz-framed">{t('design.demo.frame')}</span>
+									<figcaption class="st-note">{t('design.demo.frame_note')}</figcaption>
 								</figure>
 							</div>
 						)}
 						{item.demo === 'race' && (
 							<div class="dz-race">
-								<button type="button" class="home-send" data-demo-race>三檔一起跑</button>
+								<button type="button" class="home-send" data-demo-race>{t('design.demo.race')}</button>
 								<div class="dz-lanes" aria-hidden="true">
 									<figure class="dz-lane"><i class="dz-mover dz-mover--sm" /><figcaption class="st-note">0.15s</figcaption></figure>
 									<figure class="dz-lane"><i class="dz-mover dz-mover--md" /><figcaption class="st-note">0.25s</figcaption></figure>
@@ -114,13 +115,13 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 						)}
 						{item.demo === 'motion' && (
 							<div class="dz-motion">
-								<button type="button" class="home-send" data-demo-play>播放一次</button>
+								<button type="button" class="home-send" data-demo-play>{t('design.demo.play')}</button>
 								<i class="dz-mover" aria-hidden="true" />
 							</div>
 						)}
 						{item.demo === 'window' && (
 							<figure class="dz-window">
-								<figcaption class="st-note">這扇窗後面沒有東西——就是活的背景本人：顆粒、暈、飄著的點。</figcaption>
+								<figcaption class="st-note">{t('design.demo.window')}</figcaption>
 							</figure>
 						)}
 						{/* ── 文字區（配角）── */}

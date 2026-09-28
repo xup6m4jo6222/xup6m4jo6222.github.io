@@ -24,9 +24,11 @@
  *
  * 順序就是站上呈現的順序（統計在前、AI 在後）。
  */
+import { t } from './text.mjs';
+
 export const CATEGORIES = [
-	{ key: 'stats', label: '統計分析' },
-	{ key: 'ai', label: 'AI 實作' },
+	{ key: 'stats', label: t('category.stats') },
+	{ key: 'ai', label: t('category.ai') },
 ];
 
 /** 查一個分類該顯示成什麼。查不到就把 key 原樣吐出來——不要讓版面上出現空白。 */

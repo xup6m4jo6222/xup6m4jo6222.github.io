@@ -1,4 +1,5 @@
 ---
+import { t } from '../../text.mjs';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { DESIGN_CATEGORIES, designCount } from '../../design-items.mjs';
 
@@ -8,13 +9,13 @@ const cats = DESIGN_CATEGORIES.filter((c) => c.items.some((i) => !i.pending));
 ---
 
 <BaseLayout
-	title="設計展示櫃 | 林郁為"
-	backLink={{ href: '/projects/ai/portfolio-site/', label: '← AI 實作 #1' }}
+	title={t('site.title_format', { title: t('design.index.title') })}
+	backLink={{ href: '/projects/ai/portfolio-site/', label: t('design.index.back') }}
 	motif="reading"
 >
-	<h1>設計展示櫃</h1>
-	<p class="category-label">現行 {designCount()} 項設計決定，按維度分類</p>
-	<p class="intro">這裡陳列的是「現在」：每個元素長什麼樣、為什麼是這樣。當時怎麼走過來的，在 AI 實作 #1 的時間軸。</p>
+	<h1>{t('design.index.title')}</h1>
+	<p class="category-label">{t('design.index.count', { count: designCount() })}</p>
+	<p class="intro">{t('design.index.intro')}</p>
 
 	<div class="cards">
 		{

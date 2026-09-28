@@ -20,21 +20,22 @@ const featuredIndex = categoryIndexes(projects).get(FEATURED_ID);
    改它等於讓下面那張圖說謊。它因此不是第四章的文字槽位。
    2026-08-08（票 01）：字串收進單一來源 src/prompt.mjs，內頁同步引用。 */
 import { PROMPT } from '../prompt.mjs';
+import { t } from '../text.mjs';
 ---
 
 {/* 版面上的文字帶 `data-slot` 的都是**槽位**：語意需求與長度上限由設計定，內容依
     憲法第四章由本人撰寫。現況全是佔位（沿用本人既有的句子與建議稿）。 */}
-<BaseLayout title="林郁為" motif="breathe">
+<BaseLayout title={t('site.name')} motif="breathe">
 	<section class="home">
 		{/* 署名＝名字＋定位句。憲法第一章的第三種角色，不參與注意力讓位——
 		    它的地由字級與右側那條留白劃，不靠把展示卡往下推（本人 2026-07-31 裁定）。 */}
 		<div class="home-id" data-reveal>
 			{/* 個人化身（2026-08-08 本人指定）：先用 GitHub 大頭貼，日後換手繪代表物。
 			    圖存本地不連 GitHub——第三方請求是多一個會壞的相依。圓角用站上唯一值，不做圓形。 */}
-			<img class="home-avatar" src="/images/avatar.jpg" alt="林郁為的頭像" width="240" height="240" />
+			<img class="home-avatar" src="/images/avatar.jpg" alt={t('home.avatar_alt')} width="240" height="240" />
 			<div>
-				<h1>林郁為</h1>
-				<p class="home-tagline" data-slot="定位句｜我是誰、往哪走">統計背景，正朝資料科學邁進</p>
+				<h1>{t('site.name')}</h1>
+				<p class="home-tagline" data-slot="定位句｜我是誰、往哪走">{t('home.tagline')}</p>
 			</div>
 		</div>
 
@@ -44,7 +45,7 @@ import { PROMPT } from '../prompt.mjs';
 					{/* 前導小標「最近專案」2026-08-08 放回來（推翻 7/30「由位置講」）。
 					    本人的理由：卡去框之後它看起來像首頁固定的一部分，十天後換卡
 					    讀者會以為「首頁怎麼改了」——標籤告訴人這一格是會輪替的。 */}
-					<p class="home-recent st-note">最近專案</p>
+					<p class="home-recent st-note">{t('home.recent')}</p>
 					<p class="home-head">
 						<span class="home-chip">{categoryLabel(featured.data.category)}</span>
 						<span class="home-chip">#{featuredIndex}</span>
@@ -59,7 +60,7 @@ import { PROMPT } from '../prompt.mjs';
 					      提示詞 ＝ 對 AI 送出的話，是證物。
 					    所以問句可以短：完整的提示詞就在它正下方，不必再引一次。 */}
 					<p class="home-ask" data-slot="問句｜鉤子，同時是解讀說明書">
-						如果只是下簡單的提示詞，AI 會給你什麼成品？
+						{t('home.ask')}
 					</p>
 
 					<div class="home-msg">
@@ -69,7 +70,7 @@ import { PROMPT } from '../prompt.mjs';
 						{/* 訊息不是 `<input>`：做成假的輸入框會讓鍵盤與螢幕閱讀器使用者聚焦到一個
 						    打不了字的東西。這裡是一則已經寫好的訊息 ＋ 一個真的按鈕，語意與畫面一致。 */}
 						<button type="button" class="home-send" data-send data-slot="送出鍵文字">
-							送出
+							{t('home.send')}
 						</button>
 					</div>
 
@@ -78,16 +79,16 @@ import { PROMPT } from '../prompt.mjs';
 					<figure class="home-shot">
 						<img
 							src="/images/portfolio-site/ai-baseline-2026-08-03.png"
-							alt="只給那一句話時，AI 產出的成品"
+							alt={t('home.shot_alt')}
 							width="760"
 							height="470"
 						/>
 					</figure>
 
 					<div class="home-foot">
-						<p class="home-note" data-slot="標註｜這張圖是什麼">這是 AI 拿到那句話之後給的成品</p>
+						<p class="home-note" data-slot="標註｜這張圖是什麼">{t('home.note')}</p>
 						<a href={`/projects/${featured.id}/`} data-slot="出口文字">
-							那我做了什麼 →
+							{t('home.exit')}
 						</a>
 					</div>
 				</article>

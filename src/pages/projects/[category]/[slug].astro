@@ -1,4 +1,5 @@
 ---
+import { t } from '../../../text.mjs';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getCollection, render } from 'astro:content';
 import { categoryIndexes, categoryLabel } from '../../../categories.mjs';
@@ -22,8 +23,8 @@ const { Content } = await render(project);
 ---
 
 <BaseLayout
-	title={`${project.data.title} | 林郁為`}
-	backLink={{ href: '/projects/', label: '← Projects' }}
+	title={t('site.title_format', { title: project.data.title })}
+	backLink={{ href: '/projects/', label: t('project.back') }}
 	motif="reading"
 >
 	{/* 與列表卡標題共用換頁接力名（2026-08-08）：點卡進來時標題平滑放大接手。 */}
@@ -41,8 +42,9 @@ const { Content } = await render(project);
 	    找不到任何 `<details>` 時也不會把它顯示出來，不會出現一個按了沒反應的按鈕。 */}
 	{project.data.category === 'stats' && (
 		<p class="st-expand-row">
-			<button type="button" class="st-expand" data-expand-all aria-pressed="false" hidden>
-				全部展開
+			<button type="button" class="st-expand" data-expand-all aria-pressed="false" hidden
+				data-label-open={t('project.expand_all')} data-label-close={t('project.collapse_all')}>
+				{t('project.expand_all')}
 			</button>
 		</p>
 	)}
@@ -63,12 +65,12 @@ const { Content } = await render(project);
 			<ul class="links">
 				{project.data.links.github && (
 					<li>
-						<a href={project.data.links.github}>GitHub</a>
+						<a href={project.data.links.github}>{t('project.link_github')}</a>
 					</li>
 				)}
 				{project.data.links.demo && (
 					<li>
-						<a href={project.data.links.demo}>Demo</a>
+						<a href={project.data.links.demo}>{t('project.link_demo')}</a>
 					</li>
 				)}
 			</ul>
@@ -132,7 +134,7 @@ const { Content } = await render(project);
 				/* `aria-pressed` 不是 `aria-expanded`：這是一顆開關按鈕，它控制的是別處那幾塊
 				   區域、不是自己底下的內容。用 expanded 的話讀屏會把「已展開」念在按鈕身上。 */
 				btn.setAttribute('aria-pressed', String(open));
-				btn.textContent = open ? '全部收合' : '全部展開';
+				btn.textContent = open ? btn.dataset.labelClose : btn.dataset.labelOpen;   // 兩句字都在 site-text.md，由伺服端寫進按鈕的屬性
 			};
 		}
 
