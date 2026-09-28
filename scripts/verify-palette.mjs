@@ -90,12 +90,6 @@ const EXTRA_CHANNEL_ENTRIES = process.env.VERIFY_CHANNEL_EXTRA ? JSON.parse(proc
  * 等於新圖從此無人看管，而輸出上看不出差別。
  */
 const CHART_DIRS = [
-	{ dir: join(ROOT, 'public', 'images', 'taiwan-tourism'), expect: 21 },
-	{ dir: join(ROOT, '_parked', 'stats-tourism-2026-07', 'images', 'taiwan-tourism'), expect: 21 },
-	/* 2 而不是 4：票 07 把等效檢定那張靜態圖退掉（界線要跟著手指走，點陣圖做不到），
-	   票 08 再退掉分層檢視那張（六列要能被點選、被標示，同理）。
-	   **張數會往下走，不是只會往上加。** */
-	{ dir: join(ROOT, 'public', 'images', 'taiwan-inbound-tourist-2024'), expect: 2 },
 	/* 統計 #1 重做版（獨自旅行 vs 多人同遊）。由統計專案的
 	   `src/make_site_figures.py` 產生，顏色讀 `chart_palette.json`——
 	   那是 `export-chart-palette.mjs` 從本檔同源的色票匯出的產生物。
