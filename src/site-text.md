@@ -89,46 +89,6 @@ GitHub
 Demo
 <!-- /text -->
 
-## 舊首頁（/home/） · 頭像的替代文字（給看不到圖的人）
-<!-- text:home.avatar_alt -->
-林郁為的頭像
-<!-- /text -->
-
-## 舊首頁（/home/） · 定位句：我是誰、往哪走
-<!-- text:home.tagline -->
-統計背景，正朝資料科學邁進
-<!-- /text -->
-
-## 舊首頁（/home/） · 展示卡上方的小標
-<!-- text:home.recent -->
-最近專案
-<!-- /text -->
-
-## 舊首頁（/home/） · 問句：鉤子，同時是那張圖的解讀說明書
-<!-- text:home.ask -->
-如果只是下簡單的提示詞，AI 會給你什麼成品？
-<!-- /text -->
-
-## 舊首頁（/home/） · 送出鍵
-<!-- text:home.send -->
-送出
-<!-- /text -->
-
-## 舊首頁（/home/） · 成品截圖的替代文字
-<!-- text:home.shot_alt -->
-只給那一句話時，AI 產出的成品
-<!-- /text -->
-
-## 舊首頁（/home/） · 截圖下方的標註：這張圖是什麼
-<!-- text:home.note -->
-這是 AI 拿到那句話之後給的成品
-<!-- /text -->
-
-## 舊首頁（/home/） · 出口連結：前往作品頁
-<!-- text:home.exit -->
-那我做了什麼 →
-<!-- /text -->
-
 ## 設計展示櫃 · 目錄頁 · 頁面標題（也用在分頁標題）
 <!-- text:design.index.title -->
 設計展示櫃

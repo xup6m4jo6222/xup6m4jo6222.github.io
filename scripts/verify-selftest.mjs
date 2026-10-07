@@ -71,31 +71,31 @@ function withCopy(mutate, env) {
  */
 const channelEnv = (entries) => (entries ? { VERIFY_CHANNEL_EXTRA: JSON.stringify(entries) } : undefined);
 
-/** 在首頁塞一個帶 data-motif 的 canvas——背景設計上線後產物就長這樣。 */
+/** 在 404 頁塞一個帶 data-motif 的 canvas——背景設計上線後產物就長這樣。 */
 const injectMotif = (dir, params) =>
 	writeFileSync(
-		join(dir, 'home', 'index.html'),
-		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
+		join(dir, '404.html'),
+		readFileSync(join(dir, '404.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-motif='${JSON.stringify(params)}'></canvas></body>`,
 		),
 	);
 
-/** 在首頁塞一個帶 data-field-craft 的 canvas（票 05 抗辯後補：技法也要驗）。 */
+/** 在 404 頁塞一個帶 data-field-craft 的 canvas（票 05 抗辯後補：技法也要驗）。 */
 const injectCraft = (dir, craft) =>
 	writeFileSync(
-		join(dir, 'home', 'index.html'),
-		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
+		join(dir, '404.html'),
+		readFileSync(join(dir, '404.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-field-craft='${JSON.stringify(craft)}'></canvas></body>`,
 		),
 	);
 
-/** 在首頁塞一個帶 data-field 的 canvas——場上線後產物就長這樣（票 03）。 */
+/** 在 404 頁塞一個帶 data-field 的 canvas——場上線後產物就長這樣（票 03）。 */
 const injectField = (dir, params) =>
 	writeFileSync(
-		join(dir, 'home', 'index.html'),
-		readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
+		join(dir, '404.html'),
+		readFileSync(join(dir, '404.html'), 'utf8').replace(
 			'</body>',
 			`<canvas aria-hidden="true" data-field='${JSON.stringify(params)}'></canvas></body>`,
 		),
@@ -439,7 +439,7 @@ const cases = [
 		name: '只有一頁漏掉場的屬性（其餘頁都在）',
 		expectPass: false,
 		mutate: (_f, dir) => {
-			const p = join(dir, 'projects', 'index.html');
+			const p = join(dir, '404.html');
 			writeFileSync(
 				p,
 				readFileSync(p, 'utf8').replace(/\sdata-field(-craft)?=("[^"]*"|'[^']*')/g, ''),
@@ -534,8 +534,8 @@ const cases = [
 		expectPass: false,
 		mutate: (_f, dir) =>
 			writeFileSync(
-				join(dir, 'home', 'index.html'),
-				readFileSync(join(dir, 'home', 'index.html'), 'utf8').replace(
+				join(dir, '404.html'),
+				readFileSync(join(dir, '404.html'), 'utf8').replace(
 					'</head>',
 					'<style>.fake-z-inline{position:fixed;z-index:999}</style></head>',
 				),
