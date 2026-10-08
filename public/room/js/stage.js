@@ -36,9 +36,12 @@ export class ViewData {
     this.position = new THREE.Vector3().setFromMatrixPosition(this.matrixWorld);
     this.quaternion = new THREE.Quaternion().setFromRotationMatrix(this.matrixWorld);
     this.viewMatrix = this.matrixWorld.clone().invert();
-    const loader = new THREE.TextureLoader();
+    // 用 ImageBitmap 在背景執行緒先解碼：一般圖片要等送進顯示卡時才在主執行緒解碼（每張 2560×1440 約 30 毫秒），
+    // 點特寫後的那半秒空等就是它。翻轉與不轉色彩空間在解碼時就做好，結果與原本逐像素相同
+    const loader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
-    const tex = await Promise.all(info.groups.map(g => new Promise((res, rej) => loader.load(`${base}/${this.name}/${g}.avif`, t => {
+    const tex = await Promise.all(info.groups.map(g => new Promise((res, rej) => loader.load(`${base}/${this.name}/${g}.avif`, bmp => {
+      const t = new THREE.Texture(bmp); t.flipY = false; t.needsUpdate = true;
       t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
       t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, maxAniso); onProgress && onProgress(); res(t);
     }, undefined, rej))));
@@ -50,12 +53,13 @@ export class ViewData {
     const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
     const px = cx.getImageData(0, 0, img.width, img.height).data;
     const dw = img.width, dh = img.height, depth = new Float32Array(dw * dh);
-    for (let y = 0; y < dh; y++) {   // 分段解碼：每 160 列讓出一幀，慢電腦上不會整個卡住
+    let t0 = performance.now();
+    for (let y = 0; y < dh; y++) {   // 分段解碼：每幀做到約 8 毫秒就讓出，慢電腦上不會整個卡住、快電腦也不白等
       for (let x = 0; x < dw; x++) {
         const i = ((dh - 1 - y) * dw + x) * 4;
         depth[y * dw + x] = (px[i] * 256 + px[i + 1]) / 65535 * info.far;
       }
-      if (y % 160 === 159) await new Promise(r => requestAnimationFrame(() => r()));
+      if (performance.now() - t0 > 8) { await new Promise(r => requestAnimationFrame(() => r())); t0 = performance.now(); }
     }
     this.depthData = depth; this.depthW = dw; this.depthH = dh;
     this.depthTex = new THREE.DataTexture(depth, dw, dh, THREE.RedFormat, THREE.FloatType);
@@ -65,7 +69,7 @@ export class ViewData {
     return this;
   }
   // 釋放顯示卡記憶體（每個視角約 11 層 2560×1440，全部留著會超過 1 GB）
-  dispose() { Object.values(this.textures || {}).forEach(t => t.dispose()); this.depthTex && this.depthTex.dispose(); this.ready = false; }
+  dispose() { Object.values(this.textures || {}).forEach(t => { t.dispose(); t.image?.close?.(); }); this.depthTex && this.depthTex.dispose(); this.ready = false; }
   // 畫面座標（0..1，左下原點）→ 世界座標
   unproject(u, v, out = new THREE.Vector3()) {
     const x = Math.min(this.depthW - 1, Math.max(0, Math.floor(u * this.depthW)));
@@ -107,7 +111,11 @@ uniform mat4 uCurViewProj; uniform float uEdgeCut; uniform float uSheetDark; uni
 uniform float uCurt; uniform vec4 uCurtX; uniform vec3 uCurtZ;
 uniform sampler2D uCity; uniform vec3 uCityGain; uniform vec4 uWin; uniform vec3 uCamPos; uniform vec4 uCityMap;   // 窗外城市：窗洞 x0 x1 玻璃y 頂高；貼圖對應 中心方位角 水平視角 地平線 垂直視角
 varying vec3 vWorld;
-vec3 dec(vec3 e){ vec3 t = pow(e, vec3(2.2)); return t / max(vec3(1e-4), 1.0 - t); }
+// 8 位元壓縮在極亮處（燈泡核心）差一階就是好幾倍亮度：三個通道各差一點，反解後就成了大紅大綠（落地燈頭拉開窗簾時紅、拉上時綠）。
+// 所以極亮處讓三個通道靠攏成同亮度的白光，一般亮度完全不動
+vec3 dec(vec3 e){ vec3 t = pow(e, vec3(2.2)); vec3 v = t / max(vec3(1e-4), 1.0 - t);
+  float m = max(v.r, max(v.g, v.b));
+  return mix(v, vec3((v.r + v.g + v.b) / 3.0), smoothstep(2.0, 8.0, m)); }
 void main(){
   vec4 q = uSrcView * vec4(vWorld, 1.0);
   float zq = -q.z;
@@ -157,9 +165,12 @@ void main(){
   gl_FragColor = vec4(c, a);
 }`;
 
+// 每個視角的重建網格形狀都一樣（480×270 格，約 13 萬點）：共用一份，只在全景第一次畫時送進顯示卡一次，
+// 不然每個特寫第一次出現那一幀都要重送，轉場一開始就卡一下
+let sharedGrid = null;
 export function makeBackgroundMesh(view) {
   const GX = 480, GY = 270;
-  const geo = new THREE.PlaneGeometry(1, 1, GX, GY);
+  const geo = sharedGrid || (sharedGrid = new THREE.PlaneGeometry(1, 1, GX, GY));
   const mat = new THREE.ShaderMaterial({
     vertexShader: bgVert,
     fragmentShader: bgFrag.replace(/__NG__/g, String(GROUPS.length)).replace('SUM_LAYERS', GROUPS.map((g, i) => `${g === 'moon' ? 'cm' : 'c'} += dec(texture2D(uL[${i}], uv).rgb) * uGain[${i}];`).join('\n  ')),
@@ -212,9 +223,10 @@ float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + uTime) * 43
 void main(){
   vec3 c = texture2D(tC, vUv).rgb;
   if (uBlur > 0.0) c = mix(c, texture2D(tBlur, vUv).rgb, uBlur);
-  if (uBook > 0.0) { vec4 bk = texture2D(tBook, vUv); c = c * (1.0 - bk.a) + bk.rgb; }
+  float cover = 0.0;
+  if (uBook > 0.0) { vec4 bk = texture2D(tBook, vUv); c = c * (1.0 - bk.a) + bk.rgb; cover = bk.a; }
   c *= exp2(uExposure);
-  c += texture2D(tBloom, vUv).rgb * uBloom;   // 光暈：亮處往外柔和擴散（已含曝光）
+  c += texture2D(tBloom, vUv).rgb * uBloom * (1.0 - cover);   // 光暈：亮處往外柔和擴散（已含曝光）；拿在手上的書擋在前面，背後層板燈的光暈不能透過書
   c += uShadow * exp(-dot(c, vec3(0.3333)) * 12.0);
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   c = l + (c - l) * uSat;

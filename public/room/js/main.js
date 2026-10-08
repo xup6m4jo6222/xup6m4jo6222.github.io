@@ -377,7 +377,10 @@ function buildHotspots() {
     b.querySelector('.label').textContent = hotLabel(h);
     b.setAttribute('aria-label', b.querySelector('.label').textContent);
     b.addEventListener('click', e => { e.stopPropagation(); if (h.action === 'panel') togglePanel(); else if (h.action === 'curtain') toggleCurtain(); else goTo(h.go); });
-    b.addEventListener('pointerenter', () => { S.hoverGlow = R(h.glow); if (h.go && S.mode === 'room') ensureView(h.go).catch(() => {}); });   // 滑過就先解碼，點下去少等一段
+    b.addEventListener('pointerenter', () => {   // 滑過就先解碼並送進顯示卡，點下去鏡頭馬上動
+      S.hoverGlow = R(h.glow);
+      if (h.go && S.mode === 'room') ensureView(h.go).then(() => { if (S.mode === 'room' && !going) { touchView(h.go); return warmView(h.go); } }).catch(() => {});
+    });
     b.addEventListener('pointerleave', () => { if (S.hoverGlow === R(h.glow)) S.hoverGlow = null; });
     box.appendChild(b); h.el = b;
   }
@@ -399,7 +402,7 @@ function buildMobileNav() {
 }
 function isNarrow() { return S.size[0] < 760; }
 function updateOverlay() {
-  const inRoom = S.mode === 'room';
+  const inRoom = S.mode === 'room' && !S.pending;
   for (const h of HOTSPOTS) {
     if (!h.el) continue;
     if (!S.data.anchors[h.anchor]) { h.el.classList.remove('on'); continue; }
@@ -551,19 +554,36 @@ async function ensureView(name, onProgress) {
 const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 async function warmView(name) {
   const v = S.views[name], m = S.meshes[name]; if (!v || !m || v._warm || name === 'room' || name === 'roomc') return;   // 全景一直在畫，早就在顯示卡裡
-  for (const t of Object.values(v.textures)) { renderer.initTexture(t); await nextFrame(); }
+  // 已在背景解碼好，送一張只要幾毫秒：每幀送到約 8 毫秒就讓出，慢電腦自然分到較多幀
+  let t0 = performance.now();
+  for (const t of Object.values(v.textures)) { renderer.initTexture(t); if (performance.now() - t0 > 8) { await nextFrame(); t0 = performance.now(); } }
   renderer.initTexture(v.depthTex);
   m.visible = true; const p = renderer.compileAsync(m, camera, scene); m.visible = false;
   try { await p; } catch (e) { console.warn(e); }
   v._warm = true;
+}
+// 開場前：場景裡所有貼圖（全景光層、書封、書脊…）每幀送約 8 毫秒進顯示卡，再編譯著色器。
+// 一口氣在第一幀做完會讓上色動畫凍住約 1 秒
+async function warmScene() {
+  const texs = new Set();
+  const add = v => { if (v && v.isTexture) texs.add(v); else if (Array.isArray(v)) v.forEach(add); };
+  scene.traverse(o => {
+    for (const m of [].concat(o.material || [])) {
+      for (const k in m) add(m[k]);
+      for (const u of Object.values(m.uniforms || {})) add(u.value);
+    }
+  });
+  let t0 = performance.now();
+  for (const t of texs) { renderer.initTexture(t); if (performance.now() - t0 > 8) { await nextFrame(); t0 = performance.now(); } }
+  await renderer.compileAsync(scene, camera);
 }
 let going = false;
 async function goTo(name) {
   if (S.mode === 'moving' || S.mode === 'focus' || S.mode === 'intro') return;
   if (name === S.view || going) return;
   vis($('#hint'), false);
-  going = true;
-  try { await ensureView(name); touchView(name); await warmView(name); } finally { going = false; }
+  going = true; S.pending = name;   // 點下去光點就先淡出：還在備畫面的這段時間也看得出「點到了」
+  try { await ensureView(name); touchView(name); await warmView(name); } finally { going = false; S.pending = null; }
   if (S.mode === 'moving' || S.mode === 'focus' || name === S.view) return;
   S.from = S.view; S.to = name; S.moveT = 0;
   const a = S.camNow || S.cam, b = viewCam(name);   // 從畫面上實際的鏡頭（含滑鼠視差）出發，起步不跳
@@ -580,6 +600,15 @@ function arrive() {
   if (S.books[S.view]) { hint.textContent = T('layer-hint', '點一本書，把它拿出來'); vis(hint, true); } else vis(hint, false);
   vis($('#aroma'), S.view === 'aroma');
   if (S.view === 'aroma') buildOils();
+  if (S.books[S.view]) prepLayer(S.view);
+}
+// 到了書櫃特寫、還沒點書之前，趁畫面靜止一本一本把書頁備好
+async function prepLayer(name) {
+  await new Promise(r => setTimeout(r, 700));   // 等「回到房間」鈕與提示淡入完
+  for (const b of S.books[name] || []) {
+    if (S.mode !== 'view' || S.view !== name) return;
+    await prepBook(b); await nextFrame();
+  }
 }
 $('#back').addEventListener('click', () => back());
 function back() {
@@ -634,14 +663,42 @@ function updateHover(dt) {
   } else tip.hidden = true;
 }
 
+// 書頁內容：先畫好、送進顯示卡（以前拿書那一下才畫，卡 0.13 秒）。
+// 每一步都不輕（畫一張 1024×1400 的頁、或把它搬進顯示卡），分散在不同幀做；pace 為 false（點下去才備）就一次做完
+async function prepBook(b, pace = true) {
+  if (b.userData.pagesReady) return;
+  const w = b.userData.work, l = b.userData.learn;
+  const gap = () => pace ? nextFrame() : null;
+  const left = kit.pageTexture('title', { category: w ? (w.category === 'ai' ? T('hot-caseR2') : T('hot-caseL2')) : T('hot-skill'), title: w ? w.title : l.title, date: w ? w.date : (l.author || '') });
+  await gap(); if (b.userData.pagesReady) return;
+  const right = kit.pageTexture('right', { body: w ? (w.summary || '') : '', note: w && w.draft ? T('book-draft') : '' });
+  await gap(); if (b.userData.pagesReady) return;
+  b.setContent({ left, right }); b.userData.pagesReady = true;
+  for (const t of [left, right, b.sheets[2].userData.backM.map]) { await gap(); renderer.initTexture(t); }
+}
+// 翻頁紙與攤開的兩頁平常藏著，著色器從沒編譯過：翻開封面那一刻才編，卡 0.3 秒。啟動後先在背景編好（全站共用，編一次就好）
+// 編譯完還要在看不見的地方真的畫一次：顯示卡驅動第一次畫時才備妥最後一段（實測只編譯仍卡 0.08 秒）
+function warmBookShaders() {
+  const b = S.books.caseR2[0] || S.books.caseL2[0] || S.books.skill[0]; if (!b) return;
+  const parts = [...b.sheets, b.pageL, b.pageR];
+  const show = on => { const was = parts.map(o => o.visible); parts.forEach(o => o.visible = on); return () => parts.forEach((o, i) => o.visible = was[i]); };
+  let undo = show(true);
+  const p = renderer.compileAsync(b, camera, scene);
+  undo();
+  p.then(() => {
+    if (S.focus) return;   // 已經有書拿在手上就不必了
+    undo = show(true);
+    const others = []; scene.traverseVisible(o => { if ((o.isMesh || o.isPoints) && !isInside(o, b)) others.push(o); });
+    others.forEach(o => o.visible = false);
+    const culled = []; b.traverse(o => { if (o.frustumCulled) { culled.push(o); o.frustumCulled = false; } });
+    renderer.setRenderTarget(pipe.rtBook); renderer.render(scene, camera); renderer.setRenderTarget(null);
+    culled.forEach(o => o.frustumCulled = true); others.forEach(o => o.visible = true); undo();
+  }).catch(e => console.warn(e));
+}
 // 拿書：抽出 → 浮到眼前 → 翻開 → 翻三頁 → 攤開微傾
 function openBook(b) {
-  const w = b.userData.work, l = b.userData.learn;
-  const pages = {
-    left: kit.pageTexture('title', { category: w ? (w.category === 'ai' ? T('hot-caseR2') : T('hot-caseL2')) : T('hot-skill'), title: w ? w.title : l.title, date: w ? w.date : (l.author || '') }),
-    right: kit.pageTexture('right', { body: w ? (w.summary || '') : '', note: w && w.draft ? T('book-draft') : '' }),
-  };
-  b.setContent(pages);
+  const w = b.userData.work;
+  prepBook(b, false);
   S.focus = { book: b, t: 0, closing: false, rt: 0, cued: {} };
   S.mode = 'focus'; vis($('#hint'), false); $('#booktip').hidden = true; canvas.style.cursor = '';
   $('#bookread').hidden = !(w && w.url);
@@ -650,6 +707,9 @@ function returnBook() {
   if (!S.focus || S.focus.closing) return;
   vis($('#bookui'), false);
   S.focus.closing = true; S.focus.rt = 0;
+  // 從按下當時的狀態收回（還在抽出時就按 Esc，背景不能突然整片糊掉、看書燈不能突然全亮）
+  S.focus.blur0 = S.focus.blur || 0; S.focus.layer0 = !!S.focus.layered; S.focus.light0 = readLight.intensity;
+  S.focus.book.beginClose();
 }
 $('#bookreturn').addEventListener('click', returnBook);
 $('#bookread').addEventListener('click', () => {
@@ -708,21 +768,21 @@ function updateFocus(dt) {
     readLight.position.copy(camera.position).addScaledVector(right, -0.35).addScaledVector(up, 0.45); readLight.lookAt(P.openPos);
     return;
   }
-  // 放回：翻過的頁與封面一起闔上，然後飛回
+  // 放回：翻到一半的紙先翻完，翻過的頁與封面一起闔上，然後飛回
+  if (!F.settled) { F.settled = !b.settleSheets(dt); if (!F.settled) return; }
   F.rt = Math.min(RETURN_END, F.rt + dt);
   const t = F.rt;
   cue(F, 'close', 0.22, t, () => sfx.play('close'));   // 書闔上那一下（錄音的「啪」在第 0.3 秒左右，對齊 0.55 秒闔緊）
   const kc = ease(smooth(0, 0.6, t)), kf = ease(smooth(0.5, 1.6, t)), ki = ease(smooth(1.5, 2.1, t));
-  b.hideFlips();
   b.setOpen(F.lastOpen * (1 - kc));
   const pos = F.lastPos.clone().lerp(pulled, kf); pos.z += Math.sin(Math.PI * kf) * 0.04;
   pos.lerp(home.position, ki);
   b.position.copy(pos);
   b.quaternion.copy(F.lastQuat.clone().slerp(home.quaternion, kf));
   setShadow(b, smooth(1.2, 2.1, t));
-  F.layered = t < 1.5;
-  F.blur = (1 - smooth(0.3, 1.5, t)) * 0.9;
-  readLight.intensity = (1 - smooth(0, 0.9, t)) * ((S.look.books || {}).reading ?? 9);
+  F.layered = F.layer0 && t < 1.5;
+  F.blur = (1 - smooth(0.3, 1.5, t)) * F.blur0;
+  readLight.intensity = (1 - smooth(0, 0.9, t)) * F.light0;
   if (t >= RETURN_END) {
     b.resetPages(); b.setOpen(0); b.position.copy(home.position); b.quaternion.copy(home.quaternion); setShadow(b, 1);
     S.focus = null; S.mode = 'view'; readLight.intensity = 0;
@@ -784,7 +844,7 @@ function touchView(name) {
   const i = viewUse.indexOf(name); if (i >= 0) viewUse.splice(i, 1); viewUse.push(name);
   while (viewUse.length > 2) {
     const old = viewUse.shift(); const v = S.views[old], m = S.meshes[old];
-    if (m) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); delete S.meshes[old]; }
+    if (m) { scene.remove(m); m.material.dispose(); delete S.meshes[old]; }   // 網格各視角共用，不釋放
     if (v) { v.dispose(); delete S.views[old]; }
   }
 }
@@ -829,7 +889,12 @@ function resize() {
   S.size = [w, h];
   renderer.setPixelRatio(S.pr); renderer.setSize(w, h, false);
   pipe.setSize(Math.round(w * S.pr), Math.round(h * S.pr));
-  if (S.views.room?.ready && S.mode !== 'intro' && S.mode !== 'moving' && S.mode !== 'focus') S.cam = viewCam(S.view);
+  if (!S.views.room?.ready || S.mode === 'intro') return;
+  if (S.mode === 'moving') {
+    // 轉場途中改了視窗大小（手機轉向、拖視窗）：兩端的鏡頭照新比例重算，抵達後畫面才不會被拉長或壓扁
+    const rc = viewCam('room'), vc = viewCam(S.viewName);
+    S.roomCam = rc; S.viewCamT = vc; S.moveB = S.to === 'room' ? rc : vc;
+  } else S.cam = viewCam(S.view);   // 看書時也要重算：書的位置是依鏡頭每幀算的
 }
 window.addEventListener('resize', resize);
 
@@ -871,6 +936,9 @@ function renderBookLayer() {
 function isInside(o, root) { for (let p = o; p; p = p.parent) if (p === root) return true; return false; }
 
 let last = performance.now();
+// 逐幀檢查用：S.paused 時，__room.step(秒) 讓下一幀只前進指定的時間，前進完再拍照
+let stepDt = 0;
+function step(s) { stepDt = s; return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))); }
 // 自動畫質：全景或特寫靜止時量 2 秒平均每幀時間，太慢就降一級（解析度 → 光暈 → 浮塵），最多降三級
 const PERF = { acc: 0, n: 0, t: 0 };
 const NO_AUTO_Q = new URLSearchParams(location.search).has('noauto');   // 驗收截圖時關掉（背景在渲染時電腦很慢，會誤降畫質）
@@ -885,8 +953,12 @@ function autoQuality(dtMs) {
 }
 function frame(now) {
   requestAnimationFrame(frame);
-  const dtRaw = now - last; const dt = S.paused ? 0 : Math.min(0.05, dtRaw / 1000); last = now; S.time += dt; if (!S.paused) autoQuality(dtRaw);
+  const dtRaw = now - last; const dt = S.paused ? stepDt : Math.min(0.05, dtRaw / 1000); stepDt = 0; last = now; S.time += dt; if (!S.paused) autoQuality(dtRaw);
   if (!S.cam) return;
+  if (S.mode === 'loading') {   // 開場畫面後面只先畫幾格暖機，之後等訪客按下去
+    if (S.warmFrames > 0) S.warmFrames--;
+    else { if (S.warmDone) { S.warmDone(); S.warmDone = null; } return; }
+  }
   stepLights(dt);
   S.curtainT += clamp(S.curtain - S.curtainT, -dt / 2.2, dt / 2.2);   // 窗簾 2.2 秒拉開／拉上
   GROUPS.forEach(g => { const want = S.mode === 'room' && S.hoverGlow === g ? 1 : 0; hoverBoost[g] += (want - hoverBoost[g]) * Math.min(1, dt * 5); });
@@ -934,7 +1006,10 @@ function frame(now) {
   if (steam) { const c = linColor('#fff1e0').multiplyScalar(0.04 + 0.12 * (gainOf('fill') + gainOf('lamp'))); steam.mat.uniforms.uColor.value.set(c.x, c.y, c.z); }
 
   if (tcams) {
-    setCamera(tcams.camR); renderScene(pipe.rtA, roomMesh(), 1, false, 0.28);
+    // 全景層拉長處壓暗：鏡頭回到全景附近時（e→0）逐漸收掉，抵達那一格才不會整片亮一下、輪廓閃一下
+    const near = smooth(0, 0.22, tcams.e);
+    S.meshes[roomMesh()].material.uniforms.uEdge.value = 0.07 * near;
+    setCamera(tcams.camR); renderScene(pipe.rtA, roomMesh(), 1, false, lerp(1, 0.28, near));
     S.meshes[S.viewName].material.uniforms.uEdge.value = 0.07 * (1 - smooth(0.55, 0.97, tcams.e));
     // 快到特寫時特寫層幾乎就在自己的拍攝位置：不再把深度斷層挖成透明（否則會露出全景層裡、特寫刻意藏起的椅子）
     S.meshes[S.viewName].material.uniforms.uEdgeCut.value = 0.04 + 4 * smooth(0.6, 0.9, tcams.e);
@@ -992,11 +1067,16 @@ async function boot() {
   let got = 0; const total = GROUPS.length + 1;
   await ensureView('room', () => { got++; setLoad(0.15 + 0.75 * got / total); });
   buildArt(); kit.loadTextures();   // 掛畫（400 KB）與書本布紋紙張（1.1 MB）等房間主圖下載完才抓，不跟它搶頻寬
-  await ldFinish();
+  // 趁開場畫面還蓋著，先把房間編譯好、在後面畫幾格：以前按「完整體驗」那一下才第一次畫，按鈕停在原地約 2.4 秒才有反應
+  S.cam = viewCam('room'); setCamera(S.cam);
+  // 貼圖分幀上傳、著色器編譯和上色動畫同時進行；第一次真的畫出房間（顯示卡在這一刻備妥每種繪圖，實測卡約 0.9 秒、拆不開）
+  // 留到上色完成之後、按鈕出現之前：那時畫面是靜止的上色圖，看不出卡
+  await Promise.all([ldFinish(), warmScene().catch(e => console.warn(e))]);
+  await new Promise(r => { S.warmFrames = 2; S.warmDone = r; requestAnimationFrame(frame); });
   await entryChoice();
   renderScreenApps();
   startIntro(true);   // 開場畫面已經把房間上好色了：直接接到亮著燈的房間，只留短短的推近
-  requestAnimationFrame(frame);
+  setTimeout(warmBookShaders, 2500);   // 推近結束後再編，不跟開場搶
   live();
 }
 function renderScreenApps() {
@@ -1031,4 +1111,4 @@ tick(); setInterval(tick, 10000);
 
 boot().catch(e => { __showError('啟動失敗：' + (e.stack || e.message || e)); });
 window.__sfx = sfx;
-window.__room = { S, light, camera, goTo, scene, openBook, returnBook, selectOil, buildCertificates, startIntro, drawClock };
+window.__room = { S, light, camera, renderer, goTo, scene, openBook, returnBook, selectOil, buildCertificates, startIntro, drawClock, step, toggleCurtain, togglePanel, flipSwitch, toggleLamp, back };

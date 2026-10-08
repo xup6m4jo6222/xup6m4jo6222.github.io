@@ -244,6 +244,7 @@ export class Book extends THREE.Group {
       if (sign < 0) g.setIndex(Array.from(g.index.array).reverse());   // 鏡像後三角形繞向相反，翻回來讓正面朝上
       g.computeVertexNormals();
       if (sign < 0) { const uv = g.attributes.uv.array; for (let i = 0; i < uv.length; i += 2) uv[i] = 1 - uv[i]; }
+      g.userData.z = Float32Array.from({ length: pa.length / 3 }, (_, k) => pa[k * 3 + 2]);   // 原本的拱起高度（放回時壓平用）
       return g;
     };
     this.pageR = new THREE.Mesh(curved(1), new THREE.MeshStandardMaterial({ map: kit.paper, roughness: 0.9 }));
@@ -261,24 +262,65 @@ export class Book extends THREE.Group {
     this.pageL.material.map = pages.left; this.pageL.material.needsUpdate = true;
     this.pageR.material.map = pages.right; this.pageR.material.needsUpdate = true;
   }
-  // 放回時：翻頁紙與彎曲左頁收起，讓左半疊隨封面一起闔上
-  hideFlips() { this.sheets.forEach(s => s.visible = false); this.pageL.visible = false; this._noFlip = true; }
-  resetPages() { this._noFlip = false; this.setSheets([0, 0, 0]); this.pageL.visible = false; }
+  // 放回：左頁與已翻過的紙改掛在封面那一半，跟著一起闔上（以前是直接收起來，左頁的字會瞬間消失）
+  beginClose() {
+    this._closing = true; this._rVis = this.pageR.visible;
+    if (this.pageL.visible) this.front.attach(this.pageL);
+    this.sheets.forEach((s, i) => { if (this.sheetT[i] >= 1 && s.parent !== this.front) this.front.attach(s); });
+  }
+  // 放回前：翻到一半的紙先翻完（不讓它憑空消失）；回傳 true 表示還有紙在翻
+  settleSheets(dt) {
+    const ts = this.sheetT.map(k => (k > 0 && k < 1 ? Math.min(1, k + dt / 0.35) : k));
+    const moving = this.sheetT.map((k, i) => k > 0 && k < 1 && this.sheets[i].parent !== this.front);
+    this.shapeSheets(ts, moving);
+    this.sheetT = ts;
+    this.sheets.forEach((s, i) => { if (ts[i] >= 1 && s.parent !== this.front) this.front.attach(s); });
+    return ts.some(k => k > 0 && k < 1);
+  }
+  resetPages() {
+    this._closing = false;
+    for (const o of [this.pageL, ...this.sheets]) if (o.parent !== this) { this.add(o); o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); }
+    this.sheets.forEach(s => s.position.x = 0.002);
+    this.flatten(1); this.setSheets([0, 0, 0]); this.pageL.visible = false;
+  }
+  // 攤開的兩頁拱起程度（1＝原樣，0＝平貼）：闔上時壓平，才不會穿出正在闔上的另一半
+  flatten(f) {
+    for (const m of [this.pageL, this.pageR]) {
+      const g = m.geometry, p = g.attributes.position.array, z0 = g.userData.z;
+      for (let k = 0; k < z0.length; k++) p[k * 3 + 2] = 0.0004 + (z0[k] - 0.0004) * f;
+      g.attributes.position.needsUpdate = true;
+    }
+  }
   // 0..1：封面翻開（0＝闔上，1＝攤平）
   setOpen(k) {
     this.openT = k;
     this.front.rotation.y = -Math.PI * k;
     this.spine.visible = k < 0.55;
     const show = k > 0.02;
-    this.sheets.forEach(s => s.visible = show && !this.pageL.visible && !this._noFlip);
-    this.pageR.visible = k > 0.35 && (this.sheetT[2] > 0.25 || this._noFlip);
+    if (this._closing) {
+      this.flatten(Math.min(1, k / 0.45));
+      this.sheets.forEach(s => s.visible = show && !this.pageL.visible);
+      this.pageR.visible = show && this._rVis;
+      return;
+    }
+    this.sheets.forEach(s => s.visible = show && !this.pageL.visible);
+    this.pageR.visible = k > 0.35 && this.sheetT[2] > 0.25;
   }
   // 翻頁：每張 0..1
   setSheets(ts) {
-    const w = this.w - 0.006;
     this.sheetT = ts.slice();
-    this.pageR.visible = this.openT > 0.35 && (ts[2] > 0.25 || this._noFlip);
+    this.pageR.visible = this.openT > 0.35 && ts[2] > 0.25;
+    this.shapeSheets(ts);
+    // 三張都翻完：換成彎曲的左頁（內容相同），翻頁紙收起來
+    const done = ts[2] >= 0.999;
+    this.pageL.visible = done && this.openT > 0.9;
+    this.sheets.forEach(s => s.visible = this.openT > 0.02 && !done);
+  }
+  // 翻頁紙的形狀（mask 指定只動哪幾張）
+  shapeSheets(ts, mask) {
+    const w = this.w - 0.006;
     ts.forEach((k, i) => {
+      if (mask && !mask[i]) return;
       const s = this.sheets[i]; const g = s.userData.g; const base = g.userData.base; const p = g.attributes.position.array;
       const phi = Math.PI * easeInOut(k); const curl = 0.9 * Math.sin(phi);
       // 沿頁寬積分：尖端落後，形成弧度
@@ -292,10 +334,6 @@ export class Book extends THREE.Group {
       g.attributes.position.needsUpdate = true; g.computeVertexNormals();
       s.position.z = 0.0006 * (3 - i) + (k > 0.5 ? 0.0006 * i : 0) + 0.0006;
     });
-    // 三張都翻完：換成彎曲的左頁（內容相同），翻頁紙收起來
-    const done = ts[2] >= 0.999;
-    this.pageL.visible = done && this.openT > 0.9;
-    this.sheets.forEach(s => s.visible = this.openT > 0.02 && !done);
   }
 }
 
