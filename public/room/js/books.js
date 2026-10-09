@@ -33,13 +33,15 @@ export class BookKit {
     this.edgeTex = this.makeEdgeTexture();
   }
   loadTextures() { this._texGo(); }
-  // 字型最多等 ms 毫秒（中文字型從 Google 下載可能要好幾秒，不能讓開場乾等）；回傳 true 表示字型與貼圖都到了
+  // 字型最多等 ms 毫秒（中文字型從 Google 下載可能要好幾秒，不能讓開場乾等）；回傳 true 表示字型到了。
+  // fontsDone 是「字型與布紋紙張都到了」，主程式之後拿它來重畫封面書脊。
+  // 以前 ready 也一起等布紋，但布紋刻意排在房間下載完才抓，結果每次開場都白等滿 1.2 秒（10/9 量到）
   async ready(ms = 1200) {
-    const all = Promise.all([this.texDone,
+    const fonts = Promise.all([
       document.fonts.load('700 40px "LXGW WenKai TC"'), document.fonts.load('400 40px "LXGW WenKai TC"'),
       document.fonts.load('600 40px "Cormorant Garamond"'), document.fonts.load('400 30px "Chiron GoRound TC"')].map(p => Promise.resolve(p).catch(() => {})));
-    this.fontsDone = all.then(() => true);
-    return Promise.race([this.fontsDone, new Promise(r => setTimeout(() => r(false), ms))]);
+    this.fontsDone = Promise.all([this.texDone, fonts]).then(() => true);
+    return Promise.race([fonts.then(() => true), new Promise(r => setTimeout(() => r(false), ms))]);
   }
   makeEdgeTexture() {
     // 書口：細密的紙頁層次
@@ -253,6 +255,14 @@ export class Book extends THREE.Group {
     this.pageR.visible = this.pageL.visible = false; this.add(this.pageR, this.pageL);
     this.traverse(o => { if (o.isMesh) { o.castShadow = false; o.userData.book = this; } });
     this.openT = 0; this.sheetT = [0, 0, 0];
+  }
+  // 布紋、字型晚到時重畫書脊與封面：不重建整本書，位置、翻開狀態都不動；回傳新貼圖讓主程式分幀送進顯示卡
+  repaint() {
+    const { spec, h, t, oh } = this, m = this.mats;
+    const [spT, spM] = this.kit.spineTextures(spec.title, spec.color, spec.foil, (h + 2 * oh) / (t + 0.004), !!spec.draft);
+    const [cvT, cvM] = this.kit.coverTextures(spec.title, spec.coverSub, spec.color, spec.foil);
+    for (const [mat, a, b] of [[m.spineMat, spT, spM], [m.coverMat, cvT, cvM]]) { mat.map?.dispose(); mat.metalnessMap?.dispose(); mat.map = a; mat.metalnessMap = b; }
+    return [spT, spM, cvT, cvM];
   }
   setContent(pages) {
     // pages: { left: CanvasTexture, right: CanvasTexture }

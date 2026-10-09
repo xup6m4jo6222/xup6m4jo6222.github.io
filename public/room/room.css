@@ -136,9 +136,9 @@ body.ready .topbar { opacity: 1; }
 
 .loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 30; pointer-events: none; transition: opacity .8s; background: #0c070b; }
 .loading .ld { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-.loading i { width: 7px; height: 7px; border-radius: 50%; background: #ffd9ae; box-shadow: 0 0 10px 2px rgba(255,190,120,.7), 0 0 38px 10px rgba(255,160,90,.22);
+.loading .ld i { width: 7px; height: 7px; border-radius: 50%; background: #ffd9ae; box-shadow: 0 0 10px 2px rgba(255,190,120,.7), 0 0 38px 10px rgba(255,160,90,.22);
   animation: ember 2.4s ease-in-out infinite; }
-.loading span { font-family: var(--font-display); color: var(--muted); letter-spacing: .4em; font-size: 14px; padding-left: .4em; animation: breathe 2.4s ease-in-out infinite; }
+.loading .ld span { font-family: var(--font-display); color: var(--muted); letter-spacing: .4em; font-size: 14px; padding-left: .4em; animation: breathe 2.4s ease-in-out infinite; }
 @keyframes ember { 50% { transform: scale(.8); opacity: .55; box-shadow: 0 0 6px 1px rgba(255,190,120,.5), 0 0 24px 6px rgba(255,160,90,.12); } }
 body.loaded .loading { opacity: 0; }
 @keyframes breathe { 50% { opacity: .35; } }
@@ -202,8 +202,17 @@ body.loaded .loading { opacity: 0; }
   text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 60px rgba(29,17,25,.9); }
 .ld-name h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(44px, 7vw, 86px); letter-spacing: .32em; padding-left: .32em; color: #f3edf5; }
 .ld-name p { margin: 14px 0 0; font-size: clamp(13px, 1.4vw, 16px); letter-spacing: .3em; padding-left: .3em; color: #cfc3d4; }
-.ld-bar { position: absolute; left: 50%; bottom: 9vh; width: 140px; height: 1px; transform: translateX(-50%); background: rgba(235,229,235,.16); overflow: hidden; }
-.ld-bar i { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(var(--p)); background: var(--steel); box-shadow: 0 0 8px rgba(121,152,195,.8); }
+/* 載入中要一眼看得出來（郁為 10/9）：標籤＋百分比＋會呼吸的點，進度條加寬加粗；數值由 intro-draw.js 一開頁就開始更新（--q） */
+.ld-bar { position: absolute; left: 50%; bottom: 9vh; width: min(320px, 64vw); height: 3px; border-radius: 3px; transform: translateX(-50%); background: rgba(235,229,235,.16); overflow: hidden; }
+.ld-bar i { position: absolute; inset: 0; border-radius: 3px; transform-origin: 0 50%; transform: scaleX(var(--q, 0)); background: #9fb6d8; box-shadow: 0 0 10px rgba(159,182,216,.85); }
+.ld-status { position: absolute; left: 50%; bottom: calc(9vh + 20px); transform: translateX(-50%); margin: 0; display: flex; gap: 12px; align-items: center;
+  font-size: 15px; letter-spacing: .18em; color: #efe7f2; padding: 9px 20px; border-radius: 999px; background: rgba(29,17,25,.74);
+  border: 1px solid rgba(159,182,216,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; transition: opacity .4s var(--ease); }
+.ld-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9fb6d8; box-shadow: 0 0 8px rgba(159,182,216,.9); animation: ld-pulse 1.2s ease-in-out infinite; }
+.ld-status b { font-weight: 500; letter-spacing: .04em; color: #b6c9e5; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+@keyframes ld-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .ld-status::before { animation: none; } }
+.loading.colored .ld-status { opacity: 0; }
 /* 開場的兩個選項：名字在上色途中淡出，房間上完色後按鈕才淡入（.colored 由 main.js 加上）；實心按鈕，蓋在畫面上也看得清楚 */
 .loading.unnamed .ld-name { animation: ld-out .7s var(--ease) forwards; }   /* 上色一開始名字就淡出（main.js 加 .unnamed） */
 .loading.colored .ld-bar { opacity: 0; transition: opacity .5s var(--ease); }

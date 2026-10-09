@@ -48,6 +48,9 @@ export class ViewData {
     // 點特寫後的那半秒空等就是它。翻轉與不轉色彩空間在解碼時就做好，結果與原本逐像素相同
     const loader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    // 深度圖和光層同時下載（以前等 11 張光層到齊才開始，多等一輪）
+    const imgP = new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = `${base}/${this.name}/depth.png`; });
+    imgP.catch(() => {});
     const tex = await Promise.all(info.groups.map(g => new Promise((res, rej) => loader.load(`${base}/${this.name}/${g}.avif`, bmp => {
       const t = new THREE.Texture(bmp); t.flipY = false; t.needsUpdate = true;
       t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
@@ -56,7 +59,7 @@ export class ViewData {
     this.textures = {};
     info.groups.forEach((g, i) => this.textures[g] = tex[i]);
     // 深度：R 高位、G 低位，×far/65535 公尺；影像第一列在最上，資料貼圖第一列要在最下
-    const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = `${base}/${this.name}/depth.png`; });
+    const img = await imgP;
     const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
     const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
     const px = cx.getImageData(0, 0, img.width, img.height).data;

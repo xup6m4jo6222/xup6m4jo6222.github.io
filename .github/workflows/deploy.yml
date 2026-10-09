@@ -25,8 +25,10 @@ jobs:
         run: |
           CDN="https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_SHA}/public/room/"
           grep -q "__ROOM_CDN__" public/index.html
-          sed -i "s#__ROOM_CDN__#${CDN}#" public/index.html
-          grep -q "${CDN}" public/index.html
+          grep -q '<base href="/room/">' public/index.html
+          # base 要直接寫成 CDN（事後用程式改，瀏覽器會每個檔案抓兩次）；網頁裡的記號留給 CDN 失敗時退回用
+          sed -i "s#<base href=\"/room/\">#<base href=\"${CDN}\">#; s#__ROOM_CDN__#${CDN}#" public/index.html
+          grep -q "<base href=\"${CDN}\">" public/index.html
       # 先替第一位訪客把 CDN 暖好：jsDelivr 第一次被要求時才去 GitHub 抓，之後各地節點才快
       - name: 預熱 jsDelivr
         continue-on-error: true

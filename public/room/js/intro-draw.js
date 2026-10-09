@@ -5,7 +5,7 @@
   const box = document.getElementById('loading'), img = box && box.querySelector('.ld-lines');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let returning = false; try { returning = localStorage.getItem('v30-entry') === 'room'; } catch {}
-  const DRAW = returning ? 1.4 : 2.4;   // 秒；來過的人畫快一點（10/9 為了 7 秒內讀完，從 3.4／1.8 縮短）
+  const DRAW = returning ? 1.8 : 3.4;   // 秒；來過的人畫快一點。房間先下載好就加速畫完（window.__ldHurry），不讓線稿拖住上色
   const cv = document.createElement('canvas'); cv.className = 'ld-draw'; cv.setAttribute('aria-hidden', 'true');
   const gl = cv.getContext('webgl', { premultipliedAlpha: false, alpha: false });
   if (!box || !img || !gl || reduce) { doneFn(); return; }   // 不支援或要求減少動態：直接顯示整張線稿
@@ -49,12 +49,43 @@
     gl.uniform1i(gl.getUniformLocation(pr, 'L'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'O'), 1);
     tex(0, li, false); tex(1, oi, true);
     fit(); addEventListener('resize', fit);
-    const t0 = performance.now(); let signaled = false;
+    let last = performance.now(), T = 0, signaled = false;
     (function draw(now) {
-      const T = Math.min(1.06, (now - t0) / 1000 / DRAW * 1.06);
+      // 線稿是遮住「房間還在準備」的過場：房間好了（__ldHurry）剩下的線四倍速畫完，馬上接上色
+      T = Math.min(1.06, T + Math.min(0.1, (now - last) / 1000) / DRAW * 1.06 * (window.__ldHurry ? 4 : 1)); last = now;
       gl.uniform1f(uT, T); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      if (T >= 1.0 && !signaled) { signaled = true; doneFn(); }
+      if (T >= 1.0 && !signaled) { signaled = true; doneFn(); performance.mark('ld:drawn'); }
       if (T < 1.06 && !document.body.classList.contains('loaded')) requestAnimationFrame(draw);
-    })(t0);
+    })(last);
   }).catch(() => { cv.remove(); img.style.visibility = ''; doneFn(); });
+})();
+
+// 載入進度（郁為 10/9：要很明顯告訴對方正在載入）：一開頁就動，不等三維程式庫。
+// 下載占 90%：照發布時算好的必要檔案清單（window.__ldFiles，檔名→位元組），看已經下載完的檔案加起來多少；
+// 上色占 7%（主程式給 window.__ldColor），最後準備房間那一下到 97–99%（window.__ldTarget）。沒有清單（本機預覽）就照時間慢慢爬
+(function () {
+  const el = document.getElementById('loading'), pct = el && el.querySelector('.ld-pct');
+  if (!el) return;
+  const files = window.__ldFiles, total = files ? Object.values(files).reduce((a, b) => a + b, 0) : 0;
+  const t0 = performance.now(); let shown = 0, dl = 0, lastScan = 0;
+  function scan() {
+    let got = 0; const seen = {};
+    for (const e of performance.getEntriesByType('resource')) {
+      const m = /\/room\/([^?#]+)/.exec(e.name); if (!m) continue;
+      const k = m[1].startsWith('intro-color-') ? 'intro-color-' : m[1];
+      if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; }
+    }
+    return got / total;
+  }
+  (function tick(now) {
+    if (total && now - lastScan > 150) { dl = scan(); lastScan = now; }
+    const base = total ? 0.9 * dl : 0.12 * (1 - Math.exp(-(now - t0) / 2500));
+    const target = Math.max(base + 0.07 * (window.__ldColor || 0), window.__ldTarget || 0);
+    shown += (target - shown) * 0.1;
+    const done = el.classList.contains('colored');
+    el.style.setProperty('--q', done ? '1' : shown.toFixed(4));
+    const txt = (done ? 100 : Math.min(99, Math.floor(shown * 100))) + '%';
+    if (pct && pct.textContent !== txt) pct.textContent = txt;
+    if (!done) requestAnimationFrame(tick);
+  })(t0);
 })();

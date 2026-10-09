@@ -4,13 +4,19 @@
 <meta charset="utf-8">
 <base href="/room/">
 <script>
-// 正式網站的圖、光層、程式改由 jsDelivr（免費全球 CDN，直接讀 GitHub 上這一版的檔案）送：
-// GitHub Pages 從台灣實測每秒 25–300 KB，jsDelivr 1.8–10 MB（2026-10-09）。部署時 deploy.yml 把下面的記號換成網址；
-// 本機預覽沒換、或網址加 ?nocdn，就照舊用 /room/。CDN 任何一個檔案失敗就自動加 ?nocdn 重新載入
+// 正式網站的圖、光層、程式由 jsDelivr（免費全球 CDN，直接讀 GitHub 上這一版的檔案）送：GitHub Pages 從台灣實測每秒 25–300 KB，
+// jsDelivr 1.8–10 MB（2026-10-09）。部署時 deploy.yml 把 <base> 和下面的記號換成同一個釘在提交編號的 CDN 網址。
+// base 一定要直接寫在網頁裡：瀏覽器讀網頁時就照 base 先抓檔案，事後才用程式改，每個檔案會抓兩次（10/9 實測頻寬被吃掉一半）。
+// 網址加 ?nocdn，或 CDN 任何一個檔案失敗（自動加 ?nocdn 重新載入）：base 改回 /room/，照舊從 GitHub 拿
 (function () {
   var cdn = '__ROOM_CDN__', b = document.querySelector('base');
-  if (!b || !(cdn.indexOf('https://') === 0 || cdn.indexOf('http://localhost:') === 0) || /[?&]nocdn/.test(location.search)) return;   // localhost 只給本機測試用
-  b.href = cdn; window.__cdn = cdn;
+  // 開場上色圖依時段而定，主程式要等三維程式庫載完才設定；這裡先叫瀏覽器開始下載
+  var q = (location.search.match(/[?&]time=(dawn|day|dusk|night)/) || [])[1], h = new Date().getHours();
+  var slot = q || (h >= 5 && h < 8 ? 'dawn' : h >= 8 && h < 16 ? 'day' : h >= 16 && h < 19 ? 'dusk' : 'night');
+  function pre() { var l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = 'intro-color-' + slot + '.jpg'; document.head.appendChild(l); }
+  if (!b || cdn.indexOf('__') === 0) return pre();   // 本機預覽：沒換過，照舊用 /room/
+  if (/[?&]nocdn/.test(location.search)) { b.href = '/room/'; return pre(); }
+  window.__cdn = cdn; pre();
   window.__cdnFail = function () { if (window.__cdnBail) return; window.__cdnBail = 1; location.replace(location.origin + location.pathname + (location.search ? location.search + '&' : '?') + 'nocdn'); };
   addEventListener('error', function (e) { var t = e.target, u = t && (t.src || t.href); if (u && String(u).indexOf(cdn) === 0) window.__cdnFail(); }, true);
   // 站內連結（/projects/ 這種）不能跟著 base 跑到 CDN 去
@@ -27,6 +33,21 @@
 <link rel="preload" href="intro-lines.jpg" as="image" fetchpriority="high" crossorigin="anonymous">
 <link rel="preload" href="intro-order.png" as="image" fetchpriority="high" crossorigin="anonymous">
 <link rel="preload" href="js/intro-draw.js" as="script" fetchpriority="high">
+<!-- 預設全景（發布時產生）-->
+<script>window.__ldFiles = {"vendor/three.module.js":118207,"vendor/three.core.js":278298,"vendor/lights/RectAreaLightTexturesLib.js":107701,"vendor/lights/RectAreaLightUniformsLib.js":434,"vendor/RoomEnvironment.js":1656,"js/main.js":30009,"js/stage.js":9331,"js/books.js":9302,"js/effects.js":4439,"js/sfx.js":1848,"js/intro-draw.js":3455,"room.css":5836,"intro-lines.jpg":185274,"intro-order.png":110115,"scene.json":2745,"look.json":1199,"copy.json":1081,"works.json":428,"panel.json":302,"views/roomc/camera.json":533,"views/roomc/depth.png":193215,"views/roomc/lamp.avif":38548,"views/roomc/shelf.avif":90371,"views/roomc/bed.avif":34357,"views/roomc/fill.avif":106792,"views/roomc/moon.avif":39508,"views/roomc/screen.avif":13793,"views/roomc/aroma.avif":12410,"views/roomc/cove.avif":60101,"views/roomc/track.avif":101511,"views/roomc/ceil.avif":136229,"views/roomc/sky.avif":57638,"intro-color-":149687};</script>
+<link rel="preload" href="views/roomc/camera.json" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="views/roomc/lamp.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/shelf.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/bed.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/fill.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/moon.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/screen.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/aroma.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/cove.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/track.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/ceil.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/sky.avif" as="fetch" crossorigin="anonymous" fetchpriority="low">
+<link rel="preload" href="views/roomc/depth.png" as="image" crossorigin="anonymous" fetchpriority="low">
 <script>
 // JS 錯誤浮上檯面：放在 head、不加 defer，讓後面任何錯誤都看得到
 window.__errors = [];
@@ -121,8 +142,8 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
     <button type="button" class="ld-go" id="enterroom" data-copy="entry-room">進房間看看</button>
     <a class="ld-list" href="/projects/" data-copy="entry-list">直接看作品</a>
   </div>
+  <p class="ld-status" role="status"><span data-copy="loading">正在載入房間</span><b class="ld-pct" aria-hidden="true">0%</b></p>
   <div class="ld-bar" aria-hidden="true"><i></i></div>
-  <span class="sr-only" data-copy="loading">點燈中</span>
 </div>
 <script src="js/intro-draw.js"></script>
 

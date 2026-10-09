@@ -230,6 +230,17 @@ function buildBooks() {
   });
   buildHotspots(); buildMobileNav();
 }
+// 布紋、紙張（與晚到的字型）到了以後重畫封面書脊：等進了房間、推近結束，每幀一本、不碰手上那本，畫面看不出來。
+// 以前是整批重建所有書，剛好落在開場上色與暖機那段，多卡一下
+async function repaintBooksGently() {
+  await kit.fontsDone;
+  while (!((S.mode === 'room' || S.mode === 'view') && !S.intro)) await new Promise(r => setTimeout(r, 400));
+  for (const k in S.books) for (const b of [...S.books[k]]) {
+    while (S.focus && S.focus.book === b) await new Promise(r => setTimeout(r, 500));
+    const tex = b.repaint(); await nextFrame();
+    for (const t of tex) { renderer.initTexture(t); await nextFrame(); }
+  }
+}
 function lumOf(hex) { const n = parseInt(hex.slice(1), 16); return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255; }
 // 柔邊陰影貼圖（書底與背板共用）
 const shadowTex = (() => {
@@ -588,6 +599,26 @@ async function warmView(name) {
   try { await p; } catch (e) { console.warn(e); }
   v._warm = true;
 }
+// 顯示卡第一次真的畫某種東西時要備妥一次（實測整個房間卡約 0.9 秒、拆不開）。趁房間光層還在下載，
+// 用假的全景（1×1 貼圖，著色器與真的相同）連同書、粒子、後製，在看不見的地方先畫一次；光層到了就不必再卡這一下。
+// 假全景的材質不釋放：真的全景建好時會直接沿用同一份著色器
+let earlyBg = null;
+async function earlyWarm() {
+  const px = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1); px.needsUpdate = true;
+  const dz = new THREE.DataTexture(new Float32Array([1]), 1, 1, THREE.RedFormat, THREE.FloatType); dz.needsUpdate = true;
+  const I = new THREE.Matrix4();
+  earlyBg = makeBackgroundMesh({ textures: Object.fromEntries(GROUPS.map(g => [g, px])), depthTex: dz, matrixWorld: I, viewMatrix: I, tanX: 1, tanY: 1, offX: 0, offY: 0 });
+  scene.add(earlyBg);
+  try { await renderer.compileAsync(scene, camera); } catch (e) { console.warn(e); }
+  if (roomV()) { scene.remove(earlyBg); return; }   // 光層已經先到了：交給原本的暖機流程
+  const culled = []; scene.traverse(o => { if (o.frustumCulled) { culled.push(o); o.frustumCulled = false; } });
+  renderer.setRenderTarget(pipe.rtA); renderer.render(scene, camera);
+  renderer.setRenderTarget(pipe.rtBook); renderer.render(scene, camera);
+  const sb = pipe.bloom.strength; pipe.bloom.strength = 1;
+  pipe.composite(0, 1); pipe.runBloom(0); pipe.blur(); pipe.final();   // 後製幾關也先畫一次（畫面還被開場蓋著）
+  pipe.bloom.strength = sb; renderer.setRenderTarget(null);
+  culled.forEach(o => { o.frustumCulled = true; }); scene.remove(earlyBg);
+}
 // 開場前：場景裡所有貼圖（全景光層、書封、書脊…）每幀送約 8 毫秒進顯示卡，再編譯著色器。
 // 一口氣在第一幀做完會讓上色動畫凍住約 1 秒
 async function warmScene() {
@@ -900,8 +931,10 @@ window.__introDrawn?.then(() => { LD.drawn = true; });
 function setLoad(p) { LD.p = Math.max(LD.p, p); }
 (function ldTick() {   // 顯示值平滑追上實際進度；上色（--c）等線稿描完才開始，最快約 1.2 秒掃過整張
   LD.shown += (LD.p - LD.shown) * 0.12;
-  if (LD.drawn) LD.c = Math.min(LD.shown, LD.c + 1 / 72);
+  if (LD.drawn) LD.c = Math.min(LD.shown, LD.c + 1 / 48);   // 上色最快約 0.8 秒掃過（10/9 從 1.2 秒縮短）
   if (LD.c > 0.02) $('#loading')?.classList.add('unnamed');   // 上色一開始，名字就淡出（不等渲染完成）
+  window.__ldColor = LD.c;   // 畫面下方的百分比（intro-draw.js）：上色那一段
+  if (!window.__ldFiles) window.__ldTarget = Math.max(window.__ldTarget || 0, 0.8 * LD.shown);   // 本機預覽沒有檔案清單：照房間下載進度
   const el = $('#loading'); if (el) { el.style.setProperty('--p', LD.shown.toFixed(4)); el.style.setProperty('--c', LD.c.toFixed(4)); }
   if (!document.body.classList.contains('loaded')) requestAnimationFrame(ldTick);
 })();
@@ -923,7 +956,7 @@ function entryChoice() {
 }
 function ldFinish() {   // 上色完成、名字至少停留 1.4 秒
   setLoad(1);
-  return new Promise(res => { const f = () => (LD.c > 0.985 && performance.now() - LD.t0 > 1400) ? setTimeout(res, 250) : requestAnimationFrame(f); f(); });
+  return new Promise(res => { const f = () => (LD.c > 0.985 && performance.now() - LD.t0 > 1400) ? setTimeout(res, 100) : requestAnimationFrame(f); f(); });
 }
 { const slotNow = timeSlot(); const im = $('#loading .ld-color'); if (im) im.src = `intro-color-${slotNow}.jpg`; setLoad(0.08); }
 
@@ -1102,6 +1135,7 @@ function frame(now) {
 
 // ---------- 啟動 ----------
 async function boot() {
+  performance.mark('ld:boot');   // 開場各階段的時間記號（speedtest.mjs 讀）
   resize();
   const [data, look, cam0] = await Promise.all([fetchJSON('scene.json'), fetchJSON('look.json'), fetchJSON(`${VIEW_BASE}/room/camera.json`).catch(() => null)]);
   S.data = data; S.look = look;
@@ -1119,24 +1153,33 @@ async function boot() {
     const pc = pj.panel.center, pn = pj.panel.n; S.data.anchors.panel = [pc[0] + pn[0] * 0.03, pc[1] + pn[1] * 0.03, pc[2]];
     const w = pj.window; S.win = w; S.data.anchors.curtain = [(w.x0 + w.x1) / 2, w.gy - 0.45, 1.55];
   }).catch(e => console.warn('panel.json', e));
-  // 窗外城市（160 KB）：窗簾預設拉上看不到，不擋開場，背景下載
-  new Promise(res => new THREE.TextureLoader().load(`city/${S.slot}.jpg`, t => { t.colorSpace = THREE.NoColorSpace; t.anisotropy = 8; res(t); }, undefined,
+  // 窗外城市（160 KB）：窗簾預設拉上看不到，等房間光層下載完才抓，不跟它搶頻寬
+  const loadCity = () => new Promise(res => new THREE.TextureLoader().load(`city/${S.slot}.jpg`, t => { t.colorSpace = THREE.NoColorSpace; t.anisotropy = 8; res(t); }, undefined,
     () => new THREE.TextureLoader().load('city/night.jpg', t => { t.colorSpace = THREE.NoColorSpace; res(t); }, undefined, () => res(null)))).then(t => { S.cityTex = t; });
   const worksP = fetchJSON('works.json').then(j => { S.works = j.works; }).catch(() => { S.works = []; });
-  const [, , , fontsIn] = await Promise.all([panelP, loadCopy().then(updateSoundButton), worksP, kit.ready()]);
+  await Promise.all([panelP, loadCopy().then(updateSoundButton), worksP, kit.ready(500)]);   // 字型最多等 0.5 秒，晚到的之後重畫
   // 字型晚到：等它到了、而且沒有書被拿在手上時，重畫書脊的燙金書名
-  if (!fontsIn) kit.fontsDone.then(function redo() { if (S.focus) return setTimeout(redo, 1500); buildBooks(); });
+  repaintBooksGently();   // 布紋一定晚到（刻意排在房間之後），字型也可能晚到
   buildShelfLights(); buildBooks(); buildEffects(); buildCertificates(); buildClock(); tick();
   if (!S.aromaOn) mist.target = 0;
   computeTargets(); stepLights(0, true);
+  performance.mark('ld:built');
+  await earlyWarm().catch(e => console.warn(e));
+  performance.mark('ld:earlywarm');
   await roomP;
+  performance.mark('ld:room');
+  window.__ldHurry = true;   // 房間光層到齊：線稿加速畫完，好開始上色
+  loadCity();
   buildArt(); kit.loadTextures();   // 掛畫（400 KB）與書本布紋紙張（1.1 MB）等房間主圖下載完才抓，不跟它搶頻寬
   // 趁開場畫面還蓋著，先把房間編譯好、在後面畫幾格：以前按「完整體驗」那一下才第一次畫，按鈕停在原地約 2.4 秒才有反應
   S.cam = viewCam('room'); setCamera(S.cam);
   // 貼圖分幀上傳、著色器編譯和上色動畫同時進行；第一次真的畫出房間（顯示卡在這一刻備妥每種繪圖，實測卡約 0.9 秒、拆不開）
   // 留到上色完成之後、按鈕出現之前：那時畫面是靜止的上色圖，看不出卡
   await Promise.all([ldFinish(), warmScene().catch(e => console.warn(e))]);
+  performance.mark('ld:colored');
+  window.__ldTarget = 0.97;
   await new Promise(r => { S.warmFrames = 2; S.warmDone = r; requestAnimationFrame(frame); });
+  performance.mark('ld:warm');
   await entryChoice();
   renderScreenApps();
   startIntro(true);   // 開場畫面已經把房間上好色了：直接接到亮著燈的房間，只留短短的推近
