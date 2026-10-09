@@ -1161,6 +1161,8 @@ async function boot() {
   // （以前排在燈光面板、文字、作品、字型之後，字型最多白等 1.2 秒；10/9 為了 7 秒內讀完改成並行）
   let got = 0; const total = GROUPS.length + 1;
   const roomP = ensureView(S.curtain ? 'room' : 'roomc', () => { got++; setLoad(0.15 + 0.75 * got / total); });
+  // 光層一到齊：線稿加速畫完、上色可以一路上到底（以前要等場景建好、暖機完才放行）
+  roomP.then(() => { window.__ldHurry = true; setLoad(1); }, () => {});
   const panelP = fetchJSON('panel.json').then(pj => {   // 燈光開關面板與窗（patch-v34 寫出）
     const pc = pj.panel.center, pn = pj.panel.n; S.data.anchors.panel = [pc[0] + pn[0] * 0.03, pc[1] + pn[1] * 0.03, pc[2]];
     const w = pj.window; S.win = w; S.data.anchors.curtain = [(w.x0 + w.x1) / 2, w.gy - 0.45, 1.55];
@@ -1180,18 +1182,18 @@ async function boot() {
   performance.mark('ld:earlywarm');
   await roomP;
   performance.mark('ld:room');
-  window.__ldHurry = true;   // 房間光層到齊：線稿加速畫完，好開始上色
   loadCity();
   buildArt(); kit.loadTextures();   // 掛畫（400 KB）與書本布紋紙張（1.1 MB）等房間主圖下載完才抓，不跟它搶頻寬
   // 趁開場畫面還蓋著，先把房間編譯好、在後面畫幾格：以前按「完整體驗」那一下才第一次畫，按鈕停在原地約 2.4 秒才有反應
   S.cam = viewCam('room'); setCamera(S.cam);
-  // 貼圖分幀上傳、著色器編譯和上色動畫同時進行；第一次真的畫出房間（顯示卡在這一刻備妥每種繪圖，實測卡約 0.9 秒、拆不開）
-  // 留到上色完成之後、按鈕出現之前：那時畫面是靜止的上色圖，看不出卡
-  await Promise.all([ldFinish(), warmScene().catch(e => console.warn(e))]);
-  performance.mark('ld:colored');
-  window.__ldTarget = 0.97;
+  // 貼圖分幀上傳、著色器編譯，接著在開場畫面後面真的畫兩格（顯示卡第一次畫要備妥每種繪圖，約 0.6–1 秒、拆不開）。
+  // 10/9 起和線稿收尾、上色同時進行，不再排在上色之後：上色可能中途頓一下，但開場整體少等約 1 秒（郁為：最差也要 8 秒內）
+  await warmScene().catch(e => console.warn(e));
   await new Promise(r => { S.warmFrames = 2; S.warmDone = r; requestAnimationFrame(frame); });
   performance.mark('ld:warm');
+  window.__ldTarget = 0.97;
+  await ldFinish();
+  performance.mark('ld:colored');
   await entryChoice();
   renderScreenApps();
   startIntro(true);   // 開場畫面已經把房間上好色了：直接接到亮著燈的房間，只留短短的推近
