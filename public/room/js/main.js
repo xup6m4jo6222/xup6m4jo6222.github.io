@@ -188,7 +188,10 @@ function toScreen(p) {
 const siteUrl = u => (u && u.startsWith('/') ? location.origin + u : u);
 // 本機預覽每次重抓（改了文字、燈光立刻看得到）；正式網站的檔案釘在版本上不會變，照一般方式抓，網頁開頭的預先下載才接得上
 const DEV = location.port === '4330';
-async function fetchJSON(u) { const r = await fetch(u, DEV ? { cache: 'no-store' } : {}); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
+async function fetchJSON(u) {
+  if (!DEV && window.__hfetch) return JSON.parse(await (await window.__hfetch(u)).text());   // 正式網站：兩家同時抓、先到先用
+  const r = await fetch(u, DEV ? { cache: 'no-store' } : {}); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json();
+}
 async function loadCopy() { try { S.copy = (await fetchJSON('copy.json')).text || {}; } catch { S.copy = {}; } applyCopy(); }
 function T(id, fb = '') { const v = S.copy[id]; return v == null ? fb : v; }
 function lines(id) { return T(id).split('\n').map(s => s.trim()).filter(Boolean).map(s => s.split('｜').map(x => x.trim())); }
@@ -960,7 +963,7 @@ function ldFinish() {   // 上色完成、名字至少停留 1.4 秒
   setLoad(1);
   return new Promise(res => { const f = () => (LD.c > 0.985 && performance.now() - LD.t0 > 1400) ? setTimeout(res, 100) : requestAnimationFrame(f); f(); });
 }
-{ const slotNow = timeSlot(); const im = $('#loading .ld-color'); if (im) im.src = `intro-color-${slotNow}.jpg`; setLoad(0.08); }
+{ const slotNow = timeSlot(); const im = $('#loading .ld-color'); if (im) im.src = `intro-color-${slotNow}.jpg`; setLoad(0.08); }   // 接上網頁開頭的預先下載
 
 // ---------- 每幀 ----------
 function resize() {

@@ -28,7 +28,9 @@ export class ViewData {
   }
   async load(base, renderer, onProgress) {
     let info;
-    try { info = await (await fetch(`${base}/${this.name}/camera.json`)).json(); } catch (e) { this._infoRej(e); throw e; }
+    // 正式網站用 __hfetch（兩家 CDN 同時抓、先到先用）；本機預覽就是普通下載
+    const get = (u, w) => window.__hfetch ? window.__hfetch(u, w) : fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.status); return r.blob(); });
+    try { info = JSON.parse(await (await get(`${base}/${this.name}/camera.json`)).text()); } catch (e) { this._infoRej(e); throw e; }
     this.info = info; this.total = info.groups.length + 1;
     const prog = () => { this.loaded++; onProgress && onProgress(); };
     const W = info.width, H = info.height;
@@ -44,18 +46,17 @@ export class ViewData {
     this.quaternion = new THREE.Quaternion().setFromRotationMatrix(this.matrixWorld);
     this.viewMatrix = this.matrixWorld.clone().invert();
     this._infoRes(this);
-    // 用 ImageBitmap 在背景執行緒先解碼：一般圖片要等送進顯示卡時才在主執行緒解碼（每張 2560×1440 約 30 毫秒），
-    // 點特寫後的那半秒空等就是它。翻轉與不轉色彩空間在解碼時就做好，結果與原本逐像素相同
-    const loader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
-    const maxAniso = renderer.capabilities.getMaxAnisotropy();
-    // 深度圖和光層同時下載（以前等 11 張光層到齊才開始，多等一輪）
-    const imgP = new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = `${base}/${this.name}/depth.png`; });
+    // 深度圖和光層同時下載（以前等 11 張光層到齊才開始，多等一輪）。都在背景執行緒解碼：
+    // 一般圖片要等送進顯示卡時才在主執行緒解碼（每張 2560×1440 約 30 毫秒），點特寫後的空等就是它。翻轉與不轉色彩空間在解碼時做好
+    const imgP = get(`${base}/${this.name}/depth.png`).then(b => createImageBitmap(b, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' }));
     imgP.catch(() => {});
-    const tex = await Promise.all(info.groups.map(g => new Promise((res, rej) => loader.load(`${base}/${this.name}/${g}.avif`, bmp => {
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    const tex = await Promise.all(info.groups.map(async g => {
+      const bmp = await createImageBitmap(await get(`${base}/${this.name}/${g}.avif`), { imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
       const t = new THREE.Texture(bmp); t.flipY = false; t.needsUpdate = true;
       t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
-      t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, maxAniso); prog(); res(t);
-    }, undefined, rej))));
+      t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, maxAniso); prog(); return t;
+    }));
     this.textures = {};
     info.groups.forEach((g, i) => this.textures[g] = tex[i]);
     // 深度：R 高位、G 低位，×far/65535 公尺；影像第一列在最上，資料貼圖第一列要在最下

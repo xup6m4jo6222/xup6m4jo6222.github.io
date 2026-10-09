@@ -34,7 +34,10 @@ jobs:
         continue-on-error: true
         run: |
           cd public/room
-          find . -type f | sed 's#^\./##' | xargs -P 16 -I{} curl -s -o /dev/null -w "%{http_code} {}\n" "https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_SHA}/public/room/{}" | sort | uniq -c -w 3
+          # 主網址與第二家（gcore，網頁慢的時候會同時向它要）都暖
+          for h in cdn gcore; do
+            find . -type f | sed 's#^\./##' | xargs -P 16 -I{} curl -s -o /dev/null -w "%{http_code} {}\n" "https://${h}.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_SHA}/public/room/{}" | sort | uniq -c -w 3
+          done
       - name: Install, build, and upload your site
         uses: withastro/action@v6
       # 部署前閘門：跑在 build 之後、deploy 之前。這一步紅掉，deploy job 就不會執行。

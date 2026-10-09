@@ -35,6 +35,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   };
+  // 直接照網頁開頭預先下載的那份拿（走兩家同時抓反而接不上預先下載，同一張圖會抓兩三次）
   const load = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const uT = gl.getUniformLocation(pr, 'T'), uC = gl.getUniformLocation(pr, 'C');
   let iw = 1600, ih = 873;

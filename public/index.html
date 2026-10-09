@@ -22,19 +22,280 @@
   // 站內連結（/projects/ 這種）不能跟著 base 跑到 CDN 去
   document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('a[href^="/"]').forEach(function (a) { a.href = location.origin + a.getAttribute('href'); }); });
 })();
+// 兩家同時抓、先到先用（郁為 10/9：最差也要 8 秒內）。jsDelivr 偶爾分到很慢的節點（實測約十幾次一次、每秒只有 70 KB，開場拖到 20 多秒）：
+// 先向主網址要；3 秒還沒到（正常 1.5 秒內全部到齊），就同時向第二家（gcore）要；再 2.5 秒還沒到，再向 GitHub 要。先完整到的那份就用，其他取消。
+// 訪客自己的網路本來就慢（瀏覽器回報 2G／3G 或不到 2 Mbps）就不找第二家：慢的是自己這頭，多抓一份只會更慢。
+// 本機預覽或 ?nocdn 只有一個來源，就是普通的下載
+(function () {
+  var c = navigator.connection, slow = c && (/(^|-)(2g|3g)$/.test(c.effectiveType || '') || (c.downlink && c.downlink < 2));
+  window.__srcs = window.__cdn && !slow ? [window.__cdn, window.__cdn.replace('//cdn.jsdelivr.net/', '//gcore.jsdelivr.net/'), location.origin + '/room/'] : window.__cdn ? [window.__cdn, location.origin + '/room/'] : [''];
+})();
+window.__hfetch = function (rel, wait) {
+  var srcs = window.__srcs, ctrls = [], done = false, fails = 0, started = 0;
+  return new Promise(function (res, rej) {
+    function start() {
+      var i = started++; if (i >= srcs.length) return;
+      var c = window.AbortController ? new AbortController() : null; if (c) ctrls.push(c);
+      fetch(srcs[i] + rel, c ? { signal: c.signal } : {}).then(function (r) { if (!r.ok) throw new Error(rel + ' ' + r.status); return r.blob(); })
+        .then(function (b) { if (done) return; done = true; ctrls.forEach(function (x) { if (x !== c) x.abort(); }); res(b); })
+        .catch(function (e) { if (done) return; fails++; if (fails >= srcs.length) rej(e); else if (fails >= started) start(); });
+    }
+    start();
+    var w = wait || 3000;
+    setTimeout(function () { if (!done && started < 2) start(); }, w);
+    setTimeout(function () { if (!done && started < 3) start(); }, w + 2500);
+  });
+};
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>林郁為｜作品</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&family=Cormorant+Garamond:wght@500;600&display=fallback" rel="stylesheet">
-<link rel="stylesheet" href="room.css">
+<link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&family=Cormorant+Garamond:wght@500;600&display=fallback" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+/* 色票沿用正式網站 global.css：背景主色暮紫、元素主色鋼藍、問句淡紫 */
+:root {
+  --bg: #20131d;
+  --bg-deep: #1d1119;
+  --ink: #ebe5eb;
+  --muted: #a2979f;
+  --steel: #7998c3;
+  --ask: #c8b7ea;
+  --line: #5d505a;
+  --glass: rgba(32, 19, 29, 0.62);
+  --glass-strong: rgba(29, 17, 25, 0.86);
+  --font-display: 'LXGW WenKai TC', serif;
+  --font-sans: 'Chiron GoRound TC', system-ui, sans-serif;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg-deep); color: var(--ink); font-family: var(--font-sans); overflow: hidden; }
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; }
+
+.topbar { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: baseline;
+  padding: 22px 32px; pointer-events: none; opacity: 0; transition: opacity 1.2s var(--ease); z-index: 5; }
+body.ready .topbar { opacity: 1; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .08em; pointer-events: auto; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
+.brand .sub { font-family: var(--font-sans); font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 14px; letter-spacing: .04em; }
+.direct { pointer-events: auto; color: var(--steel); font-size: 14px; text-decoration: none; border-bottom: 1px solid rgba(121,152,195,.45); padding-bottom: 2px; letter-spacing: .04em; }
+.direct:hover { color: #9fb6d8; border-color: currentColor; }
+.topright { display: flex; gap: 22px; align-items: baseline; }
+.soundbtn { font: inherit; font-size: 14px; background: none; border: 0; border-bottom: 1px solid rgba(121,152,195,.45); cursor: pointer; }
+.soundbtn[aria-pressed="false"] { color: var(--muted); border-bottom-style: dashed; }
+
+/* 熱點 */
+#hotspots { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+.hot { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 12px;
+  background: none; border: 0; padding: 10px; cursor: pointer; opacity: 0; transition: opacity .35s var(--ease); }
+.hot.on { opacity: 1; transition: opacity 1s var(--ease) .25s; }   /* 離開時快、回來時慢慢浮現 */
+.hot.left { flex-direction: row-reverse; }
+/* 光點：實心小核＋柔光暈＋緩慢呼吸的細環 */
+.hot .dot { position: relative; width: 9px; height: 9px; border-radius: 50%; flex: none; background: #f4eef4;
+  box-shadow: 0 0 6px 1px rgba(255,244,236,.75), 0 0 22px 6px rgba(200,183,234,.28); transition: transform .45s var(--ease), background .45s; }
+.hot .dot::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; border: 1px solid rgba(244,238,244,.42);
+  animation: breathe-ring 3.6s ease-in-out infinite; transition: inset .45s var(--ease), border-color .45s; }
+.hot .label { font-size: 14px; letter-spacing: .08em; padding: 6px 14px; border-radius: 999px; background: var(--glass-strong);
+  border: 1px solid rgba(121,152,195,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); white-space: nowrap;
+  opacity: 0; transform: translateX(-6px); pointer-events: none; transition: opacity .4s var(--ease), transform .45s var(--ease); }
+.hot.left .label { transform: translateX(6px); }
+.hot:hover .dot, .hot:focus-visible .dot { transform: scale(1.25); background: #fff; }
+.hot:hover .dot::before, .hot:focus-visible .dot::before { inset: -13px; border-color: rgba(121,152,195,.85); animation: none; }
+.hot:hover .label, .hot:focus-visible .label { opacity: 1; transform: none; }
+/* 滑鼠移到物件本身（不在光點上）也算：.near 由 main.js 依距離標上 */
+.hot.near .dot { transform: scale(1.25); background: #fff; }
+.hot.near .dot::before { inset: -13px; border-color: rgba(121,152,195,.85); animation: none; }
+.hot.near .label { opacity: 1; transform: none; }
+.hot:focus-visible { outline: none; }
+@keyframes breathe-ring { 0%, 100% { transform: scale(.85); opacity: .25; } 50% { transform: scale(1.12); opacity: .75; } }
+@keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+.chip { white-space: nowrap; border: 1px solid rgba(235,229,235,.22); background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px; padding: 9px 18px; font-size: 14px; letter-spacing: .05em; cursor: pointer; transition: all .3s var(--ease); }
+.chip:hover, .chip:focus-visible { border-color: var(--steel); background: var(--glass-strong); outline: none; }
+.chip.primary { border-color: rgba(121,152,195,.8); color: #fff; background: rgba(121,152,195,.22); }
+.chip.primary:hover { background: rgba(121,152,195,.36); }
+.chip.small { padding: 7px 14px; font-size: 13px; }
+.back { position: fixed; top: 76px; left: 32px; z-index: 6; }
+
+.hint { position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%); margin: 0; color: var(--muted); font-size: 14px; letter-spacing: .08em;
+  z-index: 5; text-shadow: 0 1px 10px rgba(0,0,0,.8); }
+/* 點了之後畫面還在下載：鏡頭停在半路、失焦，中央一行字與進度 */
+.viewload { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 6; font-size: 14px; letter-spacing: .08em;
+  padding: 8px 18px; border-radius: 999px; background: var(--glass-strong); border: 1px solid rgba(121,152,195,.45);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.booktip { position: fixed; z-index: 6; margin: 0; transform: translate(-50%, -130%); font-family: var(--font-display); font-size: 17px; padding: 7px 14px;
+  border-radius: 10px; background: var(--glass-strong); border: 1px solid rgba(121,152,195,.5); pointer-events: none; white-space: nowrap; }
+.booktip small { display: block; font-family: var(--font-sans); font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.bookui { position: fixed; bottom: 6vh; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; z-index: 6; }
+.bookui[hidden], .reader[hidden], .screen[hidden], .aroma[hidden], [hidden] { display: none !important; }
+
+.reader { position: fixed; inset: 3vh 4vw; z-index: 20; border-radius: 16px; overflow: hidden; background: var(--bg); border: 1px solid var(--line);
+  box-shadow: 0 30px 80px rgba(0,0,0,.6); display: flex; flex-direction: column; }
+.reader-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 10px 22px; border-bottom: 1px solid #3d2e3a;
+  font-family: var(--font-display); font-size: 17px; }
+.reader iframe { flex: 1; border: 0; width: 100%; background: var(--bg); }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* 電腦螢幕：以 matrix3d 貼到螢幕四角 */
+/* 電腦螢幕：以 matrix3d 貼到螢幕四角。底是透明的：看得到渲染裡真正的曲面螢幕、桌布與玻璃反光，只有視窗浮在上面 */
+.screen { position: fixed; left: 0; top: 0; width: 1600px; height: 873px; transform-origin: 0 0; z-index: 3; opacity: 0; transition: opacity .8s var(--ease);
+  overflow: hidden; }
+.screen.on { opacity: 1; }
+.screen.flat { width: 100vw; height: 100%; pointer-events: none; }
+.screen.flat .screen-inner { pointer-events: auto; top: 50%; bottom: auto; left: 16px; right: 16px; width: auto; margin: 0; translate: 0 -40%;
+  max-height: 62vh; overflow: auto; background: rgba(26,15,23,.86); backdrop-filter: blur(6px); }
+.screen.flat .win-bar { height: 40px; font-size: 14px; padding: 0 16px; }
+.screen.flat .win-bar i { width: 10px; height: 10px; }
+.screen.flat .win-body { padding: 20px 20px 22px; }
+.screen.flat .win-body h2 { font-size: 26px; margin-bottom: 10px; }
+.screen.flat .win-body p { font-size: 15px; margin-bottom: 18px; }
+.screen.flat .win-body h3 { font-size: 13px; margin-bottom: 10px; }
+.screen.flat .win-body ul { gap: 10px; }
+.screen.flat .win-body li a { width: 100%; padding: 14px 16px; font-size: 17px; gap: 4px; }
+.screen.flat .win-body li a small { font-size: 13px; }
+.screen-inner { position: absolute; top: 110px; bottom: 110px; left: 50%; width: 1180px; margin-left: -590px; border-radius: 22px;
+  background: rgba(26,15,23,.8); border: 1px solid rgba(235,229,235,.16);
+  box-shadow: 0 30px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.25); overflow: hidden; }
+.win-bar { height: 54px; display: flex; align-items: center; gap: 12px; padding: 0 24px; border-bottom: 1px solid rgba(235,229,235,.1); color: var(--muted); font-size: 20px; }
+.win-bar i { width: 14px; height: 14px; border-radius: 50%; background: #5d505a; }
+.win-bar span { margin-left: 14px; }
+.win-body { padding: 34px 56px; }
+.win-body h2 { font-family: var(--font-display); font-size: 48px; margin: 0 0 14px; font-weight: 700; letter-spacing: .06em; }
+.win-body p { font-size: 25px; line-height: 1.65; color: #d9d1d8; max-width: 38em; margin: 0 0 28px; }
+.win-body h3 { font-size: 22px; color: var(--muted); font-weight: 500; letter-spacing: .12em; margin: 0 0 18px; }
+.win-body ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 22px; flex-wrap: wrap; }
+.win-body li a { display: flex; flex-direction: column; gap: 8px; width: 260px; padding: 22px 24px; border-radius: 16px; text-decoration: none; color: var(--ink);
+  background: rgba(121,152,195,.12); border: 1px solid rgba(121,152,195,.4); font-size: 26px; font-family: var(--font-display); transition: background .3s; }
+.win-body li a small { font-family: var(--font-sans); font-size: 18px; color: var(--muted); }
+.win-body li a:hover { background: rgba(121,152,195,.26); }
+
+.clockface { position: fixed; left: 0; top: 0; width: 400px; height: 200px; transform-origin: 0 0; z-index: 3; display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 118px; color: rgba(255, 196, 140, .92); letter-spacing: .04em;
+  text-shadow: 0 0 18px rgba(255, 160, 90, .55); pointer-events: none; opacity: 0; transition: opacity .8s; }
+.clockface.on { opacity: 1; }
+
+.aroma { position: fixed; right: 4vw; top: 50%; transform: translateY(-50%); width: 300px; z-index: 6; padding: 26px 24px 22px; border-radius: 18px;
+  background: var(--glass); border: 1px solid rgba(235,229,235,.14); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.aroma h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 0 0 4px; letter-spacing: .06em; }
+.aroma-hint { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+.aroma ul { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
+.oil { width: 100%; display: grid; grid-template-columns: 14px 1fr; gap: 4px 12px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 12px;
+  background: transparent; border: 1px solid transparent; cursor: pointer; transition: all .3s var(--ease); }
+.oil i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+.oil b { font-weight: 500; font-size: 15px; letter-spacing: .06em; }
+.oil span { grid-column: 2; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.oil:hover { background: rgba(235,229,235,.06); }
+.oil.on { border-color: rgba(121,152,195,.6); background: rgba(121,152,195,.12); }
+
+.loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 30; pointer-events: none; transition: opacity .8s; background: #0c070b; }
+.loading .ld { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.loading .ld i { width: 7px; height: 7px; border-radius: 50%; background: #ffd9ae; box-shadow: 0 0 10px 2px rgba(255,190,120,.7), 0 0 38px 10px rgba(255,160,90,.22);
+  animation: ember 2.4s ease-in-out infinite; }
+.loading .ld span { font-family: var(--font-display); color: var(--muted); letter-spacing: .4em; font-size: 14px; padding-left: .4em; animation: breathe 2.4s ease-in-out infinite; }
+@keyframes ember { 50% { transform: scale(.8); opacity: .55; box-shadow: 0 0 6px 1px rgba(255,190,120,.5), 0 0 24px 6px rgba(255,160,90,.12); } }
+body.loaded .loading { opacity: 0; }
+@keyframes breathe { 50% { opacity: .35; } }
+
+.mobilenav::-webkit-scrollbar { display: none; }
+.mobilenav { scrollbar-width: none; position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 6; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.mobilenav .chip { flex: none; }
+
+.errbar { position: fixed; left: 12px; bottom: 12px; z-index: 99; background: #3a1a22; border: 1px solid #a05060; border-radius: 10px; padding: 8px 10px; max-width: 70vw; display: flex; gap: 10px; align-items: flex-start; }
+.errbar pre { margin: 0; font-size: 11px; white-space: pre-wrap; color: #f4d0d6; max-height: 30vh; overflow: auto; }
+.errbar button { font-size: 11px; }
+
+@media (max-width: 760px) {
+  .topbar { padding: 14px 16px; flex-direction: column; gap: 4px; }
+  .brand { font-size: 19px; }
+  .brand .sub { display: block; margin: 2px 0 0; font-size: 12px; }
+  .direct { font-size: 13px; }
+  .back { top: 88px; left: 16px; }
+  .aroma { right: 12px; left: 12px; top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); transform: none; width: auto; max-height: 40vh; overflow: auto; padding: 18px 16px 14px; }
+  .oil span { display: none; }
+  .hot .label { display: none; }
+  .reader { inset: 0; border-radius: 0; }
+  .hint { bottom: 76px; width: 90vw; text-align: center; }
+}
+
+/* 介面元件淡入淡出（main.js 的 vis()）：用獨立的 translate 屬性，不影響各元件原本的 transform 置中 */
+.fx { opacity: 0; translate: 0 10px; transition: opacity .45s var(--ease), translate .55s var(--ease); }
+.fx.show { opacity: 1; translate: 0 0; }
+.back.fx { translate: -8px 0; }
+.back.fx.show { translate: 0 0; transition-delay: .12s; }
+.hint.fx.show { transition-delay: .45s; }
+.aroma.fx { translate: 18px 0; }
+.aroma.fx.show { translate: 0 0; transition-delay: .1s; }
+.reader.fx { translate: 0 22px; }
+.reader.fx.show { translate: 0 0; }
+.bookui.fx { translate: 0 14px; }
+@media (prefers-reduced-motion: reduce) { .fx, .fx.show { translate: none; transition-duration: .2s; transition-delay: 0s; } }
+
+/* 燈光開關：點牆上的開關面板，旁邊浮出三顆 */
+.lightpanel { position: fixed; z-index: 7; min-width: 210px; padding: 14px 14px 10px; border-radius: 16px; background: var(--glass-strong);
+  border: 1px solid rgba(121,152,195,.45); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+.lp-title { margin: 0 4px 8px; font-family: var(--font-display); font-size: 15px; letter-spacing: .12em; color: var(--muted); }
+.sw { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 18px; margin: 0 0 6px; padding: 10px 14px;
+  border-radius: 12px; border: 1px solid rgba(235,229,235,.14); background: rgba(255,255,255,.03); cursor: pointer; font-size: 15px; letter-spacing: .06em;
+  transition: all .3s var(--ease); }
+.sw small { font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.sw::after { content: ''; order: 3; width: 7px; height: 7px; border-radius: 50%; background: #4a3f47; transition: all .3s var(--ease); }
+.sw.on { border-color: rgba(121,152,195,.6); background: rgba(121,152,195,.14); }
+.sw.on small { color: #c9d6ea; }
+.sw.on::after { background: var(--steel); box-shadow: 0 0 10px 2px rgba(121,152,195,.6); }
+.sw:hover, .sw:focus-visible { border-color: var(--steel); outline: none; }
+
+/* 開場：房間線稿＋名字，隨載入進度由左往右上色，載完接到真實房間 */
+.loading { background: #1d1119; display: block; }
+.loading img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 53% 50%; }
+.ld-draw { position: absolute; inset: 0; width: 100%; height: 100%; }   /* 線稿描繪（js/intro-draw.js） */
+.ld-lines { opacity: 0; animation: ld-in .9s var(--ease) .05s forwards; }
+.ld-color { -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--c, 0) * 130% - 30%), transparent calc(var(--c, 0) * 130%));
+  mask-image: linear-gradient(90deg, #000 calc(var(--c, 0) * 130% - 30%), transparent calc(var(--c, 0) * 130%)); filter: saturate(.85); }
+.ld-name { position: absolute; left: 0; right: 0; top: 34%; text-align: center; opacity: 0; animation: ld-in 1.1s var(--ease) .25s forwards;
+  text-shadow: 0 2px 30px rgba(0,0,0,.7), 0 0 60px rgba(29,17,25,.9); }
+.ld-name h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(44px, 7vw, 86px); letter-spacing: .32em; padding-left: .32em; color: #f3edf5; }
+.ld-name p { margin: 14px 0 0; font-size: clamp(13px, 1.4vw, 16px); letter-spacing: .3em; padding-left: .3em; color: #cfc3d4; }
+/* 載入中要一眼看得出來（郁為 10/9）：標籤＋百分比＋會呼吸的點，進度條加寬加粗；數值由 intro-draw.js 一開頁就開始更新（--q） */
+.ld-bar { position: absolute; left: 50%; bottom: 9vh; width: min(320px, 64vw); height: 3px; border-radius: 3px; transform: translateX(-50%); background: rgba(235,229,235,.16); overflow: hidden; }
+.ld-bar i { position: absolute; inset: 0; border-radius: 3px; transform-origin: 0 50%; transform: scaleX(var(--q, 0)); background: #9fb6d8; box-shadow: 0 0 10px rgba(159,182,216,.85); }
+.ld-status { position: absolute; left: 50%; bottom: calc(9vh + 20px); transform: translateX(-50%); margin: 0; display: flex; gap: 12px; align-items: center;
+  font-size: 15px; letter-spacing: .18em; color: #efe7f2; padding: 9px 20px; border-radius: 999px; background: rgba(29,17,25,.74);
+  border: 1px solid rgba(159,182,216,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; transition: opacity .4s var(--ease); }
+.ld-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9fb6d8; box-shadow: 0 0 8px rgba(159,182,216,.9); animation: ld-pulse 1.2s ease-in-out infinite; }
+.ld-status b { font-weight: 500; letter-spacing: .04em; color: #b6c9e5; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+@keyframes ld-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .ld-status::before { animation: none; } }
+.loading.colored .ld-status { opacity: 0; }
+/* 開場的兩個選項：名字在上色途中淡出，房間上完色後按鈕才淡入（.colored 由 main.js 加上）；實心按鈕，蓋在畫面上也看得清楚 */
+.loading.unnamed .ld-name { animation: ld-out .7s var(--ease) forwards; }   /* 上色一開始名字就淡出（main.js 加 .unnamed） */
+.loading.colored .ld-bar { opacity: 0; transition: opacity .5s var(--ease); }
+@keyframes ld-out { from { opacity: 1; } to { opacity: 0; } }
+.ld-choice { position: absolute; left: 16px; right: 16px; top: 46%; display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;
+  opacity: 0; pointer-events: none; transition: opacity .6s var(--ease); }   /* 10/9 從 .9s＋.15s 延遲縮短：7 秒內讀完 */
+.ld-choice[hidden] { display: none; }
+.loading.colored .ld-choice { opacity: 1; pointer-events: auto; }
+.ld-choice > * { font: inherit; font-size: 16px; font-weight: 500; letter-spacing: .16em; padding: 14px 30px 14px 32px; border-radius: 999px; cursor: pointer; text-decoration: none;
+  box-shadow: 0 10px 30px rgba(12,7,11,.55), 0 2px 6px rgba(12,7,11,.4);
+  transition: background .3s var(--ease), border-color .3s var(--ease), color .3s var(--ease), opacity .5s var(--ease), transform .3s var(--ease); }
+.ld-go { color: #1d1119; background: #9fb6d8; border: 1px solid #c3d3ea; }
+.ld-go:hover, .ld-go:focus-visible { background: #b6c9e5; outline: none; }
+.ld-list { color: #f3edf5; background: #2b1c27; border: 1px solid rgba(235,229,235,.35); }
+.ld-list:hover, .ld-list:focus-visible { background: #3a2834; border-color: rgba(235,229,235,.6); outline: none; }
+.ld-go:focus-visible, .ld-list:focus-visible { box-shadow: 0 0 0 3px rgba(159,182,216,.55), 0 10px 30px rgba(12,7,11,.55); }
+.ld-choice.chosen .ld-list { opacity: 0; pointer-events: none; }
+.ld-choice.chosen .ld-go { cursor: default; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@keyframes ld-in { to { opacity: 1; } }
+body.loaded .loading { opacity: 0; transition: opacity 1.1s var(--ease); }
+</style>
 <!-- 下載順序：開場描線的兩張圖最先要 -->
 <link rel="preload" href="intro-lines.jpg" as="image" fetchpriority="high" crossorigin="anonymous">
 <link rel="preload" href="intro-order.png" as="image" fetchpriority="high" crossorigin="anonymous">
-<link rel="preload" href="js/intro-draw.js" as="script" fetchpriority="high">
 <!-- 預設全景（發布時產生）-->
-<script>window.__ldFiles = {"vendor/three.module.js":118207,"vendor/three.core.js":278298,"vendor/lights/RectAreaLightTexturesLib.js":107701,"vendor/lights/RectAreaLightUniformsLib.js":434,"vendor/RoomEnvironment.js":1656,"js/main.js":30129,"js/stage.js":9331,"js/books.js":9302,"js/effects.js":4439,"js/sfx.js":1848,"js/intro-draw.js":3548,"room.css":5836,"intro-lines.jpg":185274,"intro-order.png":110115,"scene.json":2745,"look.json":1199,"copy.json":1081,"works.json":428,"panel.json":302,"views/roomc/camera.json":533,"views/roomc/depth.png":193215,"views/roomc/lamp.avif":38548,"views/roomc/shelf.avif":90371,"views/roomc/bed.avif":34357,"views/roomc/fill.avif":106792,"views/roomc/moon.avif":39508,"views/roomc/screen.avif":13793,"views/roomc/aroma.avif":12410,"views/roomc/cove.avif":60101,"views/roomc/track.avif":101511,"views/roomc/ceil.avif":136229,"views/roomc/sky.avif":57638,"intro-color-":149687};</script>
+<script>window.__ldFiles = {"js/room.bundle.js":261395,"intro-lines.jpg":185274,"intro-order.png":110115,"scene.json":2745,"look.json":1199,"copy.json":1081,"works.json":428,"panel.json":302,"views/roomc/camera.json":533,"views/roomc/depth.png":193215,"views/roomc/lamp.avif":38548,"views/roomc/shelf.avif":90371,"views/roomc/bed.avif":34357,"views/roomc/fill.avif":106792,"views/roomc/moon.avif":39508,"views/roomc/screen.avif":13793,"views/roomc/aroma.avif":12410,"views/roomc/cove.avif":60101,"views/roomc/track.avif":101511,"views/roomc/ceil.avif":136229,"views/roomc/sky.avif":57638,"intro-color-":149687};</script>
+<link rel="preload" href="js/room.bundle.js" as="fetch" crossorigin="anonymous" fetchpriority="high">
 <link rel="preload" href="scene.json" as="fetch" crossorigin="anonymous">
 <link rel="preload" href="look.json" as="fetch" crossorigin="anonymous">
 <link rel="preload" href="views/room/camera.json" as="fetch" crossorigin="anonymous">
@@ -67,20 +328,7 @@ function __showError(msg) {
 window.addEventListener('error', function (e) { __showError((e.message || '錯誤') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '')); });
 window.addEventListener('unhandledrejection', function (e) { __showError('Promise: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)); });
 </script>
-<script type="importmap">
-{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
-</script>
-<!-- 程式整串一開始就同時抓（要放在 importmap 後面，否則 "three" 對不到檔案） -->
-<link rel="modulepreload" href="vendor/three.module.js" fetchpriority="low">
-<link rel="modulepreload" href="vendor/three.core.js" fetchpriority="low">
-<link rel="modulepreload" href="js/main.js" fetchpriority="low">
-<link rel="modulepreload" href="js/stage.js" fetchpriority="low">
-<link rel="modulepreload" href="js/books.js" fetchpriority="low">
-<link rel="modulepreload" href="js/effects.js" fetchpriority="low">
-<link rel="modulepreload" href="js/sfx.js" fetchpriority="low">
-<link rel="modulepreload" href="vendor/RoomEnvironment.js" fetchpriority="low">
-<link rel="modulepreload" href="vendor/lights/RectAreaLightUniformsLib.js" fetchpriority="low">
-<link rel="modulepreload" href="vendor/lights/RectAreaLightTexturesLib.js" fetchpriority="low">
+
 </head>
 <body>
 <canvas id="stage" aria-label="林郁為的房間"></canvas>
@@ -151,10 +399,108 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
   <p class="ld-status" role="status"><span data-copy="loading">正在載入房間</span><b class="ld-pct" aria-hidden="true">0%</b></p>
   <div class="ld-bar" aria-hidden="true"><i></i></div>
 </div>
-<script src="js/intro-draw.js"></script>
+<script>
+// 開場線稿：一筆一筆描出來（筆順圖由 make-intro-order.py 算出：遠的先、近的後，段內沿著線長出去）
+// 普通腳本、不等 three.js：頁面一出現就開始畫。畫完 window.__introDrawn 會 resolve，主程式才開始上色。
+(function () {
+  let doneFn; window.__introDrawn = new Promise(r => { doneFn = r; });
+  const box = document.getElementById('loading'), img = box && box.querySelector('.ld-lines');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let returning = false; try { returning = localStorage.getItem('v30-entry') === 'room'; } catch {}
+  const DRAW = returning ? 1.8 : 3.4;   // 秒；來過的人畫快一點。房間先下載好就加速畫完（window.__ldHurry），不讓線稿拖住上色
+  const cv = document.createElement('canvas'); cv.className = 'ld-draw'; cv.setAttribute('aria-hidden', 'true');
+  const gl = cv.getContext('webgl', { premultipliedAlpha: false, alpha: false });
+  if (!box || !img || !gl || reduce) { doneFn(); return; }   // 不支援或要求減少動態：直接顯示整張線稿
+  img.style.visibility = 'hidden'; img.after(cv);
+  const vs = 'attribute vec2 p; varying vec2 v; void main(){ v = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
+  const fs = `precision mediump float; varying vec2 v; uniform sampler2D L, O; uniform float T; uniform vec4 C;
+    void main(){
+      vec2 uv = vec2(C.x + v.x * C.y, C.z + (1.0 - v.y) * C.w);
+      vec3 bg = vec3(29.0, 17.0, 25.0) / 255.0;
+      vec3 l = texture2D(L, uv).rgb; float o = texture2D(O, uv).r * 255.0;
+      float on = step(0.5, o), t = (o - 1.0) / 254.0;
+      float rev = clamp((T - t) / 0.025, 0.0, 1.0) * on;
+      float lw = clamp((dot(l, vec3(0.333)) - 0.086) / 0.79, 0.0, 1.0);
+      float glow = exp(-pow((T - t) / 0.01, 2.0)) * on * lw * lw;
+      gl_FragColor = vec4(bg + (l - bg) * rev + vec3(0.59, 0.69, 0.92) * glow * 0.5, 1.0);
+    }`;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.remove(); img.style.visibility = ''; doneFn(); return; }
+  gl.useProgram(pr);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const ap = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 2, gl.FLOAT, false, 0, 0);
+  const tex = (unit, im, nearest) => {
+    const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+    const f = nearest ? gl.NEAREST : gl.LINEAR;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  };
+  // 直接照網頁開頭預先下載的那份拿（走兩家同時抓反而接不上預先下載，同一張圖會抓兩三次）
+  const load = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const uT = gl.getUniformLocation(pr, 'T'), uC = gl.getUniformLocation(pr, 'C');
+  let iw = 1600, ih = 873;
+  function fit() {   // 與 .loading img 的 object-fit: cover、object-position: 53% 50% 相同的裁切
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); gl.viewport(0, 0, cv.width, cv.height);
+    const ia = iw / ih, ca = w / h;
+    if (ca > ia) { const f = ia / ca; gl.uniform4f(uC, 0, 1, 0.5 * (1 - f), f); } else { const f = ca / ia; gl.uniform4f(uC, 0.53 * (1 - f), f, 0, 1); }
+  }
+  Promise.all([load(img.getAttribute('src')), load('intro-order.png')]).then(([li, oi]) => {
+    iw = li.naturalWidth; ih = li.naturalHeight;
+    gl.uniform1i(gl.getUniformLocation(pr, 'L'), 0); gl.uniform1i(gl.getUniformLocation(pr, 'O'), 1);
+    tex(0, li, false); tex(1, oi, true);
+    fit(); addEventListener('resize', fit);
+    let last = performance.now(), T = 0, signaled = false;
+    (function draw(now) {
+      // 線稿是遮住「房間還在準備」的過場：房間好了（__ldHurry）剩下的線四倍速畫完，馬上接上色
+      // 照實際經過的時間推進（以前每格最多算 0.1 秒，電腦忙著載程式時線稿會越畫越慢）
+      T = Math.min(1.06, T + Math.min(0.5, (now - last) / 1000) / DRAW * 1.06 * (window.__ldHurry ? 4 : 1)); last = now;
+      gl.uniform1f(uT, T); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (T >= 1.0 && !signaled) { signaled = true; doneFn(); performance.mark('ld:drawn'); }
+      if (T < 1.06 && !document.body.classList.contains('loaded')) requestAnimationFrame(draw);
+    })(last);
+  }).catch(() => { cv.remove(); img.style.visibility = ''; doneFn(); });
+})();
+
+// 載入進度（郁為 10/9：要很明顯告訴對方正在載入）：一開頁就動，不等三維程式庫。
+// 下載占 90%：照發布時算好的必要檔案清單（window.__ldFiles，檔名→位元組），看已經下載完的檔案加起來多少；
+// 上色占 7%（主程式給 window.__ldColor），最後準備房間那一下到 97–99%（window.__ldTarget）。沒有清單（本機預覽）就照時間慢慢爬
+(function () {
+  const el = document.getElementById('loading'), pct = el && el.querySelector('.ld-pct');
+  if (!el) return;
+  const files = window.__ldFiles, total = files ? Object.values(files).reduce((a, b) => a + b, 0) : 0;
+  const t0 = performance.now(); let shown = 0, dl = 0, lastScan = 0;
+  function scan() {
+    let got = 0; const seen = {};
+    for (const e of performance.getEntriesByType('resource')) {
+      const m = /\/room\/([^?#]+)/.exec(e.name); if (!m) continue;
+      const k = m[1].startsWith('intro-color-') ? 'intro-color-' : m[1];
+      if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; }
+    }
+    return got / total;
+  }
+  (function tick(now) {
+    if (total && now - lastScan > 150) { dl = scan(); lastScan = now; }
+    const base = total ? 0.9 * dl : 0.12 * (1 - Math.exp(-(now - t0) / 2500));
+    const target = Math.max(base + 0.07 * (window.__ldColor || 0), window.__ldTarget || 0);
+    shown += (target - shown) * 0.1;
+    const done = el.classList.contains('colored');
+    el.style.setProperty('--q', done ? '1' : shown.toFixed(4));
+    const txt = (done ? 100 : Math.min(99, Math.floor(shown * 100))) + '%';
+    if (pct && pct.textContent !== txt) pct.textContent = txt;
+    if (!done) requestAnimationFrame(tick);
+  })(t0);
+})();
+</script>
 
 <div id="errbar" class="errbar" hidden><pre class="msg"></pre><button onclick="navigator.clipboard.writeText(window.__errors.join('\n'))">複製錯誤</button></div>
 
-<script type="module" src="js/main.js"></script>
+<script>
+// 房間程式（打包成一個檔）：兩家 CDN 同時抓、先到先用，再從記憶體執行
+__hfetch('js/room.bundle.js').then(function (b) { return import(URL.createObjectURL(new Blob([b], { type: 'text/javascript' }))); })
+  .catch(function (e) { if (window.__cdnFail) return window.__cdnFail(); __showError('程式載入失敗：' + (e && e.message || e)); });
+</script>
 </body>
 </html>
