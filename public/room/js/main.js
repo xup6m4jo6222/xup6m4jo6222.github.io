@@ -936,6 +936,8 @@ window.__introDrawn?.then(() => { LD.drawn = true; });
 function setLoad(p) { LD.p = Math.max(LD.p, p); }
 (function ldTick() {   // 顯示值平滑追上實際進度；上色（--c）等線稿描完才開始，最快約 1.2 秒掃過整張
   LD.shown += (LD.p - LD.shown) * 0.12;
+  // 線稿只是過場：房間都準備好了，線稿還沒畫完（線稿圖卡在路上）也最多再等 1.5 秒就開始上色
+  if (!LD.drawn && window.__ldHurry) { LD.hurryAt = LD.hurryAt || performance.now(); if (performance.now() - LD.hurryAt > 1500) LD.drawn = true; }
   if (LD.drawn) LD.c = Math.min(LD.shown, LD.c + 1 / 48);   // 上色最快約 0.8 秒掃過（10/9 從 1.2 秒縮短）
   if (LD.c > 0.02) $('#loading')?.classList.add('unnamed');   // 上色一開始，名字就淡出（不等渲染完成）
   window.__ldColor = LD.c;   // 畫面下方的百分比（intro-draw.js）：上色那一段
@@ -963,7 +965,12 @@ function ldFinish() {   // 上色完成、名字至少停留 1.4 秒
   setLoad(1);
   return new Promise(res => { const f = () => (LD.c > 0.985 && performance.now() - LD.t0 > 1400) ? setTimeout(res, 100) : requestAnimationFrame(f); f(); });
 }
-{ const slotNow = timeSlot(); const im = $('#loading .ld-color'); if (im) im.src = `intro-color-${slotNow}.jpg`; setLoad(0.08); }   // 接上網頁開頭的預先下載
+{ const slotNow = timeSlot(); const im = $('#loading .ld-color'), f = `intro-color-${slotNow}.jpg`;
+  if (im) {
+    im.src = f;   // 接上網頁開頭的預先下載；2.5 秒還沒到（主網址卡住）就改向第二家 CDN 要
+    setTimeout(() => { if (!im.complete && !DEV && window.__hfetch && window.__srcs.length > 1) window.__hfetch(f, 2500, 1).then(b => { if (!im.complete) im.src = URL.createObjectURL(b); }, () => {}); }, 2500);
+  }
+  setLoad(0.08); }
 
 // ---------- 每幀 ----------
 function resize() {

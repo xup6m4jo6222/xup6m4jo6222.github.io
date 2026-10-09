@@ -35,8 +35,14 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   };
-  // 直接照網頁開頭預先下載的那份拿（走兩家同時抓反而接不上預先下載，同一張圖會抓兩三次）
-  const load = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  // 先照網頁開頭預先下載的那份拿（一開始就走兩家同時抓，會接不上預先下載、同一張圖抓兩三次）；
+  // 2.5 秒還沒到就是主網址卡住了，改向第二家 CDN 要一份（線稿圖到不了，線稿就畫不完、上色也開始不了）
+  const img2 = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const load = src => new Promise((res, rej) => {
+    let done = false; const ok = i => { if (!done) { done = true; res(i); } };
+    img2(src).then(ok, () => {});
+    setTimeout(() => { if (!done && window.__hfetch && window.__srcs.length > 1) window.__hfetch(src, 2500, 1).then(b => img2(URL.createObjectURL(b))).then(ok, rej); }, 2500);
+  });
   const uT = gl.getUniformLocation(pr, 'T'), uC = gl.getUniformLocation(pr, 'C');
   let iw = 1600, ih = 873;
   function fit() {   // 與 .loading img 的 object-fit: cover、object-position: 53% 50% 相同的裁切
