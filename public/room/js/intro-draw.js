@@ -38,7 +38,8 @@
   // 先照網頁開頭預先下載的那份拿（一開始就走兩家同時抓，會接不上預先下載、同一張圖抓兩三次）；
   // 2.5 秒還沒到就是主網址卡住了，改向第二家 CDN 要一份（線稿圖到不了，線稿就畫不完、上色也開始不了）
   const img2 = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
-  const load = src => new Promise((res, rej) => {
+  // 正式網站：網頁開頭已經用 __hfetch 開始抓（兩家同時、先到先用），拿同一份
+  const load = src => window.__cdn ? window.__hfetch(src).then(b => img2(URL.createObjectURL(b))) : new Promise((res, rej) => {
     let done = false; const ok = i => { if (!done) { done = true; res(i); } };
     img2(src).then(ok, () => {});
     setTimeout(() => { if (!done && window.__hfetch && window.__srcs.length > 1) window.__hfetch(src, 2500, 1).then(b => img2(URL.createObjectURL(b))).then(ok, rej); }, 2500);

@@ -938,7 +938,7 @@ function setLoad(p) { LD.p = Math.max(LD.p, p); }
   LD.shown += (LD.p - LD.shown) * 0.12;
   // 線稿只是過場：房間都準備好了，線稿還沒畫完（線稿圖卡在路上）也最多再等 1.5 秒就開始上色
   if (!LD.drawn && window.__ldHurry) { LD.hurryAt = LD.hurryAt || performance.now(); if (performance.now() - LD.hurryAt > 1500) LD.drawn = true; }
-  if (LD.drawn) LD.c = Math.min(LD.shown, LD.c + 1 / 48);   // 上色最快約 0.8 秒掃過（10/9 從 1.2 秒縮短）
+  if (LD.drawn && LD.colorOK) LD.c = Math.min(LD.shown, LD.c + 1 / 48);   // 上色最快約 0.8 秒掃過（10/9 從 1.2 秒縮短）
   if (LD.c > 0.02) $('#loading')?.classList.add('unnamed');   // 上色一開始，名字就淡出（不等渲染完成）
   window.__ldColor = LD.c;   // 畫面下方的百分比（intro-draw.js）：上色那一段
   if (!window.__ldFiles) window.__ldTarget = Math.max(window.__ldTarget || 0, 0.8 * LD.shown);   // 本機預覽沒有檔案清單：照房間下載進度
@@ -967,9 +967,12 @@ function ldFinish() {   // 上色完成、名字至少停留 1.4 秒
 }
 { const slotNow = timeSlot(); const im = $('#loading .ld-color'), f = `intro-color-${slotNow}.jpg`;
   if (im) {
-    im.src = f;   // 接上網頁開頭的預先下載；2.5 秒還沒到（主網址卡住）就改向第二家 CDN 要
-    setTimeout(() => { if (!im.complete && !DEV && window.__hfetch && window.__srcs.length > 1) window.__hfetch(f, 2500, 1).then(b => { if (!im.complete) im.src = URL.createObjectURL(b); }, () => {}); }, 2500);
-  }
+    // 上色圖到了才開始上色：以前圖還在路上就開始，等於拿空白在上色（10/9 量到上色 4.5 秒開始、圖 5.7 秒才到）。圖壞掉也照樣往下走，不卡住開場
+    im.addEventListener('load', () => { LD.colorOK = true; }, { once: true });
+    im.addEventListener('error', () => { LD.colorOK = true; }, { once: true });
+    if (window.__cdn) window.__hfetch(f).then(b => { im.src = URL.createObjectURL(b); }, () => { LD.colorOK = true; });   // 正式網站：網頁開頭已經兩家同時在抓，拿同一份
+    else im.src = f;
+  } else LD.colorOK = true;
   setLoad(0.08); }
 
 // ---------- 每幀 ----------
