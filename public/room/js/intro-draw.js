@@ -84,6 +84,8 @@
       const k = m[1].startsWith('intro-color-') ? 'intro-color-' : m[1];
       if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; }
     }
+    // 背景執行緒抓的檔案不會出現在網頁的下載紀錄裡：照 __hfetch 回報的完成清單補上
+    for (const f in window.__hdone || {}) { const k = f.startsWith('intro-color-') ? 'intro-color-' : f; if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; } }
     return got / total;
   }
   (function tick(now) {

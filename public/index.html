@@ -34,25 +34,38 @@
 // skip：從第幾個來源開始（線稿圖已經向主網址要過一次了，備援時直接從第二家開始）
 // 同一個檔案只抓一次：網頁開頭就先替必要檔案呼叫（發布時產生），主程式之後再要時拿同一份。
 // 以前開頭只是「預先下載」，要等主程式跑起來呼叫才開始計時找第二家，主網址一慢，光層要到 8 秒才向第二家要（10/9 量到）
-window.__hcache = {};
+// 一個檔案的「依序向各家要、先到先用」。在背景執行緒（Worker）裡跑：開場時主執行緒忙著畫線稿、跑程式、編譯顯示卡程式，
+// 放在主執行緒的計時器排不上去，「1.5 秒找第二家」實際 6 秒多才發生（10/9 電腦尺寸量到，那次 9.5 秒）
+function __race(srcs, rel, w, pri, done1) {
+  var ctrls = [], done = false, fails = 0, started = 0;
+  function start() {
+    var i = started++; if (i >= srcs.length) return;
+    var c = self.AbortController ? new AbortController() : null; if (c) ctrls.push(c);
+    var o = c ? { signal: c.signal } : {}; if (pri) o.priority = pri;
+    fetch(srcs[i] + rel, o).then(function (r) { if (!r.ok) throw new Error(rel + ' ' + r.status); return r.blob(); })
+      .then(function (b) { if (done) return; done = true; ctrls.forEach(function (x) { if (x !== c) x.abort(); }); done1(null, b, i); })
+      .catch(function (e) { if (done) return; fails++; if (fails >= srcs.length) { done = true; done1(String(e && e.message || e)); } else if (fails >= started) start(); });
+  }
+  start();
+  setTimeout(function () { if (!done && started < 2) start(); }, w);
+  setTimeout(function () { if (!done && started < 3) start(); }, w + 2500);
+}
+window.__hcache = {}; window.__hdone = {};   // __hdone：已下載完的檔案（開場百分比照它算，Worker 的下載不會出現在網頁的下載紀錄裡）
+var __hw = null, __hq = {}, __hn = 0;
+if (window.__cdn && window.Worker && window.Blob) try {   // 只有正式網站（來源都是完整網址）才用 Worker；本機預覽的相對網址在 Worker 裡解析不到
+  __hw = new Worker(URL.createObjectURL(new Blob([__race.toString() + '\nonmessage = function (e) { var d = e.data; __race(d.srcs, d.rel, d.w, d.pri, function (err, b, i) { postMessage({ id: d.id, err: err, b: b, i: i }); }); };'], { type: 'text/javascript' })));
+  __hw.onmessage = function (e) { var d = e.data, q = __hq[d.id]; delete __hq[d.id]; if (d.err) return q.rej(new Error(d.err)); window.__hdone[q.rel] = [Math.round(q.t0), Math.round(performance.now()), d.i]; q.res(d.b); };
+  // Worker 起不來（瀏覽器擋掉之類）：還在等的改回主執行緒抓
+  __hw.onerror = function () { __hw = null; var q = __hq; __hq = {}; Object.keys(q).forEach(function (k) { var x = q[k]; __race(x.srcs, x.rel, x.w, x.pri, function (err, b, i) { if (err) return x.rej(new Error(err)); window.__hdone[x.rel] = [Math.round(x.t0), Math.round(performance.now()), i]; x.res(b); }); }); };
+} catch (e) { __hw = null; }
 window.__hfetch = function (rel, wait, skip, pri) {
   if (!skip && window.__hcache[rel]) return window.__hcache[rel];
-  var srcs = window.__srcs.slice(skip || 0), ctrls = [], done = false, fails = 0, started = 0;
-  if (!srcs.length) srcs = window.__srcs;
+  var srcs = window.__srcs.slice(skip || 0); if (!srcs.length) srcs = window.__srcs;
+  // 正常 0.3–1 秒內全部到齊；1.5 秒還沒到就是 CDN 那頭卡住（10/9 從 2 秒縮短：差這 0.5 秒，手機最慢那次 8.2 秒）
+  var w = wait || (window.__slow ? 4000 : 1500), t0 = performance.now();
   var p = new Promise(function (res, rej) {
-    function start() {
-      var i = started++; if (i >= srcs.length) return;
-      var c = window.AbortController ? new AbortController() : null; if (c) ctrls.push(c);
-      var o = c ? { signal: c.signal } : {}; if (pri) o.priority = pri;
-      fetch(srcs[i] + rel, o).then(function (r) { if (!r.ok) throw new Error(rel + ' ' + r.status); return r.blob(); })
-        .then(function (b) { if (done) return; done = true; ctrls.forEach(function (x) { if (x !== c) x.abort(); }); res(b); })
-        .catch(function (e) { if (done) return; fails++; if (fails >= srcs.length) rej(e); else if (fails >= started) start(); });
-    }
-    start();
-    // 正常 0.3–1 秒內全部到齊；1.5 秒還沒到就是 CDN 那頭卡住（10/9 從 2 秒縮短：差這 0.5 秒，手機最慢那次 8.2 秒）
-    var w = wait || (window.__slow ? 4000 : 1500);
-    setTimeout(function () { if (!done && started < 2) start(); }, w);
-    setTimeout(function () { if (!done && started < 3) start(); }, w + 2500);
+    if (__hw) { var id = ++__hn; __hq[id] = { res: res, rej: rej, rel: rel, t0: t0, srcs: srcs, w: w, pri: pri }; __hw.postMessage({ id: id, srcs: srcs, rel: rel, w: w, pri: pri }); }
+    else __race(srcs, rel, w, pri, function (err, b, i) { if (err) return rej(new Error(err)); window.__hdone[rel] = [Math.round(t0), Math.round(performance.now()), i]; res(b); });
   });
   if (!skip) window.__hcache[rel] = p;
   return p;
@@ -498,6 +511,8 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
       const k = m[1].startsWith('intro-color-') ? 'intro-color-' : m[1];
       if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; }
     }
+    // 背景執行緒抓的檔案不會出現在網頁的下載紀錄裡：照 __hfetch 回報的完成清單補上
+    for (const f in window.__hdone || {}) { const k = f.startsWith('intro-color-') ? 'intro-color-' : f; if (files[k] && !seen[k]) { seen[k] = 1; got += files[k]; } }
     return got / total;
   }
   (function tick(now) {
