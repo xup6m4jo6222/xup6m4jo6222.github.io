@@ -52,7 +52,8 @@
     let last = performance.now(), T = 0, signaled = false;
     (function draw(now) {
       // 線稿是遮住「房間還在準備」的過場：房間好了（__ldHurry）剩下的線四倍速畫完，馬上接上色
-      T = Math.min(1.06, T + Math.min(0.1, (now - last) / 1000) / DRAW * 1.06 * (window.__ldHurry ? 4 : 1)); last = now;
+      // 照實際經過的時間推進（以前每格最多算 0.1 秒，電腦忙著載程式時線稿會越畫越慢）
+      T = Math.min(1.06, T + Math.min(0.5, (now - last) / 1000) / DRAW * 1.06 * (window.__ldHurry ? 4 : 1)); last = now;
       gl.uniform1f(uT, T); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       if (T >= 1.0 && !signaled) { signaled = true; doneFn(); performance.mark('ld:drawn'); }
       if (T < 1.06 && !document.body.classList.contains('loaded')) requestAnimationFrame(draw);

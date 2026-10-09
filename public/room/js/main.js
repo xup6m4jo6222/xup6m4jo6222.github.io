@@ -186,7 +186,9 @@ function toScreen(p) {
 // ---------- 讀資料 ----------
 // 站內網址（作品頁 /projects/…）一律接在網站自己的網域後面：正式網站的 base 指向 CDN，相對或 / 開頭的網址會跑錯地方
 const siteUrl = u => (u && u.startsWith('/') ? location.origin + u : u);
-async function fetchJSON(u) { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
+// 本機預覽每次重抓（改了文字、燈光立刻看得到）；正式網站的檔案釘在版本上不會變，照一般方式抓，網頁開頭的預先下載才接得上
+const DEV = location.port === '4330';
+async function fetchJSON(u) { const r = await fetch(u, DEV ? { cache: 'no-store' } : {}); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
 async function loadCopy() { try { S.copy = (await fetchJSON('copy.json')).text || {}; } catch { S.copy = {}; } applyCopy(); }
 function T(id, fb = '') { const v = S.copy[id]; return v == null ? fb : v; }
 function lines(id) { return T(id).split('\n').map(s => s.trim()).filter(Boolean).map(s => s.split('｜').map(x => x.trim())); }
