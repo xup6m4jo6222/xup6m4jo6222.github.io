@@ -5,7 +5,7 @@
   const box = document.getElementById('loading'), img = box && box.querySelector('.ld-lines');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let returning = false; try { returning = localStorage.getItem('v30-entry') === 'room'; } catch {}
-  const DRAW = returning ? 1.8 : 3.4;   // 秒；來過的人畫快一點
+  const DRAW = returning ? 1.4 : 2.4;   // 秒；來過的人畫快一點（10/9 為了 7 秒內讀完，從 3.4／1.8 縮短）
   const cv = document.createElement('canvas'); cv.className = 'ld-draw'; cv.setAttribute('aria-hidden', 'true');
   const gl = cv.getContext('webgl', { premultipliedAlpha: false, alpha: false });
   if (!box || !img || !gl || reduce) { doneFn(); return; }   // 不支援或要求減少動態：直接顯示整張線稿
@@ -35,7 +35,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   };
-  const load = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  const load = src => new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = src; });
   const uT = gl.getUniformLocation(pr, 'T'), uC = gl.getUniformLocation(pr, 'C');
   let iw = 1600, ih = 873;
   function fit() {   // 與 .loading img 的 object-fit: cover、object-position: 53% 50% 相同的裁切

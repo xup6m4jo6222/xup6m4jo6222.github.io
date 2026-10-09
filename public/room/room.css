@@ -47,6 +47,10 @@ body.ready .topbar { opacity: 1; }
 .hot:hover .dot, .hot:focus-visible .dot { transform: scale(1.25); background: #fff; }
 .hot:hover .dot::before, .hot:focus-visible .dot::before { inset: -13px; border-color: rgba(121,152,195,.85); animation: none; }
 .hot:hover .label, .hot:focus-visible .label { opacity: 1; transform: none; }
+/* 滑鼠移到物件本身（不在光點上）也算：.near 由 main.js 依距離標上 */
+.hot.near .dot { transform: scale(1.25); background: #fff; }
+.hot.near .dot::before { inset: -13px; border-color: rgba(121,152,195,.85); animation: none; }
+.hot.near .label { opacity: 1; transform: none; }
 .hot:focus-visible { outline: none; }
 @keyframes breathe-ring { 0%, 100% { transform: scale(.85); opacity: .25; } 50% { transform: scale(1.12); opacity: .75; } }
 @keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
@@ -61,6 +65,10 @@ body.ready .topbar { opacity: 1; }
 
 .hint { position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%); margin: 0; color: var(--muted); font-size: 14px; letter-spacing: .08em;
   z-index: 5; text-shadow: 0 1px 10px rgba(0,0,0,.8); }
+/* 點了之後畫面還在下載：鏡頭停在半路、失焦，中央一行字與進度 */
+.viewload { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 6; font-size: 14px; letter-spacing: .08em;
+  padding: 8px 18px; border-radius: 999px; background: var(--glass-strong); border: 1px solid rgba(121,152,195,.45);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .booktip { position: fixed; z-index: 6; margin: 0; transform: translate(-50%, -130%); font-family: var(--font-display); font-size: 17px; padding: 7px 14px;
   border-radius: 10px; background: var(--glass-strong); border: 1px solid rgba(121,152,195,.5); pointer-events: none; white-space: nowrap; }
 .booktip small { display: block; font-family: var(--font-sans); font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -201,7 +209,7 @@ body.loaded .loading { opacity: 0; }
 .loading.colored .ld-bar { opacity: 0; transition: opacity .5s var(--ease); }
 @keyframes ld-out { from { opacity: 1; } to { opacity: 0; } }
 .ld-choice { position: absolute; left: 16px; right: 16px; top: 46%; display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;
-  opacity: 0; pointer-events: none; transition: opacity .9s var(--ease) .15s; }
+  opacity: 0; pointer-events: none; transition: opacity .6s var(--ease); }   /* 10/9 從 .9s＋.15s 延遲縮短：7 秒內讀完 */
 .ld-choice[hidden] { display: none; }
 .loading.colored .ld-choice { opacity: 1; pointer-events: auto; }
 .ld-choice > * { font: inherit; font-size: 16px; font-weight: 500; letter-spacing: .16em; padding: 14px 30px 14px 32px; border-radius: 999px; cursor: pointer; text-decoration: none;

@@ -25,6 +25,7 @@ export class BookKit {
     this.linenDetail = flat('rgb(196,196,196)');
     this.paper = flat('rgb(241,229,209)'); this.paper.colorSpace = THREE.SRGBColorSpace;
     this.linenImg = new Image(); this.paperImg = new Image(); this.normalImg = new Image();
+    [this.linenImg, this.paperImg, this.normalImg].forEach(i => i.crossOrigin = 'anonymous');   // 正式網站從 CDN 拿圖：不加這個，畫進畫布或送進顯示卡會被瀏覽器擋
     this.texDone = new Promise(r => { this._texGo = r; }).then(() => {
       const pairs = [[this.normalImg, 'tex/linen-normal.webp', this.linenNormal], [this.linenImg, 'tex/linen-detail.webp', this.linenDetail], [this.paperImg, 'tex/paper.webp', this.paper]];
       return Promise.all(pairs.map(([img, src, tex]) => { img.src = src; return img.decode().then(() => { tex.dispose(); tex.image = img; tex.needsUpdate = true; }).catch(() => {}); }));
@@ -300,7 +301,7 @@ export class Book extends THREE.Group {
     if (this._closing) {
       this.flatten(Math.min(1, k / 0.45));
       this.sheets.forEach(s => s.visible = show && !this.pageL.visible);
-      this.pageR.visible = show && this._rVis;
+      this.pageR.visible = !!(show && this._rVis);   // 一律給明確的是／否：three.js 只在 visible === false 時才藏，給 undefined 會照畫（舊版右頁的字就是這樣穿過翻頁紙）
       return;
     }
     this.sheets.forEach(s => s.visible = show && !this.pageL.visible);

@@ -19,6 +19,20 @@ jobs:
     steps:
       - name: Checkout your repository using git
         uses: actions/checkout@v7
+      # 首頁房間的大檔改由 jsDelivr 送（GitHub Pages 從台灣實測每秒 25–300 KB，jsDelivr 1.8–10 MB）。
+      # 網址釘在這次提交的編號上：檔案永遠對得上這一版，CDN 也能永久快取。CDN 失敗時頁面會自動退回 /room/。
+      - name: 房間大檔改走 jsDelivr（釘在這次提交）
+        run: |
+          CDN="https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_SHA}/public/room/"
+          grep -q "__ROOM_CDN__" public/index.html
+          sed -i "s#__ROOM_CDN__#${CDN}#" public/index.html
+          grep -q "${CDN}" public/index.html
+      # 先替第一位訪客把 CDN 暖好：jsDelivr 第一次被要求時才去 GitHub 抓，之後各地節點才快
+      - name: 預熱 jsDelivr
+        continue-on-error: true
+        run: |
+          cd public/room
+          find . -type f | sed 's#^\./##' | xargs -P 16 -I{} curl -s -o /dev/null -w "%{http_code} {}\n" "https://cdn.jsdelivr.net/gh/${GITHUB_REPOSITORY}@${GITHUB_SHA}/public/room/{}" | sort | uniq -c -w 3
       - name: Install, build, and upload your site
         uses: withastro/action@v6
       # 部署前閘門：跑在 build 之後、deploy 之前。這一步紅掉，deploy job 就不會執行。

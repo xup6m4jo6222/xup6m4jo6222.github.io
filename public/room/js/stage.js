@@ -20,10 +20,17 @@ export function applyProjection(cam, p, near = 0.03, far = 60) {
 }
 
 export class ViewData {
-  constructor(name) { this.name = name; this.ready = false; }
+  constructor(name) {
+    this.name = name; this.ready = false; this.loaded = 0; this.total = 0;
+    // 鏡頭資料（camera.json，1 KB）先到就先通知：點下去鏡頭就能出發，光層邊推邊下載
+    this.infoReady = new Promise((res, rej) => { this._infoRes = res; this._infoRej = rej; });
+    this.infoReady.catch(() => {});
+  }
   async load(base, renderer, onProgress) {
-    const info = await (await fetch(`${base}/${this.name}/camera.json`)).json();
-    this.info = info;
+    let info;
+    try { info = await (await fetch(`${base}/${this.name}/camera.json`)).json(); } catch (e) { this._infoRej(e); throw e; }
+    this.info = info; this.total = info.groups.length + 1;
+    const prog = () => { this.loaded++; onProgress && onProgress(); };
     const W = info.width, H = info.height;
     this.aspect = W / H;
     this.tanY = Math.tan(info.vfov / 2);
@@ -36,6 +43,7 @@ export class ViewData {
     this.position = new THREE.Vector3().setFromMatrixPosition(this.matrixWorld);
     this.quaternion = new THREE.Quaternion().setFromRotationMatrix(this.matrixWorld);
     this.viewMatrix = this.matrixWorld.clone().invert();
+    this._infoRes(this);
     // 用 ImageBitmap 在背景執行緒先解碼：一般圖片要等送進顯示卡時才在主執行緒解碼（每張 2560×1440 約 30 毫秒），
     // 點特寫後的那半秒空等就是它。翻轉與不轉色彩空間在解碼時就做好，結果與原本逐像素相同
     const loader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: 'flipY', premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
@@ -43,12 +51,12 @@ export class ViewData {
     const tex = await Promise.all(info.groups.map(g => new Promise((res, rej) => loader.load(`${base}/${this.name}/${g}.avif`, bmp => {
       const t = new THREE.Texture(bmp); t.flipY = false; t.needsUpdate = true;
       t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter;
-      t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, maxAniso); onProgress && onProgress(); res(t);
+      t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, maxAniso); prog(); res(t);
     }, undefined, rej))));
     this.textures = {};
     info.groups.forEach((g, i) => this.textures[g] = tex[i]);
     // 深度：R 高位、G 低位，×far/65535 公尺；影像第一列在最上，資料貼圖第一列要在最下
-    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = `${base}/${this.name}/depth.png`; });
+    const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = `${base}/${this.name}/depth.png`; });
     const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
     const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
     const px = cx.getImageData(0, 0, img.width, img.height).data;
@@ -64,7 +72,7 @@ export class ViewData {
     this.depthData = depth; this.depthW = dw; this.depthH = dh;
     this.depthTex = new THREE.DataTexture(depth, dw, dh, THREE.RedFormat, THREE.FloatType);
     this.depthTex.minFilter = this.depthTex.magFilter = THREE.NearestFilter; this.depthTex.needsUpdate = true;
-    onProgress && onProgress();
+    prog();
     this.ready = true;
     return this;
   }

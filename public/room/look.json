@@ -318,10 +318,10 @@
    },
    "exposure": 0,
    "defaults": {
-    "ceil": 0,
+    "ceil": 1,
     "track": true,
     "amb": true,
-    "curtain": 1
+    "curtain": 0
    }
   },
   "dusk": {
@@ -341,10 +341,10 @@
    },
    "exposure": 0,
    "defaults": {
-    "ceil": 0,
+    "ceil": 1,
     "track": true,
     "amb": true,
-    "curtain": 1
+    "curtain": 0
    }
   },
   "dawn": {
@@ -368,10 +368,10 @@
    },
    "exposure": 0,
    "defaults": {
-    "ceil": 0,
-    "track": false,
-    "amb": false,
-    "curtain": 1
+    "ceil": 1,
+    "track": true,
+    "amb": true,
+    "curtain": 0
    },
    "bloom": 0.7
   },
@@ -396,10 +396,10 @@
    },
    "exposure": 0.0,
    "defaults": {
-    "ceil": 0,
-    "track": false,
-    "amb": false,
-    "curtain": 1
+    "ceil": 1,
+    "track": true,
+    "amb": true,
+    "curtain": 0
    },
    "bloom": 0.35
   }

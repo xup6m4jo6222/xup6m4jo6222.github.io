@@ -3,6 +3,20 @@
 <head>
 <meta charset="utf-8">
 <base href="/room/">
+<script>
+// 正式網站的圖、光層、程式改由 jsDelivr（免費全球 CDN，直接讀 GitHub 上這一版的檔案）送：
+// GitHub Pages 從台灣實測每秒 25–300 KB，jsDelivr 1.8–10 MB（2026-10-09）。部署時 deploy.yml 把下面的記號換成網址；
+// 本機預覽沒換、或網址加 ?nocdn，就照舊用 /room/。CDN 任何一個檔案失敗就自動加 ?nocdn 重新載入
+(function () {
+  var cdn = '__ROOM_CDN__', b = document.querySelector('base');
+  if (!b || !(cdn.indexOf('https://') === 0 || cdn.indexOf('http://localhost:') === 0) || /[?&]nocdn/.test(location.search)) return;   // localhost 只給本機測試用
+  b.href = cdn; window.__cdn = cdn;
+  window.__cdnFail = function () { if (window.__cdnBail) return; window.__cdnBail = 1; location.replace(location.origin + location.pathname + (location.search ? location.search + '&' : '?') + 'nocdn'); };
+  addEventListener('error', function (e) { var t = e.target, u = t && (t.src || t.href); if (u && String(u).indexOf(cdn) === 0) window.__cdnFail(); }, true);
+  // 站內連結（/projects/ 這種）不能跟著 base 跑到 CDN 去
+  document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('a[href^="/"]').forEach(function (a) { a.href = location.origin + a.getAttribute('href'); }); });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>林郁為｜作品</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,8 +24,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@400;500&family=LXGW+WenKai+TC:wght@400;700&family=Cormorant+Garamond:wght@500;600&display=fallback" rel="stylesheet">
 <link rel="stylesheet" href="room.css">
 <!-- 下載順序：開場描線的兩張圖最先要 -->
-<link rel="preload" href="intro-lines.jpg" as="image" fetchpriority="high">
-<link rel="preload" href="intro-order.png" as="image" fetchpriority="high">
+<link rel="preload" href="intro-lines.jpg" as="image" fetchpriority="high" crossorigin="anonymous">
+<link rel="preload" href="intro-order.png" as="image" fetchpriority="high" crossorigin="anonymous">
 <link rel="preload" href="js/intro-draw.js" as="script" fetchpriority="high">
 <script>
 // JS 錯誤浮上檯面：放在 head、不加 defer，讓後面任何錯誤都看得到
@@ -57,6 +71,7 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
 <button id="back" class="chip back fx" hidden><span aria-hidden="true">←</span> <span data-copy="back">回到房間</span></button>
 
 <p id="hint" class="hint fx" hidden></p>
+<p id="viewload" class="viewload fx" role="status" hidden></p>
 <p id="booktip" class="booktip" hidden></p>
 
 <div id="bookui" class="bookui fx" hidden>
@@ -99,7 +114,7 @@ window.addEventListener('unhandledrejection', function (e) { __showError('Promis
 <nav id="mobilenav" class="mobilenav fx" hidden></nav>
 
 <div id="loading" class="loading" style="--p:0">
-  <img class="ld-lines" src="intro-lines.jpg" alt="" aria-hidden="true">
+  <img class="ld-lines" crossorigin="anonymous" src="intro-lines.jpg" alt="" aria-hidden="true">
   <img class="ld-color" alt="" aria-hidden="true">
   <div class="ld-name"><h1 data-copy="intro-name">林郁為</h1><p data-copy="intro-line">歡迎來我的房間坐坐</p></div>
   <div class="ld-choice" id="ldchoice" hidden>

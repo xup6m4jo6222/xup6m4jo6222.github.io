@@ -133,7 +133,7 @@ function fitCover(v, aspect, focus = 0.5) {
   return { pos: v.position.clone(), quat: v.quaternion.clone(), tanX, tanY, offX, offY };
 }
 function viewCam(name) {
-  const v = S.views[name];
+  const v = name === 'room' ? roomV() : S.views[name];   // 全景兩套（窗簾拉開／拉上）鏡頭相同，哪套先到用哪套
   let focus = FOCUS_X[name] ?? 0.5;
   // 窄螢幕看書櫃層：裁切對準書所在的位置，不讓書被裁掉
   const list = S.books[name];
@@ -159,7 +159,7 @@ function lookQuat(from, to) {
 function transitionCams(R, V, vName, e) {
   const v = S.views[vName];
   const fwdV = new THREE.Vector3(0, 0, -1).applyQuaternion(V.quat);
-  const dB = Math.max(0.4, v.depthAt(0.5, 0.5));
+  const dB = Math.max(0.4, v.depthData ? v.depthAt(0.5, 0.5) : 1);   // 深度還沒下載完（邊推邊下載）先用 1 公尺
   const T = V.pos.clone().addScaledVector(fwdV, dB);                 // 特寫要看的那一點
   const w = smooth(0, 0.5, e);
   const sizeV = 1 / (1 + 0.45 * (1 - e));                              // 特寫推近過程中目標的相對大小
@@ -184,6 +184,8 @@ function toScreen(p) {
 }
 
 // ---------- 讀資料 ----------
+// 站內網址（作品頁 /projects/…）一律接在網站自己的網域後面：正式網站的 base 指向 CDN，相對或 / 開頭的網址會跑錯地方
+const siteUrl = u => (u && u.startsWith('/') ? location.origin + u : u);
 async function fetchJSON(u) { const r = await fetch(u, { cache: 'no-store' }); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
 async function loadCopy() { try { S.copy = (await fetchJSON('copy.json')).text || {}; } catch { S.copy = {}; } applyCopy(); }
 function T(id, fb = '') { const v = S.copy[id]; return v == null ? fb : v; }
@@ -376,15 +378,33 @@ function buildHotspots() {
     b.innerHTML = `<span class="dot"></span><span class="label"></span>`;
     b.querySelector('.label').textContent = hotLabel(h);
     b.setAttribute('aria-label', b.querySelector('.label').textContent);
-    b.addEventListener('click', e => { e.stopPropagation(); if (h.action === 'panel') togglePanel(); else if (h.action === 'curtain') toggleCurtain(); else goTo(h.go); });
-    b.addEventListener('pointerenter', () => {   // 滑過就先解碼並送進顯示卡，點下去鏡頭馬上動
-      S.hoverGlow = R(h.glow);
-      if (h.go && S.mode === 'room') ensureView(h.go).then(() => { if (S.mode === 'room' && !going) { touchView(h.go); return warmView(h.go); } }).catch(() => {});
-    });
+    b.addEventListener('click', e => { e.stopPropagation(); hotAct(h); });
+    b.addEventListener('pointerenter', () => { S.hoverGlow = R(h.glow); prewarm(h); });   // 滑過就先解碼並送進顯示卡，點下去鏡頭馬上動
     b.addEventListener('pointerleave', () => { if (S.hoverGlow === R(h.glow)) S.hoverGlow = null; });
     box.appendChild(b); h.el = b;
   }
   HOTSPOTS.forEach(h => { if (!box.contains(h.el)) h.el = null; });
+}
+function hotAct(h) { if (h.action === 'panel') togglePanel(); else if (h.action === 'curtain') toggleCurtain(); else goTo(h.go); }
+function prewarm(h) { if (h.go && S.mode === 'room') ensureView(h.go).then(() => { if (S.mode === 'room' && !going) { touchView(h.go); return warmView(h.go); } }).catch(() => {}); }
+// 點物件本身也算：以光點為中心、依物件大小給一個範圍（畫面高度的比例）。郁為 10/9：點房間裡的物件沒反應
+const HOT_R = { caseL2: 0.1, caseR2: 0.1, skill: 0.11, desk: 0.09, aroma: 0.055, panel: 0.05, curtain: 0.14 };
+function hotAt(x, y) {
+  let best = null, bd = 1;
+  for (const h of HOTSPOTS) {
+    if (!h.el || !h.el.classList.contains('on') || h.sx == null) continue;
+    const d = Math.hypot(h.sx - x, h.sy - y) / ((HOT_R[h.id] || 0.06) * S.size[1]);
+    if (d < bd) { bd = d; best = h; }
+  }
+  return best;
+}
+let nearHot = null;
+function setNear(h) {
+  if (h === nearHot) return;
+  nearHot?.el?.classList.remove('near');
+  if (nearHot && S.hoverGlow === R(nearHot.glow)) S.hoverGlow = null;
+  nearHot = h;
+  if (h) { h.el.classList.add('near'); S.hoverGlow = R(h.glow); prewarm(h); }
 }
 function hotLabel(h) {
   if (h.action === 'curtain') return S.curtain ? T('curtain-close', '拉上窗簾') : T('curtain-open', '拉開窗簾');
@@ -407,13 +427,18 @@ function updateOverlay() {
     if (!h.el) continue;
     if (!S.data.anchors[h.anchor]) { h.el.classList.remove('on'); continue; }
     const a = new THREE.Vector3(...S.data.anchors[h.anchor]); a.z += h.lift || 0;
-    const p = toScreen(a);
+    const p = toScreen(a); h.sx = p.x; h.sy = p.y;
     h.el.style.left = p.x + 'px'; h.el.style.top = p.y + 'px';
     h.el.style.transform = h.side === 'left' ? 'translate(calc(-100% + 14px), -50%)' : 'translate(-14px, -50%)';
     const on = inRoom && !p.behind && p.x > 10 && p.x < S.size[0] - 10;
     h.el.classList.toggle('on', on); h.el.style.pointerEvents = on ? 'auto' : 'none';
   }
   const mn = $('#mobilenav'), mnOn = isNarrow() && inRoom; if (mnOn !== shown(mn)) vis(mn, mnOn);
+  // 鏡頭已經往前推、畫面還在下載：中央顯示「正在準備畫面」與進度（等不到 0.6 秒就好的不出現）
+  const curtWait = S.mode === 'room' && Math.abs(S.curtain - S.curtainT) > 1e-4 && !bothRooms();
+  const vl = $('#viewload'), waiting = (S.mode === 'moving' && S.to !== 'room' && !S.viewReady && S.moveT > 0.22) || curtWait;
+  if (waiting) { const v = S.views[curtWait ? (S.curtain ? 'room' : 'roomc') : S.to], pc = v && v.total ? Math.round(100 * v.loaded / v.total) + '%' : ''; const txt = T('view-loading', '正在準備畫面 {p}').replace('{p}', pc).trim(); if (vl.textContent !== txt) vl.textContent = txt; }
+  if (waiting !== shown(vl)) vis(vl, waiting);
   const lp = $('#lightpanel');
   if (S.panelOpen && !inRoom) { S.panelOpen = false; vis(lp, false); }
   if (S.panelOpen && S.data.anchors.panel) {
@@ -499,8 +524,9 @@ $('#sw-track').addEventListener('click', e => { e.stopPropagation(); flipSwitch(
 $('#sw-amb').addEventListener('click', e => { e.stopPropagation(); flipSwitch('amb'); });
 $('#lightpanel').addEventListener('click', e => e.stopPropagation());
 function toggleCurtain() {
-  S.curtain = S.curtain ? 0 : 1; sfx.play(S.curtain ? 'curtainOpen' : 'curtainClose'); refreshHotLabels();
-  if (!S.views.roomc?.ready) ensureView('roomc').catch(e => console.warn(e));
+  S.curtain = S.curtain ? 0 : 1; S.curtainCue = true; refreshHotLabels();   // 聲音等窗簾真的開始動才放（另一套全景可能還在下載）
+  const need = S.curtain ? 'room' : 'roomc';
+  if (!S.views[need]?.ready) ensureView(need).catch(e => console.warn(e));
 }
 // 時段：依訪客電腦的時間（網址加 ?time=dawn|day|dusk|night 可以指定，方便檢查）
 function timeSlot() {
@@ -581,10 +607,17 @@ let going = false;
 async function goTo(name) {
   if (S.mode === 'moving' || S.mode === 'focus' || S.mode === 'intro') return;
   if (name === S.view || going) return;
-  vis($('#hint'), false);
+  vis($('#hint'), false); setNear(null);
   going = true; S.pending = name;   // 點下去光點就先淡出：還在備畫面的這段時間也看得出「點到了」
-  try { await ensureView(name); touchView(name); await warmView(name); } finally { going = false; S.pending = null; }
+  // 以前要等整個特寫下載、送進顯示卡才出發：正式網站實測點下去 21.8 秒畫面完全不動（郁為 10/9：點了像沒反應）。
+  // 現在鏡頭資料（1 KB）一到就出發，光層邊推邊下載；還沒好就停在半路失焦等（見 frame 的 moveRate）
+  if (!S.views[name]) S.views[name] = new ViewData(name);
+  const ready = ensureView(name).then(async () => { touchView(name); await warmView(name); });
+  try { await Promise.race([S.views[name].infoReady, ready]); } catch (e) { console.warn(e); going = false; S.pending = null; return; }
+  going = false; S.pending = null;
   if (S.mode === 'moving' || S.mode === 'focus' || name === S.view) return;
+  S.viewReady = !!(S.views[name]?.ready && S.views[name]._warm) || name === 'room'; S.moveRate = 1;
+  ready.then(() => { if (S.to === name) S.viewReady = true; }, e => { console.warn(e); if (S.to === name && S.mode === 'moving') cancelGo(); });
   S.from = S.view; S.to = name; S.moveT = 0;
   const a = S.camNow || S.cam, b = viewCam(name);   // 從畫面上實際的鏡頭（含滑鼠視差）出發，起步不跳
   const dist = a.pos.distanceTo(b.pos);
@@ -611,7 +644,14 @@ async function prepLayer(name) {
   }
 }
 $('#back').addEventListener('click', () => back());
+// 還在等特寫下載時按 Esc／返回：從目前位置照原路退回全景
+function cancelGo() {
+  const e = ease(clamp(S.moveT, 0, 1));
+  let lo = 0, hi = 1; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (1 - ease(m) > e) lo = m; else hi = m; }   // 找退回去時同一個位置
+  S.from = S.to; S.to = 'room'; S.moveT = (lo + hi) / 2; S.moveB = S.roomCam; S.viewReady = true; S.moveRate = 1;
+}
 function back() {
+  if (S.mode === 'moving' && S.to !== 'room' && !S.viewReady) return cancelGo();
   if (shown($('#reader'))) return closeReader();
   if (S.mode === 'focus') return returnBook();
   if (S.mode === 'view') goTo('room');
@@ -628,7 +668,11 @@ canvas.addEventListener('pointerleave', () => { S.pointerPx.set(-1, -1); });
 canvas.addEventListener('click', e => {
   S.pointer.set(e.clientX / S.size[0] * 2 - 1, -(e.clientY / S.size[1]) * 2 + 1);
   if (S.mode === 'view' && S.books[S.view]) { const b = pickBook(); if (b) openBook(b); }
-  if (S.mode === 'room' && S.data?.anchors?.lamp) { const lp = toScreen(new THREE.Vector3(...S.data.anchors.lamp)); if (Math.hypot(lp.x - e.clientX, lp.y - e.clientY) < LAMP_PICK_PX) toggleLamp(); }
+  if (S.mode === 'room' && !S.pending) {
+    const lp = S.data?.anchors?.lamp && toScreen(new THREE.Vector3(...S.data.anchors.lamp));
+    if (lp && Math.hypot(lp.x - e.clientX, lp.y - e.clientY) < LAMP_PICK_PX) toggleLamp();
+    else { const h = hotAt(e.clientX, e.clientY); if (h) hotAct(h); }   // 點在物件本身（不在光點上）也算
+  }
   if (S.panelOpen) togglePanel(false);
 });
 function pickBook() {
@@ -648,7 +692,8 @@ function updateHover(dt) {
     const lp = toScreen(new THREE.Vector3(...S.data.anchors.lamp));
     S.lampHover = Math.hypot(lp.x - S.pointerPx.x, lp.y - S.pointerPx.y) < LAMP_PICK_PX;
   }
-  canvas.style.cursor = b || S.lampHover ? 'pointer' : '';
+  setNear(!b && !S.lampHover && S.mode === 'room' && !S.pending && S.pointerPx.x >= 0 ? hotAt(S.pointerPx.x, S.pointerPx.y) : null);
+  canvas.style.cursor = b || S.lampHover || nearHot ? 'pointer' : '';
   for (const k in S.books) for (const bk of S.books[k]) {
     if (S.focus && S.focus.book === bk) continue;
     const want = bk === b ? 1 : 0; bk.userData.slideT += (want - bk.userData.slideT) * Math.min(1, dt * 10);
@@ -714,7 +759,7 @@ function returnBook() {
 $('#bookreturn').addEventListener('click', returnBook);
 $('#bookread').addEventListener('click', () => {
   const w = S.focus?.book.userData.work; if (!w || !w.url) return;
-  $('#readertitle').textContent = w.title; $('#readerframe').src = w.url; vis($('#reader'), true);
+  $('#readertitle').textContent = w.title; $('#readerframe').src = siteUrl(w.url); vis($('#reader'), true);
 });
 function closeReader() { vis($('#reader'), false); setTimeout(() => { if (!shown($('#reader'))) $('#readerframe').src = 'about:blank'; }, 560); }
 $('#readerclose').addEventListener('click', closeReader);
@@ -827,7 +872,7 @@ function updateIntro(dt) {
 const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
 // 其他視角：只先下載進瀏覽器快取，點進去才放進顯示卡；全景的兩套一直留著
 async function preloadRest() {
-  try { await ensureView('roomc'); } catch (e) { console.warn(e); }
+  try { await ensureView(S.views.room?.ready ? 'roomc' : 'room'); } catch (e) { console.warn(e); }   // 另一套全景（窗簾另一個狀態）優先
   for (const n of VIEW_NAMES) {
     if (n === 'room') continue;
     try {
@@ -889,7 +934,7 @@ function resize() {
   S.size = [w, h];
   renderer.setPixelRatio(S.pr); renderer.setSize(w, h, false);
   pipe.setSize(Math.round(w * S.pr), Math.round(h * S.pr));
-  if (!S.views.room?.ready || S.mode === 'intro') return;
+  if (!roomV() || S.mode === 'intro') return;
   if (S.mode === 'moving') {
     // 轉場途中改了視窗大小（手機轉向、拖視窗）：兩端的鏡頭照新比例重算，抵達後畫面才不會被拉長或壓扁
     const rc = viewCam('room'), vc = viewCam(S.viewName);
@@ -914,7 +959,13 @@ function setGains(mesh, name) {
   } else U.uCityGain.value.set(0, 0, 0);
 }
 // 全景用哪一套：窗簾拉開（room）或拉上（roomc，還沒載好就先用拉開的）
-function roomMesh() { return S.curtainT < 0.5 && S.meshes.roomc && S.views.roomc?.ready ? 'roomc' : 'room'; }
+// 2026-10-09 起窗簾預設拉上：開場先下載拉上那套（roomc），拉開那套（room）之後才補
+function roomV() { return S.views.room?.ready ? S.views.room : S.views.roomc?.ready ? S.views.roomc : null; }
+const bothRooms = () => !!(S.views.room?.ready && S.views.roomc?.ready);
+function roomMesh() {
+  const want = S.curtainT < 0.5 ? 'roomc' : 'room', alt = want === 'room' ? 'roomc' : 'room';
+  return S.views[want]?.ready && S.meshes[want] ? want : alt;
+}
 function renderScene(target, meshName, clearAlpha, hideFocus, sheetDark = 1) {
   for (const n in S.meshes) S.meshes[n].visible = n === meshName;
   if (meshName) { setGains(S.meshes[meshName], meshName); S.meshes[meshName].material.uniforms.uSheetDark.value = sheetDark; }
@@ -960,12 +1011,20 @@ function frame(now) {
     else { if (S.warmDone) { S.warmDone(); S.warmDone = null; } return; }
   }
   stepLights(dt);
-  S.curtainT += clamp(S.curtain - S.curtainT, -dt / 2.2, dt / 2.2);   // 窗簾 2.2 秒拉開／拉上
+  if (Math.abs(S.curtain - S.curtainT) > 1e-4 && bothRooms()) {   // 窗簾 2.2 秒拉開／拉上；另一套全景還沒到就先等（畫面中央顯示準備中）
+    if (S.curtainCue) { S.curtainCue = false; sfx.play(S.curtain ? 'curtainOpen' : 'curtainClose'); }
+    S.curtainT += clamp(S.curtain - S.curtainT, -dt / 2.2, dt / 2.2);
+  }
   GROUPS.forEach(g => { const want = S.mode === 'room' && S.hoverGlow === g ? 1 : 0; hoverBoost[g] += (want - hoverBoost[g]) * Math.min(1, dt * 5); });
   updateIntro(dt);
   let mix = 0, tcams = null, transBlur = 0;
   if (S.mode === 'moving') {
-    S.moveT += dt / S.moveDur;
+    // 特寫還沒下載好：鏡頭推到約三成（畫面已失焦）就慢慢停住等；好了再平順接著走
+    const HOLD = 0.36, waiting = S.to !== 'room' && !S.viewReady;
+    const want = waiting ? clamp((HOLD - S.moveT) / 0.12, 0, 1) : 1;
+    S.moveRate += (want - S.moveRate) * Math.min(1, dt * (waiting ? 20 : 4));
+    S.moveT += dt / S.moveDur * S.moveRate;
+    if (waiting) S.moveT = Math.min(S.moveT, HOLD);
     const t = clamp(S.moveT, 0, 1);
     const e = S.to === 'room' ? 1 - ease(t) : ease(t);    // e：0＝全景，1＝特寫
     tcams = transitionCams(S.roomCam, S.viewCamT, S.viewName, e);
@@ -992,7 +1051,7 @@ function frame(now) {
   if (steam) steam.update(dt, S.time, pxScale);
   if (dust) { const k = (S.look.dust ?? 0.35) * (S.view === 'room' && S.mode !== 'moving' ? 1 : 0.6) * ((S.quality || 0) >= 3 ? 0 : 1);   // 近距離特寫時浮塵較大顆，壓淡一點
     dust.update(S.time, pxScale, gainOf('lamp') * k, gainOf('bed') * k, trackGain() * k, 1); }
-  if (!motes && FX !== 'none' && S.views.room?.ready) {   // 散景要用全景鏡頭的位置：等全景載好才建
+  if (!motes && FX !== 'none' && roomV()) {   // 散景要用全景鏡頭的位置：等全景載好才建
     motes = new Motes(FX[0], viewCam('room')); scene.add(motes.points);
     if (FX[1]) { motes2 = new Motes(FX[1], viewCam('room'), 0.35); scene.add(motes2.points); }   // 第二種只加一點點：數量約三分之一
   }
@@ -1010,12 +1069,15 @@ function frame(now) {
     const near = smooth(0, 0.22, tcams.e);
     S.meshes[roomMesh()].material.uniforms.uEdge.value = 0.07 * near;
     setCamera(tcams.camR); renderScene(pipe.rtA, roomMesh(), 1, false, lerp(1, 0.28, near));
-    S.meshes[S.viewName].material.uniforms.uEdge.value = 0.07 * (1 - smooth(0.55, 0.97, tcams.e));
-    // 快到特寫時特寫層幾乎就在自己的拍攝位置：不再把深度斷層挖成透明（否則會露出全景層裡、特寫刻意藏起的椅子）
-    S.meshes[S.viewName].material.uniforms.uEdgeCut.value = 0.04 + 4 * smooth(0.6, 0.9, tcams.e);
-    setCamera(tcams.camV); renderScene(pipe.rtB, S.viewName, 0, false);
+    const vm = S.viewReady && S.meshes[S.viewName];   // 特寫還在下載：只畫全景層（停在三成處，本來就只看得到全景層）
+    if (vm) {
+      vm.material.uniforms.uEdge.value = 0.07 * (1 - smooth(0.55, 0.97, tcams.e));
+      // 快到特寫時特寫層幾乎就在自己的拍攝位置：不再把深度斷層挖成透明（否則會露出全景層裡、特寫刻意藏起的椅子）
+      vm.material.uniforms.uEdgeCut.value = 0.04 + 4 * smooth(0.6, 0.9, tcams.e);
+      setCamera(tcams.camV); renderScene(pipe.rtB, S.viewName, 0, false);
+    } else { mix = 0; tcams.noView = true; }
     setCamera(S.cam);
-  } else if (S.view === 'room' && S.views.roomc?.ready && S.curtainT > 0.001 && S.curtainT < 0.999) {
+  } else if (S.view === 'room' && bothRooms() && S.curtainT > 0.001 && S.curtainT < 0.999) {
     // 窗簾拉動中：兩套全景交疊（拉開的在底，拉上的依進度蓋上去）
     renderScene(pipe.rtA, 'room', 1, false);
     const cu = S.meshes.roomc.material.uniforms.uCurt; cu.value = 1 - ease(S.curtainT);   // 布往兩側收（拉上那套在上層，alpha 標出布蓋住的地方）
@@ -1025,7 +1087,7 @@ function frame(now) {
     renderScene(pipe.rtA, S.view === 'room' ? roomMesh() : S.view, 1, S.focus && S.focus.layered);
   }
   const U = pipe.finalMat.uniforms;
-  pipe.composite(mix, tcams ? 1 : 0);
+  pipe.composite(mix, tcams && !tcams.noView ? 1 : 0);
   const BL = S.look.bloom || {}; Object.assign(pipe.bloom, { strength: (BL.strength ?? 0) * ((((S.look.times || {})[S.slot]) || {}).bloom ?? 1), threshold: BL.threshold ?? 1.0, knee: BL.knee ?? 0.5, spread: BL.spread ?? 1.0 });
   if ((S.quality || 0) >= 2) pipe.bloom.strength = 0;   // 第二級起關掉光暈
   pipe.runBloom(grade.exposure);
@@ -1041,31 +1103,33 @@ function frame(now) {
 // ---------- 啟動 ----------
 async function boot() {
   resize();
-  const [data, look] = await Promise.all([fetchJSON('scene.json'), fetchJSON('look.json')]);
+  const [data, look, cam0] = await Promise.all([fetchJSON('scene.json'), fetchJSON('look.json'), fetchJSON(`${VIEW_BASE}/room/camera.json`).catch(() => null)]);
   S.data = data; S.look = look;
-  try { setGroups((await fetchJSON(`${VIEW_BASE}/room/camera.json`)).groups); } catch {}
+  if (cam0) setGroups(cam0.groups);
   initLightState();
   S.lampOn = store.get('v30-lamp') !== '0';
   S.aromaOn = store.get('v30-aroma') !== '0';
   S.mood = clamp(parseInt(store.get('v30-mood') || '0', 10) || 0, 0, look.moods.length - 1);
   S.slot = timeSlot(); applySlotDefaults(); document.body.dataset.slot = S.slot;
-  try {   // 燈光開關面板與窗（patch-v34 寫出）
-    const pj = await fetchJSON('panel.json');
+  // 房間光層是最大宗（約 0.9 MB）：設定一到就開始下載，其他設定檔、字型同時進行
+  // （以前排在燈光面板、文字、作品、字型之後，字型最多白等 1.2 秒；10/9 為了 7 秒內讀完改成並行）
+  let got = 0; const total = GROUPS.length + 1;
+  const roomP = ensureView(S.curtain ? 'room' : 'roomc', () => { got++; setLoad(0.15 + 0.75 * got / total); });
+  const panelP = fetchJSON('panel.json').then(pj => {   // 燈光開關面板與窗（patch-v34 寫出）
     const pc = pj.panel.center, pn = pj.panel.n; S.data.anchors.panel = [pc[0] + pn[0] * 0.03, pc[1] + pn[1] * 0.03, pc[2]];
     const w = pj.window; S.win = w; S.data.anchors.curtain = [(w.x0 + w.x1) / 2, w.gy - 0.45, 1.55];
-  } catch (e) { console.warn('panel.json', e); }
-  S.cityTex = await new Promise(res => new THREE.TextureLoader().load(`city/${S.slot}.jpg`, t => { t.colorSpace = THREE.NoColorSpace; t.anisotropy = 8; res(t); }, undefined,
-    () => new THREE.TextureLoader().load('city/night.jpg', t => { t.colorSpace = THREE.NoColorSpace; res(t); }, undefined, () => res(null))));
-  await loadCopy(); updateSoundButton();
-  try { S.works = (await fetchJSON('works.json')).works; } catch { S.works = []; }
-  const fontsIn = await kit.ready();
+  }).catch(e => console.warn('panel.json', e));
+  // 窗外城市（160 KB）：窗簾預設拉上看不到，不擋開場，背景下載
+  new Promise(res => new THREE.TextureLoader().load(`city/${S.slot}.jpg`, t => { t.colorSpace = THREE.NoColorSpace; t.anisotropy = 8; res(t); }, undefined,
+    () => new THREE.TextureLoader().load('city/night.jpg', t => { t.colorSpace = THREE.NoColorSpace; res(t); }, undefined, () => res(null)))).then(t => { S.cityTex = t; });
+  const worksP = fetchJSON('works.json').then(j => { S.works = j.works; }).catch(() => { S.works = []; });
+  const [, , , fontsIn] = await Promise.all([panelP, loadCopy().then(updateSoundButton), worksP, kit.ready()]);
   // 字型晚到：等它到了、而且沒有書被拿在手上時，重畫書脊的燙金書名
   if (!fontsIn) kit.fontsDone.then(function redo() { if (S.focus) return setTimeout(redo, 1500); buildBooks(); });
   buildShelfLights(); buildBooks(); buildEffects(); buildCertificates(); buildClock(); tick();
   if (!S.aromaOn) mist.target = 0;
   computeTargets(); stepLights(0, true);
-  let got = 0; const total = GROUPS.length + 1;
-  await ensureView('room', () => { got++; setLoad(0.15 + 0.75 * got / total); });
+  await roomP;
   buildArt(); kit.loadTextures();   // 掛畫（400 KB）與書本布紋紙張（1.1 MB）等房間主圖下載完才抓，不跟它搶頻寬
   // 趁開場畫面還蓋著，先把房間編譯好、在後面畫幾格：以前按「完整體驗」那一下才第一次畫，按鈕停在原地約 2.4 秒才有反應
   S.cam = viewCam('room'); setCamera(S.cam);
@@ -1082,9 +1146,9 @@ async function boot() {
 function renderScreenApps() {
   const ul = $('#screenapps'); ul.innerHTML = '';
   S.works.filter(w => w.category === 'ai' && !w.draft).forEach(w => {
-    const li = document.createElement('li'); const a = document.createElement('a'); a.href = w.url;
+    const li = document.createElement('li'); const a = document.createElement('a'); a.href = siteUrl(w.url);
     a.innerHTML = '<span></span><small></small>'; a.querySelector('span').textContent = w.title; a.querySelector('small').textContent = w.summary || '';
-    a.onclick = e => { e.preventDefault(); $('#readertitle').textContent = w.title; $('#readerframe').src = w.url; vis($('#reader'), true); };
+    a.onclick = e => { e.preventDefault(); $('#readertitle').textContent = w.title; $('#readerframe').src = siteUrl(w.url); vis($('#reader'), true); };
     li.appendChild(a); ul.appendChild(li);
   });
 }
@@ -1109,6 +1173,6 @@ const taipei = new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', hour:
 function tick() { drawClock(taipei.format(new Date())); }
 tick(); setInterval(tick, 10000);
 
-boot().catch(e => { __showError('啟動失敗：' + (e.stack || e.message || e)); });
+boot().catch(e => { if (window.__cdnFail) return window.__cdnFail(); __showError('啟動失敗：' + (e.stack || e.message || e)); });   // CDN 出問題就退回 GitHub 重新載入
 window.__sfx = sfx;
 window.__room = { S, light, camera, renderer, goTo, scene, openBook, returnBook, selectOil, buildCertificates, startIntro, drawClock, step, toggleCurtain, togglePanel, flipSwitch, toggleLamp, back };
