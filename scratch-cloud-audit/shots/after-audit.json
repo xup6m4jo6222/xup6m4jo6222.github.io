@@ -1,0 +1,1851 @@
+{
+ "report": {
+  "desktop home": {
+   "shot": "after-desktop-home.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/room/intro-lines.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "auto"
+    },
+    {
+     "src": "http://localhost:4321/room/intro-color-night.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "auto"
+    }
+   ],
+   "headings": [
+    "H1 林郁為"
+   ],
+   "lang": "zh-Hant",
+   "title": "林郁為｜個人作品集",
+   "axe": [
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 4,
+     "nodes": [
+      "#stage :: Fix any of the following:   Some page content is not contained by landmarks",
+      "#hotspots :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ld-name :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ld-list :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "button \"聲音：開\" outline=true",
+    "a \"僅觀看作品列表\" outline=true",
+    "button \"完整體驗\" outline=true",
+    "a \"僅觀看作品列表\" outline=true",
+    "body",
+    "button \"聲音：開\" outline=true",
+    "a \"僅觀看作品列表\" outline=true",
+    "button \"完整體驗\" outline=true",
+    "a \"僅觀看作品列表\" outline=true",
+    "body",
+    "button \"聲音：開\" outline=true",
+    "a \"僅觀看作品列表\" outline=true"
+   ]
+  },
+  "mobile home": {
+   "shot": "after-mobile-home.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/room/intro-lines.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "auto"
+    },
+    {
+     "src": "http://localhost:4321/room/intro-color-night.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "auto"
+    }
+   ],
+   "headings": [
+    "H1 林郁為"
+   ],
+   "lang": "zh-Hant",
+   "title": "林郁為｜個人作品集",
+   "axe": [
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 4,
+     "nodes": [
+      "#stage :: Fix any of the following:   Some page content is not contained by landmarks",
+      "#hotspots :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ld-name :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ld-list :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop projects": {
+   "shot": "after-desktop-projects.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-baseline-2026-08-03.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "lazy"
+    }
+   ],
+   "headings": [
+    "H1 Projects",
+    "H2 AI 實作",
+    "H3 個人作品頁"
+   ],
+   "lang": "zh-Hant",
+   "title": "Projects | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"#1個人作品頁闡述關於建造此網站的大略資訊。\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"#1個人作品頁闡述關於建造此網站的大略資訊。\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile projects": {
+   "shot": "after-mobile-projects.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-baseline-2026-08-03.jpg",
+     "alt": "",
+     "ok": true,
+     "lazy": "lazy"
+    }
+   ],
+   "headings": [
+    "H1 Projects",
+    "H2 AI 實作",
+    "H3 個人作品頁"
+   ],
+   "lang": "zh-Hant",
+   "title": "Projects | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop project-portfolio-site": {
+   "shot": "after-desktop-project-portfolio-site.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-baseline-2026-08-03.jpg",
+     "alt": "只給那一句話時，AI 給的成品",
+     "ok": true,
+     "lazy": "auto"
+    },
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-constitution-2026-08-08.jpg",
+     "alt": "給了設計理念之後，AI 給的成品",
+     "ok": true,
+     "lazy": "auto"
+    }
+   ],
+   "headings": [
+    "H1 個人作品頁",
+    "H2 我實際經歷了什麼過程？",
+    "H2 起點",
+    "H2 開始實作",
+    "H2 上線後"
+   ],
+   "lang": "zh-Hant",
+   "title": "個人作品頁 | 林郁為",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 25,
+     "nodes": [
+      ".tl-item[data-focus-group=\"\"]:nth-child(2) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.7pt (14.304px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(3) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.7pt (14.304px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(4) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.7pt (14.304px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(6) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.7pt (14.304px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(6) > .cs-track > .cs-side--ai.cs-side :: Fix any of the following:   Element has insufficient color contrast of 1.28 (foreground color: #372b34, background color: #241620, font size: 10.7pt (14.304px), font weight: normal). Expected contrast ratio of 4.5:1"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 1,
+     "nodes": [
+      ".nav-progress :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← Projects\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "button \"送出\" outline=true",
+    "button \"送出\" outline=true",
+    "a \"挑選顏色的心路歷程 →\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← Projects\" outline=true"
+   ]
+  },
+  "mobile project-portfolio-site": {
+   "shot": "after-mobile-project-portfolio-site.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-baseline-2026-08-03.jpg",
+     "alt": "只給那一句話時，AI 給的成品",
+     "ok": true,
+     "lazy": "auto"
+    },
+    {
+     "src": "http://localhost:4321/images/portfolio-site/ai-constitution-2026-08-08.jpg",
+     "alt": "給了設計理念之後，AI 給的成品",
+     "ok": true,
+     "lazy": "auto"
+    }
+   ],
+   "headings": [
+    "H1 個人作品頁",
+    "H2 我實際經歷了什麼過程？",
+    "H2 起點",
+    "H2 開始實作",
+    "H2 上線後"
+   ],
+   "lang": "zh-Hant",
+   "title": "個人作品頁 | 林郁為",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 25,
+     "nodes": [
+      ".tl-item[data-focus-group=\"\"]:nth-child(2) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(3) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(4) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(6) > .cs-toggle-name :: Fix any of the following:   Element has insufficient color contrast of 1.32 (foreground color: #372b34, background color: #20131d, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1",
+      ".tl-item[data-focus-group=\"\"]:nth-child(6) > .cs-track > .cs-side--ai.cs-side :: Fix any of the following:   Element has insufficient color contrast of 1.28 (foreground color: #372b34, background color: #241620, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 1,
+     "nodes": [
+      ".nav-progress :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop design": {
+   "shot": "after-desktop-design.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計展示櫃",
+    "H2 色彩",
+    "H2 文字",
+    "H2 間距與版面",
+    "H2 形狀與邊界",
+    "H2 動效",
+    "H2 材質與背景"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計展示櫃 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← AI 實作 #1\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"4色彩背景主色、元素主色、中性階、對比度門檻\" outline=true",
+    "a \"6文字標題字、內文字、字級階梯、行高與行長、字距、\" outline=true",
+    "a \"4間距與版面垂直節奏、元件內間距、版面寬度、版面欄\" outline=true",
+    "a \"5形狀與邊界圓角、邊框、陰影、圖示、z 層級\" outline=true",
+    "a \"4動效時長、曲線、常駐動態速度、降低動態偏好\" outline=true",
+    "a \"3材質與背景顆粒、兩道暈、背景設計\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile design": {
+   "shot": "after-mobile-design.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計展示櫃",
+    "H2 色彩",
+    "H2 文字",
+    "H2 間距與版面",
+    "H2 形狀與邊界",
+    "H2 動效",
+    "H2 材質與背景"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計展示櫃 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-color": {
+   "shot": "after-desktop-design-color.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 色彩",
+    "H2 背景主色：暮紫",
+    "H2 元素主色：鋼藍",
+    "H2 中性階",
+    "H2 對比度門檻"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・色彩 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"當時怎麼選的 →\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"當時怎麼選的 →\" outline=true",
+    "a \"GitHub\" outline=true"
+   ]
+  },
+  "mobile design-color": {
+   "shot": "after-mobile-design-color.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 色彩",
+    "H2 背景主色：暮紫",
+    "H2 元素主色：鋼藍",
+    "H2 中性階",
+    "H2 對比度門檻"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・色彩 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-type": {
+   "shot": "after-desktop-design-type.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 文字",
+    "H2 標題字：霞鶩文楷",
+    "H2 內文字：昭源圓體",
+    "H2 字級階梯",
+    "H2 行高與行長",
+    "H2 字距",
+    "H2 字體載入"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・文字 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile design-type": {
+   "shot": "after-mobile-design-type.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 文字",
+    "H2 標題字：霞鶩文楷",
+    "H2 內文字：昭源圓體",
+    "H2 字級階梯",
+    "H2 行高與行長",
+    "H2 字距",
+    "H2 字體載入"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・文字 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-spacing": {
+   "shot": "after-desktop-design-spacing.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 間距與版面",
+    "H2 垂直節奏",
+    "H2 元件內間距",
+    "H2 版面寬度",
+    "H2 版面欄"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・間距與版面 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile design-spacing": {
+   "shot": "after-mobile-design-spacing.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 間距與版面",
+    "H2 垂直節奏",
+    "H2 元件內間距",
+    "H2 版面寬度",
+    "H2 版面欄"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・間距與版面 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-shape": {
+   "shot": "after-desktop-design-shape.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 形狀與邊界",
+    "H2 圓角",
+    "H2 邊框",
+    "H2 陰影",
+    "H2 圖示",
+    "H2 z 層級"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・形狀與邊界 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile design-shape": {
+   "shot": "after-mobile-design-shape.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 形狀與邊界",
+    "H2 圓角",
+    "H2 邊框",
+    "H2 陰影",
+    "H2 圖示",
+    "H2 z 層級"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・形狀與邊界 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-motion": {
+   "shot": "after-desktop-design-motion.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 動效",
+    "H2 時長",
+    "H2 曲線",
+    "H2 常駐動態速度",
+    "H2 降低動態偏好",
+    "H2 動效種類"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・動效 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "button \"三檔一起跑\" outline=true",
+    "button \"播放一次\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "button \"三檔一起跑\" outline=true"
+   ]
+  },
+  "mobile design-motion": {
+   "shot": "after-mobile-design-motion.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 動效",
+    "H2 時長",
+    "H2 曲線",
+    "H2 常駐動態速度",
+    "H2 降低動態偏好",
+    "H2 動效種類"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・動效 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop design-texture": {
+   "shot": "after-desktop-design-texture.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 材質與背景",
+    "H2 顆粒",
+    "H2 兩道暈",
+    "H2 背景設計",
+    "H2 圖表樣式"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・材質與背景 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"活的就在首頁 →\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"← 展示櫃\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"活的就在首頁 →\" outline=true",
+    "a \"GitHub\" outline=true"
+   ]
+  },
+  "mobile design-texture": {
+   "shot": "after-mobile-design-texture.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 材質與背景",
+    "H2 顆粒",
+    "H2 兩道暈",
+    "H2 背景設計",
+    "H2 圖表樣式"
+   ],
+   "lang": "zh-Hant",
+   "title": "展示櫃・材質與背景 | 林郁為",
+   "axe": [],
+   "kb": []
+  },
+  "desktop process": {
+   "shot": "after-desktop-process.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 1,
+     "nodes": [
+      "div :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"設計對話・字體篇\" outline=true",
+    "a \"設計對話・卡片與版面篇\" outline=true",
+    "a \"設計對話・按鈕與手感篇\" outline=true",
+    "a \"設計對話・動效篇\" outline=true",
+    "a \"設計對話・過場與細節篇\" outline=true",
+    "a \"挑選顏色的心路歷程\" outline=true",
+    "a \"← 回專案頁\" outline=true",
+    "body",
+    "a \"設計對話・字體篇\" outline=true",
+    "a \"設計對話・卡片與版面篇\" outline=true",
+    "a \"設計對話・按鈕與手感篇\" outline=true",
+    "a \"設計對話・動效篇\" outline=true"
+   ]
+  },
+  "mobile process": {
+   "shot": "after-mobile-process.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 1,
+     "nodes": [
+      "div :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-ai-baseline": {
+   "shot": "after-desktop-process-ai-baseline.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 林郁為",
+    "H2 統計分析",
+    "H3 顧客流失預測模型",
+    "H3 A / B 測試框架設計",
+    "H3 銷售時間序列預測",
+    "H2 AI 實作",
+    "H3 客服知識問答機器人",
+    "H3 產線瑕疵影像辨識",
+    "H3 長文件自動摘要工具",
+    "H2 兩種語言，同一種思考方式。",
+    "H2 想聊聊資料 或模型？"
+   ],
+   "lang": "zh-Hant",
+   "title": "林郁為 — 作品集",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 17,
+     "nodes": [
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .card-index :: Fix any of the following:   Element has insufficient color contrast of 3.01 (foreground color: #8a9187, background color: #f6f7f3, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .tag-row > .tag:nth-child(1) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .tag-row > .tag:nth-child(2) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(2) > .card-index :: Fix any of the following:   Element has insufficient color contrast of 3.01 (foreground color: #8a9187, background color: #f6f7f3, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(2) > .tag-row > .tag:nth-child(1) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"首頁\" outline=true",
+    "a \"統計分析\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"聯絡\" outline=true",
+    "a \"yuwei.lin@email.com\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"LinkedIn\" outline=true",
+    "a \"寄信給我 →\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"LinkedIn\" outline=true",
+    "body"
+   ]
+  },
+  "mobile process-ai-baseline": {
+   "shot": "after-mobile-process-ai-baseline.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 林郁為",
+    "H2 統計分析",
+    "H3 顧客流失預測模型",
+    "H3 A / B 測試框架設計",
+    "H3 銷售時間序列預測",
+    "H2 AI 實作",
+    "H3 客服知識問答機器人",
+    "H3 產線瑕疵影像辨識",
+    "H3 長文件自動摘要工具",
+    "H2 兩種語言，同一種思考方式。",
+    "H2 想聊聊資料 或模型？"
+   ],
+   "lang": "zh-Hant",
+   "title": "林郁為 — 作品集",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 17,
+     "nodes": [
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .card-index :: Fix any of the following:   Element has insufficient color contrast of 3.01 (foreground color: #8a9187, background color: #f6f7f3, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .tag-row > .tag:nth-child(1) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(1) > .tag-row > .tag:nth-child(2) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(2) > .card-index :: Fix any of the following:   Element has insufficient color contrast of 3.01 (foreground color: #8a9187, background color: #f6f7f3, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1",
+      "#stats > .wrap > .card-grid > article:nth-child(2) > .tag-row > .tag:nth-child(1) :: Fix any of the following:   Element has insufficient color contrast of 3.76 (foreground color: #c1443a, background color: #eedad5, font size: 8.6pt (11.52px), font weight: normal). Expected contrast ratio of 4.5:1"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-ai-constitution": {
+   "shot": "after-desktop-process-ai-constitution.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 林郁為",
+    "H2 統計分析",
+    "H3 顧客流失預測",
+    "H3 A/B 測試框架設計",
+    "H3 時間序列異常偵測",
+    "H2 AI 實作",
+    "H3 RAG 知識問答系統",
+    "H3 自動化報表 Agent",
+    "H3 圖像分類部署"
+   ],
+   "lang": "zh-TW",
+   "title": "林郁為｜統計分析 × AI 實作",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"統計分析\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"Email\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"LinkedIn\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"統計分析\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"Email\" outline=true",
+    "a \"GitHub\" outline=true"
+   ]
+  },
+  "mobile process-ai-constitution": {
+   "shot": "after-mobile-process-ai-constitution.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 林郁為",
+    "H2 統計分析",
+    "H3 顧客流失預測",
+    "H3 A/B 測試框架設計",
+    "H3 時間序列異常偵測",
+    "H2 AI 實作",
+    "H3 RAG 知識問答系統",
+    "H3 自動化報表 Agent",
+    "H3 圖像分類部署"
+   ],
+   "lang": "zh-TW",
+   "title": "林郁為｜統計分析 × AI 實作",
+   "axe": [],
+   "kb": []
+  },
+  "desktop process-talks-buttons": {
+   "shot": "after-desktop-process-talks-buttons.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　按鈕與手感篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　按鈕與手感篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 9,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "button \"GitHub\" outline=true",
+    "button \"返回 Projects\" outline=true",
+    "button \"GitHub\" outline=true",
+    "button \"返回 Projects\" outline=true",
+    "button \"GitHub\" outline=true",
+    "button \"返回 Projects\" outline=true",
+    "button \"GitHub\" outline=true",
+    "button \"返回 Projects\" outline=true",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "button \"GitHub\" outline=true"
+   ]
+  },
+  "mobile process-talks-buttons": {
+   "shot": "after-mobile-process-talks-buttons.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　按鈕與手感篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　按鈕與手感篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 9,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-talks-cards": {
+   "shot": "after-desktop-process-talks-cards.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　卡片與版面篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　卡片與版面篇",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 1,
+     "nodes": [
+      ".k-g > i :: Fix any of the following:   Element has insufficient color contrast of 1.16 (foreground color: #3e313a, background color: #342630, font size: 33.6pt (44.8px), font weight: normal). Expected contrast ratio of 3:1"
+     ]
+    },
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body"
+   ]
+  },
+  "mobile process-talks-cards": {
+   "shot": "after-mobile-process-talks-cards.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　卡片與版面篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　卡片與版面篇",
+   "axe": [
+    {
+     "id": "color-contrast",
+     "impact": "serious",
+     "help": "Elements must meet minimum color contrast ratio thresholds",
+     "n": 1,
+     "nodes": [
+      ".k-g > i :: Fix any of the following:   Element has insufficient color contrast of 1.16 (foreground color: #3e313a, background color: #342630, font size: 33.6pt (44.8px), font weight: normal). Expected contrast ratio of 3:1"
+     ]
+    },
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-talks-motion": {
+   "shot": "after-desktop-process-talks-motion.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　動效篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　動效篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true",
+    "button \"重播\" outline=true"
+   ]
+  },
+  "mobile process-talks-motion": {
+   "shot": "after-mobile-process-talks-motion.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　動效篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　動效篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-talks-transition": {
+   "shot": "after-desktop-process-talks-transition.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　過場與細節篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　過場與細節篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true",
+    "button \"模擬\" outline=true"
+   ]
+  },
+  "mobile process-talks-transition": {
+   "shot": "after-mobile-process-talks-transition.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　過場與細節篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　過場與細節篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 15,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-talks-typography": {
+   "shot": "after-desktop-process-talks-typography.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　字體篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　字體篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 12,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回對話目錄\" outline=true",
+    "a \"回專案頁\" outline=true",
+    "body"
+   ]
+  },
+  "mobile process-talks-typography": {
+   "shot": "after-mobile-process-talks-typography.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 設計對話　—　字體篇"
+   ],
+   "lang": "zh-Hant",
+   "title": "設計對話　字體篇",
+   "axe": [
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 12,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".me.msg.on:nth-child(1) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .who :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".ai.msg.on:nth-child(2) > .body :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop process-why-mist-purple": {
+   "shot": "after-desktop-process-why-mist-purple.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 挑選顏色的心路歷程",
+    "H2 顏色如何對照個人特質",
+    "H2 背景主色的選擇",
+    "H2 元素主色的選擇"
+   ],
+   "lang": "zh-Hant",
+   "title": "挑選顏色的心路歷程",
+   "axe": [
+    {
+     "id": "empty-table-header",
+     "impact": "minor",
+     "help": "Table header text should not be empty",
+     "n": 1,
+     "nodes": [
+      "thead > tr > th:nth-child(1) :: Fix any of the following:   Element does not have text that is visible to screen readers"
+     ]
+    },
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 13,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".lead :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".defs:nth-child(4) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".matrix :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": [
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回專案頁\" outline=true",
+    "body",
+    "a \"回專案頁\" outline=true",
+    "body"
+   ]
+  },
+  "mobile process-why-mist-purple": {
+   "shot": "after-mobile-process-why-mist-purple.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 挑選顏色的心路歷程",
+    "H2 顏色如何對照個人特質",
+    "H2 背景主色的選擇",
+    "H2 元素主色的選擇"
+   ],
+   "lang": "zh-Hant",
+   "title": "挑選顏色的心路歷程",
+   "axe": [
+    {
+     "id": "empty-table-header",
+     "impact": "minor",
+     "help": "Table header text should not be empty",
+     "n": 1,
+     "nodes": [
+      "thead > tr > th:nth-child(1) :: Fix any of the following:   Element does not have text that is visible to screen readers"
+     ]
+    },
+    {
+     "id": "landmark-one-main",
+     "impact": "moderate",
+     "help": "Document should have one main landmark",
+     "n": 1,
+     "nodes": [
+      "html :: Fix all of the following:   Document does not have a main landmark"
+     ]
+    },
+    {
+     "id": "region",
+     "impact": "moderate",
+     "help": "All page content should be contained by landmarks",
+     "n": 13,
+     "nodes": [
+      "h1 :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".sub :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".lead :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".defs:nth-child(4) :: Fix any of the following:   Some page content is not contained by landmarks",
+      ".matrix :: Fix any of the following:   Some page content is not contained by landmarks"
+     ]
+    }
+   ],
+   "kb": []
+  },
+  "desktop 404": {
+   "shot": "after-desktop-404.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 1440,
+   "vw": 1440,
+   "bodyScrollW": 1440,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 404"
+   ],
+   "lang": "zh-Hant",
+   "title": "404 | 林郁為",
+   "axe": [],
+   "kb": [
+    "a \"林郁為\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"← 回首頁\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body",
+    "a \"林郁為\" outline=true",
+    "a \"AI 實作\" outline=true",
+    "a \"← 回首頁\" outline=true",
+    "a \"GitHub\" outline=true",
+    "a \"Email\" outline=true",
+    "body"
+   ]
+  },
+  "mobile 404": {
+   "shot": "after-mobile-404.jpg",
+   "errs": [],
+   "bad": [],
+   "scrollW": 375,
+   "vw": 375,
+   "bodyScrollW": 375,
+   "over": [],
+   "overCount": 0,
+   "imgs": [],
+   "headings": [
+    "H1 404"
+   ],
+   "lang": "zh-Hant",
+   "title": "404 | 林郁為",
+   "axe": [],
+   "kb": []
+  }
+ },
+ "linkRes": {
+  "http://localhost:4321/projects/": {
+   "status": 200,
+   "from": [
+    "/",
+    "/projects/ai/portfolio-site/"
+   ]
+  },
+  "http://localhost:4321/": {
+   "status": 200,
+   "from": [
+    "/projects/",
+    "/projects/ai/portfolio-site/",
+    "/design/",
+    "/design/color/",
+    "/design/type/",
+    "/design/spacing/",
+    "/design/shape/",
+    "/design/motion/",
+    "/design/texture/",
+    "/404.html"
+   ]
+  },
+  "http://localhost:4321/projects/#ai": {
+   "status": 200,
+   "from": [
+    "/projects/",
+    "/projects/ai/portfolio-site/",
+    "/design/",
+    "/design/color/",
+    "/design/type/",
+    "/design/spacing/",
+    "/design/shape/",
+    "/design/motion/",
+    "/design/texture/",
+    "/404.html"
+   ]
+  },
+  "http://localhost:4321/projects/ai/portfolio-site/": {
+   "status": 200,
+   "from": [
+    "/projects/",
+    "/design/",
+    "/process/",
+    "/process/talks-buttons.html",
+    "/process/talks-cards.html",
+    "/process/talks-motion.html",
+    "/process/talks-transition.html",
+    "/process/talks-typography.html",
+    "/process/why-mist-purple.html"
+   ]
+  },
+  "https://github.com/xup6m4jo6222": {
+   "status": 200,
+   "from": [
+    "/projects/",
+    "/projects/ai/portfolio-site/",
+    "/design/",
+    "/design/color/",
+    "/design/type/",
+    "/design/spacing/",
+    "/design/shape/",
+    "/design/motion/",
+    "/design/texture/",
+    "/404.html"
+   ]
+  },
+  "http://localhost:4321/process/why-mist-purple.html": {
+   "status": 200,
+   "from": [
+    "/projects/ai/portfolio-site/",
+    "/design/color/",
+    "/process/"
+   ]
+  },
+  "https://github.com/xup6m4jo6222/xup6m4jo6222.github.io": {
+   "status": 200,
+   "from": [
+    "/projects/ai/portfolio-site/"
+   ]
+  },
+  "http://localhost:4321/design/color/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/type/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/spacing/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/shape/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/motion/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/texture/": {
+   "status": 200,
+   "from": [
+    "/design/"
+   ]
+  },
+  "http://localhost:4321/design/": {
+   "status": 200,
+   "from": [
+    "/design/color/",
+    "/design/type/",
+    "/design/spacing/",
+    "/design/shape/",
+    "/design/motion/",
+    "/design/texture/"
+   ]
+  },
+  "http://localhost:4321/process/talks-typography.html": {
+   "status": 200,
+   "from": [
+    "/process/"
+   ]
+  },
+  "http://localhost:4321/process/talks-cards.html": {
+   "status": 200,
+   "from": [
+    "/process/"
+   ]
+  },
+  "http://localhost:4321/process/talks-buttons.html": {
+   "status": 200,
+   "from": [
+    "/process/"
+   ]
+  },
+  "http://localhost:4321/process/talks-motion.html": {
+   "status": 200,
+   "from": [
+    "/process/"
+   ]
+  },
+  "http://localhost:4321/process/talks-transition.html": {
+   "status": 200,
+   "from": [
+    "/process/"
+   ]
+  },
+  "http://localhost:4321/process/ai-baseline-2026-08-03.html#home": {
+   "status": 200,
+   "from": [
+    "/process/ai-baseline-2026-08-03.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-baseline-2026-08-03.html#stats": {
+   "status": 200,
+   "from": [
+    "/process/ai-baseline-2026-08-03.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-baseline-2026-08-03.html#ai": {
+   "status": 200,
+   "from": [
+    "/process/ai-baseline-2026-08-03.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-baseline-2026-08-03.html#contact": {
+   "status": 200,
+   "from": [
+    "/process/ai-baseline-2026-08-03.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-baseline-2026-08-03.html#": {
+   "status": 200,
+   "from": [
+    "/process/ai-baseline-2026-08-03.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-constitution-2026-08-08.html#hero": {
+   "status": 200,
+   "from": [
+    "/process/ai-constitution-2026-08-08.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-constitution-2026-08-08.html#stats": {
+   "status": 200,
+   "from": [
+    "/process/ai-constitution-2026-08-08.html"
+   ]
+  },
+  "http://localhost:4321/process/ai-constitution-2026-08-08.html#ai": {
+   "status": 200,
+   "from": [
+    "/process/ai-constitution-2026-08-08.html"
+   ]
+  },
+  "https://github.com/linyuwei": {
+   "status": 200,
+   "from": [
+    "/process/ai-constitution-2026-08-08.html"
+   ]
+  },
+  "https://linkedin.com/in/linyuwei": {
+   "status": 200,
+   "from": [
+    "/process/ai-constitution-2026-08-08.html"
+   ]
+  },
+  "http://localhost:4321/process/": {
+   "status": 200,
+   "from": [
+    "/process/talks-buttons.html",
+    "/process/talks-cards.html",
+    "/process/talks-motion.html",
+    "/process/talks-transition.html",
+    "/process/talks-typography.html"
+   ]
+  }
+ }
+}

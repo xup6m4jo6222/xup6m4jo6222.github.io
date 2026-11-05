@@ -27,7 +27,7 @@ const cats = DESIGN_CATEGORIES.filter((c) => c.items.some((i) => !i.pending));
 							{live}
 						</span>
 						<span class="card-body">
-							<h3>{c.label}</h3>
+							<h2>{c.label}</h2>
 							<p>{c.items.filter((i) => !i.pending).map((i) => i.name.split('：')[0]).join('、')}</p>
 						</span>
 					</a>
