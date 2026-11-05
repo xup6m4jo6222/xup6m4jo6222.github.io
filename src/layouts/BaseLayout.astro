@@ -153,8 +153,10 @@ const { title, backLink, motif } = Astro.props;
 
 				let fill = tl.querySelector('.tl-fill');
 				if (!fill) {
-					fill = document.createElement('div');
+					fill = document.createElement('li');
 					fill.className = 'tl-fill';
+					/* .tl 是 <ul>，直屬子元素只能是 <li>；這條填色線不是內容，對讀屏隱藏 */
+					fill.setAttribute('aria-hidden', 'true');
 					tl.appendChild(fill);
 				}
 

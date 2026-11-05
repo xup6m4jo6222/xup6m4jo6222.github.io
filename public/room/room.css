@@ -32,8 +32,9 @@ body.ready .topbar { opacity: 1; }
 /* 熱點 */
 #hotspots { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
 .hot { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 12px;
-  background: none; border: 0; padding: 10px; cursor: pointer; opacity: 0; transition: opacity .35s var(--ease); }
-.hot.on { opacity: 1; transition: opacity 1s var(--ease) .25s; }   /* 離開時快、回來時慢慢浮現 */
+  background: none; border: 0; padding: 10px; cursor: pointer; opacity: 0; visibility: hidden; transition: opacity .35s var(--ease), visibility 0s .35s; }
+.hot.on { opacity: 1; visibility: visible; transition: opacity 1s var(--ease) .25s, visibility 0s; }   /* 離開時快、回來時慢慢浮現 */
+/* visibility：看不見的熱點不該被 Tab 鍵選到（開場畫面時按 Tab 原本會先落在 7 個透明按鈕上）。淡出播完才藏，動態不變 */
 .hot.left { flex-direction: row-reverse; }
 /* 光點：實心小核＋柔光暈＋緩慢呼吸的細環 */
 .hot .dot { position: relative; width: 9px; height: 9px; border-radius: 50%; flex: none; background: #f4eef4;

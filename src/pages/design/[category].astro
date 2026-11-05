@@ -25,7 +25,7 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 			cat.items.map((item) =>
 				item.pending ? (
 					<article class="dz-card">
-						<h3>{item.name}</h3>
+						<h2>{item.name}</h2>
 						<p class="st-note">{t('design.cat.pending')}</p>
 					</article>
 				) : (
@@ -125,7 +125,7 @@ const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 							</figure>
 						)}
 						{/* ── 文字區（配角）── */}
-						<h3>{item.name}</h3>
+						<h2>{item.name}</h2>
 						<p class="st-note dz-value">{item.value}</p>
 						{item.why.map((w) => (
 							<p class="dz-why">
